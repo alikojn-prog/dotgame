@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<title>Triangle Duel</title>
+<style>
+  :root{
+    --bg:#10141f; --panel:#1b2233; --board:#fdfcf7; --ink:#222;
+    --p1:#e8453c; --p2:#2f7de1; --accent:#ffce3a; --muted:#8a93a8;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);color:#fff;overflow:hidden;
+    user-select:none;-webkit-user-select:none;
+    display:flex;flex-direction:column;height:100dvh;
+  }
+
+  /* ---------- Stage: P1 | board | P2 ---------- */
+  #stage{flex:1;display:flex;flex-direction:row;align-items:center;gap:12px;padding:12px;min-height:0;}
+
+  .pcol{flex:0 0 auto;align-self:center;display:flex;flex-direction:column;align-items:center;gap:10px;}
+  .pp-scoreline{font-size:17px;font-weight:700;color:#dfe3ec;letter-spacing:.3px;}
+  .pp{
+    background:var(--panel);border-radius:18px;padding:14px;
+    width:212px;flex:0 0 auto;align-self:center;
+    display:flex;flex-direction:column;gap:12px;
+    border:1px solid rgba(255,255,255,.06);
+    opacity:.45;transition:opacity .2s, box-shadow .25s;
+  }
+  .pp.active{opacity:1;}
+  .pp.p1.active{box-shadow:0 0 0 2px var(--p1), 0 0 24px rgba(232,69,60,.35);}
+  .pp.p2.active{box-shadow:0 0 0 2px var(--p2), 0 0 24px rgba(47,125,225,.35);}
+  .pp-top{display:flex;align-items:center;gap:10px;}
+  .pp-logo{font-size:30px;line-height:1;}
+  .pp-meta{display:flex;flex-direction:column;line-height:1.2;min-width:0;}
+  .pp-name{
+    font-weight:700;font-size:15px;cursor:pointer;
+    border-bottom:1px dashed transparent;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .pp-name:hover{border-bottom-color:var(--muted);}
+  .pp-name::after{content:" ✎";font-size:11px;color:var(--muted);}
+  .pp-sub{font-size:12px;color:var(--muted);}
+  .pp-sub b{color:#fff;font-size:15px;}
+  .pp-action{display:flex;flex-direction:column;align-items:center;gap:10px;}
+  .pp-msg{font-size:13px;color:var(--muted);text-align:center;min-height:17px;}
+  .pp.active .pp-msg{color:#fff;font-weight:600;}
+
+  /* ---------- Board ---------- */
+  #boardwrap{flex:1;display:flex;align-items:center;justify-content:center;min-height:0;min-width:0;height:100%;}
+  #board{background:var(--board);border-radius:18px;width:100%;height:100%;max-width:620px;
+    box-shadow:0 10px 30px rgba(0,0,0,.45);touch-action:none;}
+  .hit{fill:transparent;cursor:pointer;}
+  .dot{transition:r .12s;}
+  .dot-sel{stroke:var(--accent);stroke-width:5;}
+  .edge{stroke-linecap:round;}
+  .tri-label{text-anchor:middle;dominant-baseline:central;}
+
+  /* ---------- Dice ---------- */
+  .die{width:64px;height:64px;background:#fff;border-radius:14px;
+    display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);padding:9px;gap:2px;
+    box-shadow:0 6px 14px rgba(0,0,0,.4);}
+  .die .pip{width:12px;height:12px;border-radius:50%;background:#222;align-self:center;justify-self:center;}
+  .die.rolling{animation:shake .25s linear infinite;}
+  @keyframes shake{0%{transform:translate(0,0) rotate(0)}25%{transform:translate(-3px,2px) rotate(-7deg)}
+    50%{transform:translate(3px,-2px) rotate(6deg)}75%{transform:translate(-2px,-2px) rotate(-4deg)}100%{transform:translate(0,0) rotate(0)}}
+
+  /* ---------- Dice history ---------- */
+  #dicelog{padding:4px 14px 8px;display:flex;flex-direction:column;gap:5px;}
+  .dlrow{display:flex;align-items:center;gap:8px;}
+  .dl-logo{font-size:17px;flex:0 0 auto;width:22px;text-align:center;}
+  .dl-scroll{flex:1;overflow-x:auto;min-width:0;}
+  .dl-scroll::-webkit-scrollbar{display:none;}
+  .dl-chips{display:flex;gap:4px;}
+  .chip{flex:0 0 auto;min-width:22px;height:22px;padding:0 4px;border-radius:6px;
+    display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;
+    background:#1b2233;border:1.5px solid #2a3349;color:#fff;}
+  .dlrow.p1 .chip{border-color:var(--p1);}
+  .dlrow.p2 .chip{border-color:var(--p2);}
+  .dl-total{flex:0 0 auto;font-size:11px;color:var(--muted);min-width:34px;text-align:right;}
+
+  /* ---------- Buttons ---------- */
+  button{font-family:inherit;border:none;border-radius:14px;padding:12px 18px;font-size:15px;font-weight:600;
+    color:#10141f;background:var(--accent);cursor:pointer;transition:transform .1s, filter .1s;}
+  button:active{transform:scale(.96);}
+  button.ghost{background:#2a3349;color:#fff;}
+  button.ghost:active{filter:brightness(1.2);}
+
+  /* ---------- Toast ---------- */
+  .toast{position:fixed;left:50%;top:14px;transform:translateX(-50%);background:var(--accent);color:#10141f;
+    font-weight:700;padding:10px 18px;border-radius:30px;font-size:14px;z-index:30;opacity:0;
+    transition:opacity .25s, top .25s;pointer-events:none;box-shadow:0 6px 16px rgba(0,0,0,.3);white-space:nowrap;}
+  .toast.show{opacity:1;top:22px;}
+
+  /* ---------- Brand logo (top-left during play) ---------- */
+  #brand-logo{position:fixed;top:calc(env(safe-area-inset-top) + 10px);left:14px;z-index:18;
+    height:90px;width:auto;pointer-events:none;opacity:.92;}
+
+  /* ---------- Help button ---------- */
+  #btn-help{position:fixed;top:calc(env(safe-area-inset-top) + 10px);right:12px;z-index:18;
+    width:38px;height:38px;border-radius:50%;padding:0;font-size:19px;font-weight:700;
+    background:#2a3349;color:#fff;box-shadow:0 4px 12px rgba(0,0,0,.4);}
+
+  /* ---------- Overlays ---------- */
+  .overlay{position:fixed;inset:0;background:rgba(8,11,18,.86);backdrop-filter:blur(6px);
+    display:flex;align-items:center;justify-content:center;padding:24px;z-index:20;}
+  .overlay.hidden{display:none;}
+
+  /* ---------- Game-over result bar (below the board) ---------- */
+  #resultbar{
+    padding:10px 14px calc(env(safe-area-inset-bottom) + 12px);
+    display:flex;flex-direction:column;align-items:center;gap:10px;
+    background:var(--panel);border-top:1px solid rgba(255,255,255,.08);
+  }
+  #resultbar.hidden{display:none;}
+  #result-text{font-size:17px;font-weight:700;text-align:center;}
+  #rollnote{padding:10px 14px;text-align:center;font-size:15px;font-weight:700;color:var(--accent);}
+  #rollnote.hidden{display:none;}
+  .card{background:var(--panel);border-radius:22px;padding:24px;width:100%;max-width:380px;text-align:center;
+    box-shadow:0 20px 50px rgba(0,0,0,.5);}
+  .card h1{margin:0 0 4px;font-size:26px;}
+  .card h2{margin:0 0 14px;font-size:20px;}
+  .card p{color:var(--muted);font-size:14px;margin:6px 0 18px;}
+  .winnerlogo{font-size:56px;margin:6px 0;}
+  .hint{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.4;}
+  .row{display:flex;gap:10px;align-items:center;justify-content:center;}
+
+  .levels{display:flex;flex-direction:column;gap:10px;margin:14px 0 4px;}
+  .lvl{display:flex;flex-direction:column;align-items:center;gap:2px;padding:16px;background:#10141f;color:#fff;
+    border:2px solid #2a3349;border-radius:14px;}
+  .lvl b{font-size:18px;} .lvl span{font-size:12px;color:var(--muted);font-weight:400;}
+  .lvl:active{border-color:var(--accent);transform:scale(.97);}
+  .airow{display:flex;gap:8px;justify-content:center;}
+  .ai-opt{flex:1;background:#10141f;color:#fff;border:2px solid #2a3349;border-radius:12px;
+    padding:11px;font-size:14px;font-weight:600;}
+  .ai-opt.sel{border-color:var(--accent);}
+
+  .pickrow{margin:16px 0;}
+  .pickrow .lbl{font-size:13px;color:var(--muted);margin-bottom:6px;}
+  .pickrow .lbl b.p1{color:var(--p1);} .pickrow .lbl b.p2{color:var(--p2);}
+  .names{display:flex;gap:8px;justify-content:center;}
+  .nameinput{width:50%;padding:10px;border-radius:10px;border:2px solid #2a3349;background:#10141f;color:#fff;
+    font-size:15px;font-family:inherit;text-align:center;}
+  .nameinput.p1{border-color:rgba(232,69,60,.6);} .nameinput.p2{border-color:rgba(47,125,225,.6);}
+  .nameinput:focus{outline:none;border-color:var(--accent);}
+  .picker{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:10px 0 4px;}
+  .emoji{font-size:26px;width:50px;height:50px;border-radius:12px;background:#10141f;display:flex;align-items:center;
+    justify-content:center;cursor:pointer;border:2px solid transparent;transition:transform .1s;}
+  .emoji:active{transform:scale(.9);}
+  .emoji.sel-p1{border-color:var(--p1);} .emoji.sel-p2{border-color:var(--p2);}
+  .emoji.taken{opacity:.3;pointer-events:none;}
+
+  /* ---------- Narrow / portrait: stack P1 (top), board, P2 (bottom) ---------- */
+  @media (max-width:760px){
+    #brand-logo{height:60px;}
+    #stage{flex-direction:column;gap:6px;padding:74px 8px 8px;}
+    .pcol{align-self:stretch;gap:4px;}
+    .pp{width:auto;align-self:stretch;flex-direction:row;align-items:center;justify-content:space-between;
+      padding:10px 14px;gap:10px;}
+    .pp-action{flex-direction:row;gap:10px;}
+    .pp-msg{min-height:0;}
+    .die{width:46px;height:46px;padding:6px;}
+    .die .pip{width:8px;height:8px;}
+    button{padding:10px 14px;}
+  }
+</style>
+</head>
+<body>
+
+  <img id="brand-logo" src="doTriangle_logo_v3.svg" alt="doTriangle" />
+  <button id="btn-help" title="How to play">?</button>
+
+  <div id="stage">
+    <!-- Player 1 column -->
+    <div class="pcol">
+    <div class="pp p1" id="pp1">
+      <div class="pp-top">
+        <span class="pp-logo" id="pp1-logo">⭐️</span>
+        <div class="pp-meta">
+          <span class="pp-name" id="pp1-name">Player 1</span>
+          <span class="pp-sub"><b id="pp1-moves">0</b> moves</span>
+        </div>
+      </div>
+      <div class="pp-action">
+        <div class="die" id="pp1-die"></div>
+        <div class="pp-msg" id="pp1-msg"></div>
+        <button id="pp1-btn">Tap to roll</button>
+      </div>
+    </div>
+    <div class="pp-scoreline" id="pp1-scoreline">Score 0</div>
+    </div>
+
+    <!-- Board -->
+    <div id="boardwrap">
+      <svg id="board" viewBox="0 0 600 800" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+        <g id="g-tri"></g><g id="g-edge"></g><g id="g-dot"></g><g id="g-trilabel"></g><g id="g-drag"></g>
+      </svg>
+    </div>
+
+    <!-- Player 2 column -->
+    <div class="pcol">
+    <div class="pp p2" id="pp2">
+      <div class="pp-top">
+        <span class="pp-logo" id="pp2-logo">🔥</span>
+        <div class="pp-meta">
+          <span class="pp-name" id="pp2-name">Player 2</span>
+          <span class="pp-sub"><b id="pp2-moves">0</b> moves</span>
+        </div>
+      </div>
+      <div class="pp-action">
+        <div class="die" id="pp2-die"></div>
+        <div class="pp-msg" id="pp2-msg"></div>
+        <button id="pp2-btn">Tap to roll</button>
+      </div>
+    </div>
+    <div class="pp-scoreline" id="pp2-scoreline">Score 0</div>
+    </div>
+  </div>
+
+  <!-- Dice history -->
+  <div id="dicelog">
+    <div class="dlrow p1" id="dl1"><span class="dl-logo">⭐️</span><div class="dl-scroll"><div class="dl-chips"></div></div><span class="dl-total"></span></div>
+    <div class="dlrow p2" id="dl2"><span class="dl-logo">🔥</span><div class="dl-scroll"><div class="dl-chips"></div></div><span class="dl-total"></span></div>
+  </div>
+
+  <!-- ===== Rules ===== -->
+  <div class="overlay hidden" id="ov-rules">
+    <div class="card" style="max-width:430px;max-height:84vh;overflow:auto;text-align:left">
+      <h2 style="text-align:center">How to play</h2>
+      <p style="color:#d4d9e4;font-size:14px;line-height:1.55;margin:6px 0 16px">
+        <b>Goal:</b> claim more triangles than your opponent.<br><br>
+        • Two players take turns. An opening roll-off decides who starts — highest roll goes first.<br>
+        • On your turn, <b>roll the dice</b> by shaking the phone, pressing the <b>spacebar</b>, or tapping <b>Tap to roll</b>.<br>
+        • The number you roll is how many <b>lines</b> you may draw. Connect two dots by <b>tapping</b> one then the other, or by <b>dragging</b> from one dot to the other.<br>
+        • Lines <b>can't cross</b> another line or pass through a dot.<br>
+        • Close a <b>triangle</b> (three dots joined by three lines) to claim it — your logo fills it and your <b>Score</b> goes up by one.<br>
+        • The game ends when every dot has at least one line. <b>Most triangles wins!</b>
+      </p>
+      <div style="background:#10141f;border-radius:12px;padding:12px;font-size:13px;color:#cfd5e2;margin-bottom:16px">
+        💡 <b>Tip:</b> the quickest way to roll on a computer is to just tap the <b>spacebar</b>. On iPhone, give the phone a <b>shake</b>.
+      </div>
+      <button id="rules-close">Got it</button>
+    </div>
+  </div>
+
+  <!-- Roll-off note (shown until the game starts) -->
+  <div id="rollnote" class="hidden">🎲 Both players roll the dice — highest roll starts!</div>
+
+  <!-- Game-over result bar (board stays fully visible above it) -->
+  <div id="resultbar" class="hidden">
+    <div id="result-text"></div>
+    <div class="row">
+      <button id="end-again">Play again</button>
+      <button class="ghost" id="end-logos">Change players</button>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <!-- ===== Mode select (first page) ===== -->
+  <div class="overlay" id="ov-mode">
+    <div class="card">
+      <img src="doTriangle_logo_v3.svg" alt="doTriangle" style="width:300px;max-width:100%;height:auto;display:block;margin:2px auto 10px" />
+      <p>Claim more triangles than your opponent. Choose how you want to play.</p>
+      <div class="levels">
+        <button class="lvl" id="mode-solo"><b>Solo vs Computer</b><span>play against the AI</span></button>
+        <button class="lvl" id="mode-2p"><b>2 Players</b><span>pass &amp; play on one device</span></button>
+      </div>
+      <div class="row" style="margin-top:12px"><button class="ghost" id="rules-mode">How to play</button></div>
+    </div>
+  </div>
+
+  <!-- ===== Level select ===== -->
+  <div class="overlay hidden" id="ov-level">
+    <div class="card">
+      <h1>Choose difficulty</h1>
+      <p>More dots means a longer, tougher game.</p>
+      <div class="levels">
+        <button class="lvl" data-n="10"><b>Beginner</b><span>10 dots</span></button>
+        <button class="lvl" data-n="20"><b>Medium</b><span>20 dots</span></button>
+        <button class="lvl" data-n="40"><b>Hard</b><span>40 dots</span></button>
+      </div>
+      <div class="row" style="margin-top:12px"><button class="ghost" id="btn-backmode">‹ Back</button><button class="ghost" id="rules-level">How to play</button></div>
+    </div>
+  </div>
+
+  <!-- ===== Setup (names + logos) ===== -->
+  <div class="overlay hidden" id="ov-setup">
+    <div class="card">
+      <h1>Players</h1>
+      <p>Level: <b id="setup-level">Beginner · 10 dots</b></p>
+      <div class="pickrow">
+        <div class="lbl" id="names-lbl">Names</div>
+        <div class="names">
+          <input class="nameinput p1" id="name1" maxlength="14" placeholder="Player 1" />
+          <input class="nameinput p2" id="name2" maxlength="14" placeholder="Player 2" />
+        </div>
+      </div>
+      <div class="pickrow" id="ai-row" style="display:none">
+        <div class="lbl">Computer difficulty</div>
+        <div class="airow">
+          <button class="ai-opt" data-ai="easy">Easy</button>
+          <button class="ai-opt" data-ai="medium">Medium</button>
+          <button class="ai-opt" data-ai="hard">Hard</button>
+        </div>
+      </div>
+      <div class="pickrow">
+        <div class="lbl">Logo for <b class="p1">Player 1</b></div>
+        <div class="picker" id="picker1"></div>
+      </div>
+      <div class="pickrow" id="p2-logo-row">
+        <div class="lbl">Logo for <b class="p2">Player 2</b></div>
+        <div class="picker" id="picker2"></div>
+      </div>
+      <button id="btn-start">Start game</button>
+      <div class="row" style="margin-top:10px"><button class="ghost" id="btn-backlevel">‹ Change level</button><button class="ghost" id="rules-setup">How to play</button></div>
+      <div class="hint">Tip: on iPhone you'll be asked to allow Motion so shaking rolls the dice. There's always a "Tap to roll" button too. You can also tap a player's name during the game to rename them.</div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  "use strict";
+
+  var EMOJIS=["⭐️","🔥","❤️","🚀","🐱","🍕","⚡️","🌙","🎯","🦄","🐙","🍀"];
+  var DEFAULT_DOTS=10;
+  var VB={w:600,h:800,margin:60};
+
+  var S={
+    phase:"setup",            // setup | rolloff | turn | drawing | end
+    numDots:DEFAULT_DOTS,
+    dotR:9, hitR:28, labelSize:34,
+    logos:[null,null],
+    names:["Player 1","Player 2"],
+    scores:[0,0],
+    moves:[0,0],
+    history:[[],[]],
+    current:0,
+    dots:[], edges:{}, triangles:[], scoredTri:{},
+    linesLeft:0, selected:null,
+    roMatrix:[null,null], roWho:0,
+    rolling:false,
+    vsComputer:false, aiPlayer:1, aiLevel:"medium"
+  };
+
+  // ---------- helpers ----------
+  function $(id){return document.getElementById(id);}
+  function svgEl(tag,attrs){var e=document.createElementNS("http://www.w3.org/2000/svg",tag);for(var k in attrs){e.setAttribute(k,attrs[k]);}return e;}
+  function colorVar(i){return i===0?"#e8453c":"#2f7de1";}
+  function pname(i){return S.names[i]||("Player "+(i+1));}
+  function panelDie(i){return $("pp"+(i+1)+"-die");}
+
+  // ---------- dice rendering ----------
+  var PIPS={1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
+  function renderDie(el,n){el.innerHTML="";var on=PIPS[n]||[];for(var i=0;i<9;i++){var c=document.createElement("div");if(on.indexOf(i)>-1){var p=document.createElement("div");p.className="pip";c.appendChild(p);}el.appendChild(c);}}
+  function animateDie(el,done){
+    playSound(sndDice);
+    el.classList.add("rolling");
+    var count=0, iv=setInterval(function(){
+      renderDie(el,1+Math.floor(Math.random()*6)); count++;
+      if(count>9){clearInterval(iv);el.classList.remove("rolling");var n=1+Math.floor(Math.random()*6);renderDie(el,n);done(n);}
+    },70);
+  }
+  function buzz(ms){
+    try{
+      var Cap=window.Capacitor;
+      if(Cap&&Cap.Plugins&&Cap.Plugins.Haptics){            // native app: real haptics
+        var H=Cap.Plugins.Haptics;
+        if(Array.isArray(ms)) H.notification({type:"SUCCESS"});
+        else H.impact({style:"LIGHT"});
+        return;
+      }
+      if(navigator.vibrate) navigator.vibrate(ms);            // browser fallback (Android)
+    }catch(e){}
+  }
+
+  // ---------- sound ----------
+  var sndDice=new Audio("Dice.mp3"), sndWin=new Audio("win_point.mp3"), sndFanfare=new Audio("Fa.mp3");
+  sndDice.preload="auto"; sndWin.preload="auto"; sndFanfare.preload="auto";
+  var audioReady=false;
+  function primeAudio(){ // unlock on a user gesture so shake-triggered rolls can play
+    if(audioReady) return; audioReady=true;
+    [sndDice,sndWin,sndFanfare].forEach(function(a){
+      var v=a.volume; a.volume=0;
+      var p=a.play();
+      if(p&&p.then){p.then(function(){a.pause();a.currentTime=0;a.volume=v;}).catch(function(){a.volume=v;});}
+      else{a.volume=v;}
+    });
+  }
+  function playSound(a){try{a.currentTime=0;var p=a.play();if(p&&p.catch)p.catch(function(){});}catch(e){}}
+  function toast(msg){var t=$("toast");t.textContent=msg;t.classList.add("show");clearTimeout(toast._t);toast._t=setTimeout(function(){t.classList.remove("show");},1700);}
+
+  // ---------- motion (shake) ----------
+  var rollArmed=false, prevMag=null, lastRoll=0, motionBound=false, onRollFn=null;
+  function handleMotion(e){
+    if(!rollArmed) return;
+    var a=e.accelerationIncludingGravity||e.acceleration; if(!a) return;
+    var mag=Math.sqrt((a.x||0)*(a.x||0)+(a.y||0)*(a.y||0)+(a.z||0)*(a.z||0));
+    if(prevMag!==null){var d=Math.abs(mag-prevMag);if(d>16 && Date.now()-lastRoll>900){lastRoll=Date.now();if(onRollFn)onRollFn();}}
+    prevMag=mag;
+  }
+  function enableMotion(){
+    function bind(){if(!motionBound){window.addEventListener("devicemotion",handleMotion);motionBound=true;}}
+    try{
+      if(typeof DeviceMotionEvent!=="undefined" && typeof DeviceMotionEvent.requestPermission==="function"){
+        DeviceMotionEvent.requestPermission().then(function(r){if(r==="granted")bind();}).catch(function(){});
+      } else { bind(); }
+    }catch(e){}
+  }
+  function armRoll(fn){rollArmed=true;onRollFn=fn;prevMag=null;}
+  function disarmRoll(){rollArmed=false;onRollFn=null;}
+
+  // ---------- board generation ----------
+  function genDots(){
+    var n=S.numDots, uW=VB.w-2*VB.margin, uH=VB.h-2*VB.margin;
+    var minDist=Math.max(34, Math.sqrt((uW*uH)/n)*0.62);
+    S.dotR=Math.max(6,Math.min(10,minDist*0.16));
+    S.hitR=Math.max(15,Math.min(30,minDist*0.5));
+    S.labelSize=Math.max(15,Math.min(34,minDist*0.34));
+    var d=[],tries=0,maxTries=n*800,md2=minDist*minDist;
+    while(d.length<n && tries<maxTries){
+      tries++;
+      var x=VB.margin+Math.random()*uW, y=VB.margin+Math.random()*uH, ok=true;
+      for(var i=0;i<d.length;i++){var dx=d[i].x-x,dy=d[i].y-y;if(dx*dx+dy*dy<md2){ok=false;break;}}
+      if(ok) d.push({x:x,y:y});
+    }
+    while(d.length<n){d.push({x:VB.margin+Math.random()*uW,y:VB.margin+Math.random()*uH});}
+    S.dots=d;
+  }
+  function drawBoard(){
+    var gd=$("g-dot"),ge=$("g-edge"),gt=$("g-tri"),gl=$("g-trilabel");
+    gd.innerHTML="";ge.innerHTML="";gt.innerHTML="";gl.innerHTML="";
+    S.triangles.forEach(function(t){
+      var pts=[S.dots[t.a],S.dots[t.b],S.dots[t.c]];
+      gt.appendChild(svgEl("polygon",{points:pts.map(function(p){return p.x+","+p.y;}).join(" "),
+        fill:colorVar(t.player),"fill-opacity":"0.22",stroke:colorVar(t.player),"stroke-width":"3","stroke-linejoin":"round"}));
+      var cx=(pts[0].x+pts[1].x+pts[2].x)/3, cy=(pts[0].y+pts[1].y+pts[2].y)/3;
+      var lbl=svgEl("text",{x:cx,y:cy,class:"tri-label","font-size":S.labelSize});lbl.textContent=S.logos[t.player];gl.appendChild(lbl);
+    });
+    for(var key in S.edges){var ij=key.split("-"),a=S.dots[+ij[0]],b=S.dots[+ij[1]];
+      ge.appendChild(svgEl("line",{x1:a.x,y1:a.y,x2:b.x,y2:b.y,class:"edge",stroke:colorVar(S.edges[key]),"stroke-width":"4"}));}
+    S.dots.forEach(function(p,i){
+      gd.appendChild(svgEl("circle",{cx:p.x,cy:p.y,r:S.dotR,class:"dot"+(S.selected===i?" dot-sel":""),fill:"#222"}));
+      var hit=svgEl("circle",{cx:p.x,cy:p.y,r:S.hitR,class:"hit"});
+      hit.addEventListener("click",function(){onDotTap(i);});
+      gd.appendChild(hit);
+    });
+  }
+
+  // ---------- drawing / scoring ----------
+  function edgeKey(i,j){return i<j?i+"-"+j:j+"-"+i;}
+  function hasEdge(i,j){return Object.prototype.hasOwnProperty.call(S.edges,edgeKey(i,j));}
+
+  // geometry: would a line a-b cross an existing line or run through another dot?
+  function orient(p,q,r){return (q.x-p.x)*(r.y-p.y)-(q.y-p.y)*(r.x-p.x);}
+  function onSeg(p,q,r){
+    return Math.min(p.x,r.x)-0.001<=q.x && q.x<=Math.max(p.x,r.x)+0.001 &&
+           Math.min(p.y,r.y)-0.001<=q.y && q.y<=Math.max(p.y,r.y)+0.001;
+  }
+  function segCross(p1,p2,p3,p4){
+    var d1=orient(p3,p4,p1), d2=orient(p3,p4,p2), d3=orient(p1,p2,p3), d4=orient(p1,p2,p4);
+    if(((d1>0&&d2<0)||(d1<0&&d2>0)) && ((d3>0&&d4<0)||(d3<0&&d4>0))) return true; // proper crossing
+    var e=1e-6;
+    if(Math.abs(d1)<e&&onSeg(p3,p1,p4)) return true;
+    if(Math.abs(d2)<e&&onSeg(p3,p2,p4)) return true;
+    if(Math.abs(d3)<e&&onSeg(p1,p3,p2)) return true;
+    if(Math.abs(d4)<e&&onSeg(p1,p4,p2)) return true;
+    return false;
+  }
+  function crossesExisting(a,b){
+    var p1=S.dots[a], p2=S.dots[b], len=Math.hypot(p2.x-p1.x,p2.y-p1.y)||1;
+    for(var c=0;c<S.dots.length;c++){ // line must not pass through a third dot
+      if(c===a||c===b) continue;
+      var pc=S.dots[c];
+      if(Math.abs(orient(p1,p2,pc))/len < S.dotR && onSeg(p1,pc,p2)) return true;
+    }
+    for(var key in S.edges){ // line must not cross an existing edge (shared dot is OK)
+      var ij=key.split("-"), i=+ij[0], j=+ij[1];
+      if(i===a||i===b||j===a||j===b) continue;
+      if(segCross(p1,p2,S.dots[i],S.dots[j])) return true;
+    }
+    return false;
+  }
+  // shared by tap and drag
+  function commitLine(a,b){
+    if(S.phase!=="drawing"||a===b) return false;
+    if(hasEdge(a,b)){toast("Line already drawn");return false;}
+    if(crossesExisting(a,b)){toast("Lines can't cross");return false;}
+    S.edges[edgeKey(a,b)]=S.current; S.selected=null;
+    S.moves[S.current]++;
+    var made=checkTriangles(a,b);
+    S.linesLeft--;
+    drawBoard(); updatePanels();
+    buzz(made>0?[30,40,30]:12);
+    if(made>0){playSound(sndWin);toast(made+" triangle"+(made>1?"s":"")+"! +"+made);}
+    if(allConnected()){endGame();return true;}
+    if(S.linesLeft<=0){setTimeout(nextTurn,420);}
+    return true;
+  }
+  function onDotTap(i){
+    if(S.phase!=="drawing"||isAiTurn()) return;
+    if(S.selected===null){S.selected=i;drawBoard();return;}
+    if(S.selected===i){S.selected=null;drawBoard();return;}
+    var a=S.selected;
+    if(!commitLine(a,i)){S.selected=a;drawBoard();} // keep first dot selected to retry on failure
+  }
+
+  // ---------- drag to draw (press a dot, drag to another, release) ----------
+  var board=$("board"), dragStart=-1, dragMoved=false;
+  function clientToSvg(x,y){
+    var ctm=board.getScreenCTM(); if(!ctm) return null;
+    var pt=board.createSVGPoint(); pt.x=x; pt.y=y;
+    var p=pt.matrixTransform(ctm.inverse()); return {x:p.x,y:p.y};
+  }
+  function dotAt(p){
+    var best=-1,bestd=0,lim=S.hitR*S.hitR*1.7;
+    for(var i=0;i<S.dots.length;i++){var dx=S.dots[i].x-p.x,dy=S.dots[i].y-p.y,d2=dx*dx+dy*dy;if(d2<lim&&(best<0||d2<bestd)){best=i;bestd=d2;}}
+    return best;
+  }
+  function drawRubber(a,p){
+    var g=$("g-drag"); g.innerHTML="";
+    g.appendChild(svgEl("line",{x1:a.x,y1:a.y,x2:p.x,y2:p.y,stroke:colorVar(S.current),
+      "stroke-width":"4","stroke-dasharray":"9 9","stroke-linecap":"round",opacity:"0.75"}));
+  }
+  function clearRubber(){$("g-drag").innerHTML="";}
+  function onPointerDown(e){
+    if(S.phase!=="drawing"||isAiTurn()) return;
+    var p=clientToSvg(e.clientX,e.clientY); if(!p) return;
+    var i=dotAt(p); if(i<0) return;
+    dragStart=i; dragMoved=false;
+    window.addEventListener("pointermove",onPointerMove);
+    window.addEventListener("pointerup",onPointerUp);
+  }
+  function onPointerMove(e){
+    if(dragStart<0) return;
+    var p=clientToSvg(e.clientX,e.clientY); if(!p) return;
+    var dx=p.x-S.dots[dragStart].x, dy=p.y-S.dots[dragStart].y;
+    if(dx*dx+dy*dy>S.dotR*S.dotR) dragMoved=true; // ignore tiny jitter so taps still work
+    if(dragMoved) drawRubber(S.dots[dragStart],p);
+  }
+  function onPointerUp(e){
+    window.removeEventListener("pointermove",onPointerMove);
+    window.removeEventListener("pointerup",onPointerUp);
+    var start=dragStart; dragStart=-1; clearRubber();
+    if(start<0||!dragMoved) return;        // a tap → handled by the dot's click → onDotTap
+    var p=clientToSvg(e.clientX,e.clientY); if(!p) return;
+    var end=dotAt(p);
+    if(end<0||end===start){S.selected=null;drawBoard();return;}
+    S.selected=null; commitLine(start,end);
+  }
+  board.addEventListener("pointerdown",onPointerDown);
+  function checkTriangles(a,b){
+    var made=0;
+    for(var c=0;c<S.dots.length;c++){
+      if(c===a||c===b) continue;
+      if(hasEdge(a,c)&&hasEdge(b,c)){
+        var key=[a,b,c].sort(function(x,y){return x-y;}).join(",");
+        if(!S.scoredTri[key]){S.scoredTri[key]=true;S.triangles.push({a:a,b:b,c:c,player:S.current});S.scores[S.current]++;made++;}
+      }
+    }
+    return made;
+  }
+  function allConnected(){
+    var deg={};
+    for(var key in S.edges){var ij=key.split("-");deg[ij[0]]=1;deg[ij[1]]=1;}
+    for(var i=0;i<S.dots.length;i++){if(!deg[i])return false;}
+    return true;
+  }
+
+  // ---------- player panels ----------
+  function updatePanels(){
+    [0,1].forEach(function(idx){
+      var num=idx+1;
+      $("pp"+num+"-logo").textContent=S.logos[idx]||"";
+      $("pp"+num+"-name").textContent=pname(idx);
+      $("pp"+num+"-moves").textContent=S.moves[idx];
+      $("pp"+num+"-scoreline").textContent="Score "+S.scores[idx];
+      var pp=$("pp"+num), msg=$("pp"+num+"-msg"), btn=$("pp"+num+"-btn");
+      var isActive=false, showBtn=false, label="", handler=null, text="";
+
+      var ai=S.vsComputer && idx===S.aiPlayer;
+      if(S.phase==="rolloff"){
+        if(idx===S.roWho){
+          isActive=true;
+          if(S.roMatrix[idx]==null){text=ai?"Rolling…":"Shake or press space!";if(!ai){label="Tap to roll";handler=doRolloffRoll;showBtn=true;}}
+          else{text="Rolled "+S.roMatrix[idx];if(!ai){label="Next ›";handler=rolloffNext;showBtn=true;}}
+        } else {
+          text=S.roMatrix[idx]!=null?("Rolled "+S.roMatrix[idx]):"Waiting…";
+        }
+      } else if(S.phase==="turn"){
+        if(idx===S.current){isActive=true;text=ai?"Thinking…":"Your turn — shake or press space!";if(!ai){label="Tap to roll";handler=doTurnRoll;showBtn=true;}}
+        else{text="Waiting…";}
+      } else if(S.phase==="drawing"){
+        if(idx===S.current){isActive=true;text=ai?"Drawing…":("Draw "+S.linesLeft+" more line"+(S.linesLeft===1?"":"s"));if(!ai){label="End turn";handler=nextTurn;showBtn=true;}}
+        else{text="Waiting…";}
+      } else if(S.phase==="end"){
+        var mine=S.scores[idx], other=S.scores[1-idx];
+        if(mine>other){isActive=true;text="🏆 Winner!";}
+        else if(mine<other){text="Lost";}
+        else{text="Tie";}
+      }
+
+      pp.classList.toggle("active",isActive);
+      msg.textContent=text;
+      btn.style.display=showBtn?"":"none";
+      if(showBtn){btn.textContent=label;btn.onclick=handler;}
+    });
+  }
+
+  // ---------- dice history ----------
+  function renderDiceLog(){
+    [["dl1",0],["dl2",1]].forEach(function(p){
+      var row=$(p[0]),idx=p[1];
+      row.querySelector(".dl-logo").textContent=S.logos[idx]||"";
+      var chips=row.querySelector(".dl-chips");chips.innerHTML="";
+      var hist=S.history[idx],sum=0;
+      hist.forEach(function(v){sum+=v;var c=document.createElement("span");c.className="chip";c.textContent=v;chips.appendChild(c);});
+      row.querySelector(".dl-total").textContent=hist.length?("Σ "+sum):"";
+      var sc=row.querySelector(".dl-scroll");sc.scrollLeft=sc.scrollWidth;
+    });
+  }
+
+  // ---------- roll-off (who starts) ----------
+  function roTurn(){ // set up whoever is rolling next (auto for the computer)
+    if(S.vsComputer && S.roWho===S.aiPlayer){ disarmRoll(); setTimeout(doRolloffRoll,700); }
+    else { armRoll(doRolloffRoll); }
+  }
+  function startRolloff(){
+    S.phase="rolloff";S.roMatrix=[null,null];S.roWho=0;S.rolling=false;
+    renderDie(panelDie(0),1);renderDie(panelDie(1),1);
+    $("rollnote").classList.remove("hidden");
+    updatePanels();
+    toast(S.vsComputer?"Roll-off — highest starts!":"Both players roll — highest starts!");
+    roTurn();
+  }
+  function doRolloffRoll(){
+    if(S.rolling||S.phase!=="rolloff"||S.roMatrix[S.roWho]!=null) return;
+    S.rolling=true;disarmRoll();
+    var who=S.roWho;
+    animateDie(panelDie(who),function(n){
+      S.roMatrix[who]=n;buzz(20);S.rolling=false;updatePanels();
+      if(S.vsComputer && who===S.aiPlayer){ setTimeout(rolloffNext,1000); }
+    });
+  }
+  function rolloffNext(){
+    if(S.roWho===0){S.roWho=1;updatePanels();roTurn();return;}
+    if(S.roMatrix[0]===S.roMatrix[1]){
+      toast("Tie! Roll again");S.roMatrix=[null,null];S.roWho=0;
+      renderDie(panelDie(0),1);renderDie(panelDie(1),1);updatePanels();roTurn();return;
+    }
+    S.current=S.roMatrix[0]>S.roMatrix[1]?0:1;
+    startTurn();
+  }
+
+  // ---------- turns ----------
+  function startTurn(){
+    if(allConnected()){endGame();return;}
+    $("rollnote").classList.add("hidden");
+    S.phase="turn";S.selected=null;S.rolling=false;
+    renderDie(panelDie(S.current),1);
+    drawBoard();updatePanels();
+    toast("▶ "+pname(S.current)+"'s turn");
+    if(isAiTurn()){ disarmRoll(); setTimeout(doTurnRoll,850); }
+    else { armRoll(doTurnRoll); }
+  }
+  function doTurnRoll(){
+    if(S.rolling||S.phase!=="turn") return;
+    S.rolling=true;disarmRoll();
+    var who=S.current;
+    animateDie(panelDie(who),function(n){
+      buzz(20);S.history[who].push(n);renderDiceLog();
+      S.linesLeft=n;S.phase="drawing";S.rolling=false;
+      updatePanels();
+      toast("Rolled "+n+" — draw "+n+" line"+(n>1?"s":""));
+      if(S.vsComputer && who===S.aiPlayer){ setTimeout(aiDrawStep,750); }
+    });
+  }
+  function nextTurn(){
+    if(allConnected()){endGame();return;}
+    S.current=1-S.current;
+    startTurn();
+  }
+
+  // ---------- AI opponent ----------
+  function isAiTurn(){ return S.vsComputer && S.current===S.aiPlayer; }
+  function legalMoves(){
+    var L=[];
+    for(var i=0;i<S.dots.length;i++) for(var j=i+1;j<S.dots.length;j++){
+      if(hasEdge(i,j)) continue;
+      if(crossesExisting(i,j)) continue;
+      L.push([i,j]);
+    }
+    return L;
+  }
+  function newTriCount(a,b){
+    var c=0; for(var k=0;k<S.dots.length;k++){ if(k===a||k===b) continue; if(hasEdge(a,k)&&hasEdge(b,k)) c++; } return c;
+  }
+  function aiPickMove(){
+    var L=legalMoves(); if(!L.length) return null;
+    if(S.aiLevel==="easy"){ return L[(Math.random()*L.length)|0]; }
+    var bestTri=0, claim=[];
+    for(var i=0;i<L.length;i++){ var t=newTriCount(L[i][0],L[i][1]);
+      if(t>bestTri){bestTri=t;claim=[L[i]];} else if(t===bestTri && t>0){claim.push(L[i]);} }
+    if(bestTri>0) return claim[(Math.random()*claim.length)|0];           // grab a triangle
+    if(S.aiLevel==="medium"){ return L[(Math.random()*L.length)|0]; }
+    var legalSet={}; L.forEach(function(m){legalSet[m[0]+"-"+m[1]]=1;});   // hard: avoid setting up the human
+    function legalPair(u,v){ return legalSet[(u<v?u+"-"+v:v+"-"+u)]?true:false; }
+    function danger(a,b){
+      var d=0;
+      for(var k=0;k<S.dots.length;k++){
+        if(k===a||k===b) continue;
+        var ac=hasEdge(a,k), bc=hasEdge(b,k);
+        if(ac!==bc){ var u=ac?b:a; if(legalPair(u,k)) d++; }
+      }
+      return d;
+    }
+    var bd=Infinity, safe=[];
+    for(var x=0;x<L.length;x++){ var dg=danger(L[x][0],L[x][1]);
+      if(dg<bd){bd=dg;safe=[L[x]];} else if(dg===bd){safe.push(L[x]);} }
+    return safe[(Math.random()*safe.length)|0];
+  }
+  function aiDrawStep(){
+    if(S.phase!=="drawing"||!isAiTurn()) return;
+    var m=aiPickMove();
+    if(!m){ nextTurn(); return; }                 // no legal move left: pass
+    if(!commitLine(m[0],m[1])){ nextTurn(); return; }
+    if(S.phase==="drawing" && isAiTurn() && S.linesLeft>0){ setTimeout(aiDrawStep,650); }
+  }
+
+  // ---------- end ----------
+  function endGame(){
+    S.phase="end";disarmRoll();S.rolling=false;updatePanels();
+    var a=S.scores[0],b=S.scores[1],score=S.logos[0]+" "+a+" &nbsp;—&nbsp; "+b+" "+S.logos[1];
+    if(a===b){$("result-text").innerHTML="🤝 It's a tie! &nbsp; "+score;}
+    else{var w=a>b?0:1;$("result-text").innerHTML=S.logos[w]+" "+pname(w)+" wins! &nbsp; "+score;buzz([40,60,40,60,80]);playSound(sndFanfare);}
+    $("resultbar").classList.remove("hidden");
+  }
+
+  // ---------- name editing ----------
+  function editName(idx){
+    var cur=S.names[idx];
+    var n=window.prompt("Name for player "+(idx+1)+":",cur);
+    if(n!==null){
+      n=(""+n).trim().slice(0,14)||("Player "+(idx+1));
+      if(n.toLowerCase()===(S.names[1-idx]||"").toLowerCase()){toast("That name is taken by the other player");return;}
+      S.names[idx]=n;updatePanels();renderDiceLog();
+    }
+  }
+  $("pp1-name").addEventListener("click",function(){editName(0);});
+  $("pp2-name").addEventListener("click",function(){editName(1);});
+
+  // ---------- setup: logo pickers ----------
+  function buildPickers(){
+    [["picker1",0],["picker2",1]].forEach(function(p){
+      var box=$(p[0]);box.innerHTML="";
+      EMOJIS.forEach(function(em){
+        var d=document.createElement("div");d.className="emoji";d.textContent=em;d.dataset.em=em;
+        d.addEventListener("click",function(){pickLogo(p[1],em);});box.appendChild(d);
+      });
+    });
+  }
+  function pickLogo(player,em){if(S.logos[1-player]===em)return;S.logos[player]=em;refreshPickers();}
+  function refreshPickers(){
+    [["picker1",0,"sel-p1"],["picker2",1,"sel-p2"]].forEach(function(p){
+      var box=$(p[0]);
+      Array.prototype.forEach.call(box.children,function(c){
+        var em=c.dataset.em;
+        c.classList.toggle(p[2],S.logos[p[1]]===em);
+        c.classList.toggle("taken",S.logos[1-p[1]]===em);
+      });
+    });
+  }
+
+  // ---------- level select ----------
+  var LEVELS={10:"Beginner",20:"Medium",40:"Hard"};
+  function setLevel(n){S.numDots=n;$("setup-level").textContent=(LEVELS[n]||"Custom")+" · "+n+" dots";}
+  Array.prototype.forEach.call(document.querySelectorAll(".lvl[data-n]"),function(b){
+    b.addEventListener("click",function(){setLevel(parseInt(b.dataset.n,10));hideOverlay("ov-level");showOverlay("ov-setup");});
+  });
+  $("btn-backlevel").addEventListener("click",function(){hideOverlay("ov-setup");showOverlay("ov-level");});
+
+  // ---------- new game / start ----------
+  function newBoard(){
+    S.scores=[0,0];S.moves=[0,0];S.edges={};S.triangles=[];S.scoredTri={};S.selected=null;
+    S.history=[[],[]];renderDiceLog();
+    $("resultbar").classList.add("hidden");
+    genDots();drawBoard();updatePanels();
+  }
+  function fullStart(){
+    enableMotion(); primeAudio();
+    if(!S.logos[0]||!S.logos[1]){toast("Both players pick a logo first");return;}
+    var n1=($("name1").value||"").trim().slice(0,14)||"Player 1";
+    if(S.vsComputer){
+      S.names[0]=n1; S.names[1]="Computer";
+    } else {
+      var n2=($("name2").value||"").trim().slice(0,14)||"Player 2";
+      if(n1.toLowerCase()===n2.toLowerCase()){toast("Players need different names");return;}
+      S.names[0]=n1; S.names[1]=n2;
+    }
+    hideOverlay("ov-setup");
+    newBoard();
+    startRolloff();
+  }
+  // ---------- mode + AI difficulty ----------
+  function applyMode(){
+    var solo=S.vsComputer, n1=$("name1"), n2=$("name2");
+    $("ai-row").style.display = solo ? "" : "none";
+    $("p2-logo-row").style.display = solo ? "none" : "";   // computer doesn't pick a logo
+    $("names-lbl").textContent = solo ? "Your name" : "Names";
+    if(solo){
+      n2.style.display="none";                              // only the human's name field
+      n1.style.width="100%";
+      S.logos[1]="🤖";                                      // computer is always the robot
+    } else {
+      n2.style.display=""; n1.style.width="";
+      if(n2.value==="Computer") n2.value="";
+      if(S.logos[1]==="🤖") S.logos[1]=(EMOJIS[1]===S.logos[0]?EMOJIS[0]:EMOJIS[1]);
+    }
+    refreshPickers();
+  }
+  function refreshAi(){
+    Array.prototype.forEach.call(document.querySelectorAll(".ai-opt"),function(b){
+      b.classList.toggle("sel", b.dataset.ai===S.aiLevel);
+    });
+  }
+  $("mode-solo").addEventListener("click",function(){S.vsComputer=true;applyMode();hideOverlay("ov-mode");showOverlay("ov-level");});
+  $("mode-2p").addEventListener("click",function(){S.vsComputer=false;applyMode();hideOverlay("ov-mode");showOverlay("ov-level");});
+  $("btn-backmode").addEventListener("click",function(){hideOverlay("ov-level");showOverlay("ov-mode");});
+  Array.prototype.forEach.call(document.querySelectorAll(".ai-opt"),function(b){
+    b.addEventListener("click",function(){S.aiLevel=b.dataset.ai;refreshAi();});
+  });
+
+  // ---------- overlays ----------
+  function showOverlay(id){$(id).classList.remove("hidden");}
+  function hideOverlay(id){$(id).classList.add("hidden");}
+
+  // ---------- keyboard: space rolls the dice ----------
+  document.addEventListener("keydown",function(e){
+    if(e.code==="Space"||e.key===" "||e.keyCode===32){
+      if(e.repeat) return;
+      // don't hijack space while typing a player name
+      var t=e.target;
+      if(t&&(t.tagName==="INPUT"||t.tagName==="TEXTAREA")) return;
+      if(rollArmed&&onRollFn){e.preventDefault();onRollFn();}
+    }
+  });
+
+  // ---------- rules ----------
+  function openRules(){showOverlay("ov-rules");}
+  $("btn-help").addEventListener("click",openRules);
+  $("rules-mode").addEventListener("click",openRules);
+  $("rules-level").addEventListener("click",openRules);
+  $("rules-setup").addEventListener("click",openRules);
+  $("rules-close").addEventListener("click",function(){hideOverlay("ov-rules");});
+
+  // ---------- wire up ----------
+  $("btn-start").addEventListener("click",fullStart);
+  $("end-again").addEventListener("click",function(){newBoard();startRolloff();});
+  $("end-logos").addEventListener("click",function(){
+    $("resultbar").classList.add("hidden");S.phase="setup";updatePanels();
+    $("name1").value=S.names[0];$("name2").value=S.names[1];
+    showOverlay("ov-setup");
+  });
+
+  // ---------- init ----------
+  buildPickers();
+  pickLogo(0,EMOJIS[0]);pickLogo(1,EMOJIS[1]);
+  setLevel(DEFAULT_DOTS);
+  refreshAi();
+  renderDie(panelDie(0),1);renderDie(panelDie(1),1);
+  renderDiceLog();updatePanels();
+})();
+</script>
+</body>
+</html>
