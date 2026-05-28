@@ -26,7 +26,7 @@
   .pp-scoreline{font-size:17px;font-weight:700;color:#dfe3ec;letter-spacing:.3px;}
   .pp{
     background:var(--panel);border-radius:18px;padding:14px;
-    width:212px;flex:0 0 auto;align-self:center;
+    width:196px;flex:0 0 auto;align-self:center;
     display:flex;flex-direction:column;gap:12px;
     border:1px solid rgba(255,255,255,.06);
     opacity:.45;transition:opacity .2s, box-shadow .25s;
@@ -51,7 +51,7 @@
 
   /* ---------- Board ---------- */
   #boardwrap{flex:1;display:flex;align-items:center;justify-content:center;min-height:0;min-width:0;height:100%;}
-  #board{background:var(--board);border-radius:18px;width:100%;height:100%;max-width:620px;
+  #board{background:var(--board);border-radius:18px;width:100%;height:100%;max-width:880px;
     box-shadow:0 10px 30px rgba(0,0,0,.45);touch-action:none;}
   .hit{fill:transparent;cursor:pointer;}
   .dot{transition:r .12s;}
@@ -195,7 +195,7 @@
 
     <!-- Board -->
     <div id="boardwrap">
-      <svg id="board" viewBox="0 0 600 800" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+      <svg id="board" viewBox="0 0 800 800" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
         <g id="g-tri"></g><g id="g-edge"></g><g id="g-dot"></g><g id="g-trilabel"></g><g id="g-drag"></g>
       </svg>
     </div>
@@ -243,6 +243,15 @@
         💡 <b>Tip:</b> the quickest way to roll on a computer is to just tap the <b>spacebar</b>. On iPhone, give the phone a <b>shake</b>.
       </div>
       <button id="rules-close">Got it</button>
+    </div>
+  </div>
+
+  <!-- ===== Roll-off intro (shown once when first game begins) ===== -->
+  <div class="overlay hidden" id="ov-rollintro">
+    <div class="card">
+      <h2>🎲 Who goes first?</h2>
+      <p>Each side rolls the dice once. Whoever rolls the higher number starts the game. Roll by tapping the button, pressing the spacebar, or shaking your phone.</p>
+      <button id="rollintro-ok">OK, let's roll!</button>
     </div>
   </div>
 
@@ -327,7 +336,7 @@
 
   var EMOJIS=["⭐️","🔥","❤️","🚀","🐱","🍕","⚡️","🌙","🎯","🦄","🐙","🍀"];
   var DEFAULT_DOTS=10;
-  var VB={w:600,h:800,margin:60};
+  var VB={w:800,h:800,margin:80};
 
   var S={
     phase:"setup",            // setup | rolloff | turn | drawing | end
@@ -586,7 +595,7 @@
         if(idx===S.roWho){
           isActive=true;
           if(S.roMatrix[idx]==null){text=ai?"Rolling…":"Shake or press space!";if(!ai){label="Tap to roll";handler=doRolloffRoll;showBtn=true;}}
-          else{text="Rolled "+S.roMatrix[idx];if(!ai){label="Next ›";handler=rolloffNext;showBtn=true;}}
+          else{text="Rolled "+S.roMatrix[idx];}                       // auto-advances — no Next button
         } else {
           text=S.roMatrix[idx]!=null?("Rolled "+S.roMatrix[idx]):"Waiting…";
         }
@@ -624,6 +633,7 @@
   }
 
   // ---------- roll-off (who starts) ----------
+  var introShown=false;
   function roTurn(){ // set up whoever is rolling next (auto for the computer)
     if(S.vsComputer && S.roWho===S.aiPlayer){ disarmRoll(); setTimeout(doRolloffRoll,700); }
     else { armRoll(doRolloffRoll); }
@@ -634,7 +644,8 @@
     $("rollnote").classList.remove("hidden");
     updatePanels();
     toast(S.vsComputer?"Roll-off — highest starts!":"Both players roll — highest starts!");
-    roTurn();
+    if(!introShown){ introShown=true; showOverlay("ov-rollintro"); }   // explain once
+    else { roTurn(); }
   }
   function doRolloffRoll(){
     if(S.rolling||S.phase!=="rolloff"||S.roMatrix[S.roWho]!=null) return;
@@ -642,7 +653,7 @@
     var who=S.roWho;
     animateDie(panelDie(who),function(n){
       S.roMatrix[who]=n;buzz(20);S.rolling=false;updatePanels();
-      if(S.vsComputer && who===S.aiPlayer){ setTimeout(rolloffNext,1000); }
+      setTimeout(rolloffNext,1200);                                     // auto-advance for everyone
     });
   }
   function rolloffNext(){
@@ -855,6 +866,7 @@
   $("rules-level").addEventListener("click",openRules);
   $("rules-setup").addEventListener("click",openRules);
   $("rules-close").addEventListener("click",function(){hideOverlay("ov-rules");});
+  $("rollintro-ok").addEventListener("click",function(){hideOverlay("ov-rollintro");roTurn();});
 
   // ---------- wire up ----------
   $("btn-start").addEventListener("click",fullStart);
