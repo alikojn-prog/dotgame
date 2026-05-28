@@ -120,7 +120,7 @@
   #rollnote{padding:10px 14px;text-align:center;font-size:15px;font-weight:700;color:var(--accent);}
   #rollnote.hidden{display:none;}
   .card{background:var(--panel);border-radius:22px;padding:24px;width:100%;max-width:380px;text-align:center;
-    box-shadow:0 20px 50px rgba(0,0,0,.5);}
+    box-shadow:0 20px 50px rgba(0,0,0,.5);max-height:calc(100dvh - 32px);overflow-y:auto;}
   .card h1{margin:0 0 4px;font-size:26px;}
   .card h2{margin:0 0 14px;font-size:20px;}
   .card p{color:var(--muted);font-size:14px;margin:6px 0 18px;}
@@ -155,16 +155,34 @@
 
   /* ---------- Narrow / portrait: stack P1 (top), board, P2 (bottom) ---------- */
   @media (max-width:760px){
-    #brand-logo{height:60px;}
-    #stage{flex-direction:column;gap:6px;padding:74px 8px 8px;}
+    #brand-logo{height:40px;top:calc(env(safe-area-inset-top) + 8px);left:8px;}
+    #btn-help{width:34px;height:34px;font-size:17px;top:calc(env(safe-area-inset-top) + 8px);right:8px;}
+    #stage{flex-direction:column;gap:6px;padding:calc(env(safe-area-inset-top) + 56px) 8px 8px;}
     .pcol{align-self:stretch;gap:4px;}
     .pp{width:auto;align-self:stretch;flex-direction:row;align-items:center;justify-content:space-between;
-      padding:10px 14px;gap:10px;}
+      padding:10px 12px;gap:10px;border-radius:14px;}
     .pp-action{flex-direction:row;gap:10px;}
-    .pp-msg{min-height:0;}
-    .die{width:46px;height:46px;padding:6px;}
+    .pp-msg{min-height:0;font-size:12px;}
+    .pp-logo{font-size:26px;}
+    .pp-scoreline{font-size:14px;}
+    .die{width:44px;height:44px;padding:5px;border-radius:10px;}
     .die .pip{width:8px;height:8px;}
-    button{padding:10px 14px;}
+    button{padding:10px 14px;font-size:14px;}
+    .card{padding:18px;border-radius:18px;}
+    .card h1{font-size:22px;} .card h2{font-size:18px;}
+    .card p{font-size:13px;margin:4px 0 14px;}
+    .emoji{width:44px;height:44px;font-size:22px;}
+    .lvl{padding:14px;}
+    .nameinput{padding:10px;font-size:14px;}
+    #host-code{font-size:30px!important;letter-spacing:4px!important;margin:12px 0!important;}
+  }
+  @media (max-width:380px){
+    #brand-logo{height:32px;}
+    #stage{padding:calc(env(safe-area-inset-top) + 48px) 6px 6px;}
+    .pp{padding:8px 10px;}
+    .die{width:40px;height:40px;}
+    .emoji{width:40px;height:40px;font-size:20px;}
+    .card{padding:14px;}
   }
 </style>
 </head>
@@ -246,6 +264,54 @@
     </div>
   </div>
 
+  <!-- ===== Online: Create or Join ===== -->
+  <div class="overlay hidden" id="ov-online">
+    <div class="card">
+      <h2>Play online</h2>
+      <p>One of you starts a game and shares the code, the other joins it.</p>
+      <div class="levels">
+        <button class="lvl" id="online-create"><b>Create a room</b><span>get a code to share</span></button>
+        <button class="lvl" id="online-join"><b>Join a room</b><span>enter a friend's code</span></button>
+      </div>
+      <div class="row" style="margin-top:12px"><button class="ghost" id="online-back">‹ Back</button></div>
+    </div>
+  </div>
+
+  <!-- ===== Online: host waiting room ===== -->
+  <div class="overlay hidden" id="ov-host-wait">
+    <div class="card">
+      <h2>Share this code</h2>
+      <p>Send the code to your friend. The game starts as soon as they join.</p>
+      <div id="host-code" style="font-size:38px;font-weight:700;letter-spacing:6px;color:var(--accent);margin:16px 0;font-family:ui-monospace,Menlo,monospace">------</div>
+      <div class="row"><button id="host-copy">Copy code</button></div>
+      <div class="hint" id="host-status">Waiting for friend to join…</div>
+      <div class="row" style="margin-top:14px"><button class="ghost" id="host-cancel">Cancel</button></div>
+    </div>
+  </div>
+
+  <!-- ===== Online: join a room ===== -->
+  <div class="overlay hidden" id="ov-join">
+    <div class="card">
+      <h2>Join a game</h2>
+      <p>Enter the code your friend shared.</p>
+      <div class="pickrow">
+        <div class="lbl">Code</div>
+        <input class="nameinput" id="join-code" maxlength="6" placeholder="ABC123" style="width:65%;letter-spacing:6px;text-transform:uppercase;font-size:18px;font-family:ui-monospace,Menlo,monospace" />
+      </div>
+      <div class="pickrow">
+        <div class="lbl">Your name</div>
+        <input class="nameinput p2" id="join-name" maxlength="14" placeholder="Your name" style="width:65%" />
+      </div>
+      <div class="pickrow">
+        <div class="lbl">Your logo</div>
+        <div class="picker" id="picker-join"></div>
+      </div>
+      <button id="join-go">Join game</button>
+      <div class="hint" id="join-status"></div>
+      <div class="row" style="margin-top:10px"><button class="ghost" id="join-back">‹ Back</button></div>
+    </div>
+  </div>
+
   <!-- ===== Roll-off intro (shown once when first game begins) ===== -->
   <div class="overlay hidden" id="ov-rollintro">
     <div class="card">
@@ -276,7 +342,7 @@
       <p>Claim more triangles than your opponent. Choose how you want to play.</p>
       <div class="levels">
         <button class="lvl" id="mode-solo"><b>Solo vs Computer</b><span>play against the AI</span></button>
-        <button class="lvl" id="mode-2p"><b>2 Players</b><span>pass &amp; play on one device</span></button>
+        <button class="lvl" id="mode-online"><b>Online vs Friend</b><span>play 1v1 with a shared code</span></button>
       </div>
       <div class="row" style="margin-top:12px"><button class="ghost" id="rules-mode">How to play</button></div>
     </div>
@@ -352,8 +418,13 @@
     linesLeft:0, selected:null,
     roMatrix:[null,null], roWho:0,
     rolling:false,
-    vsComputer:false, aiPlayer:1, aiLevel:"medium"
+    vsComputer:false, aiPlayer:1, aiLevel:"medium",
+    online:false, isHost:false, myPlayer:-1, guestLogo:"🔥"
   };
+
+  // Update this after you deploy your PartyKit server (see doTriangle-server/HOW-TO-DEPLOY.md).
+  // Format: "dotriangle.YOUR-CLOUDFLARE-USERNAME.partykit.dev" or "localhost:1999" for local dev.
+  var PARTYKIT_HOST = "dotriangle.YOUR-USERNAME.partykit.dev";
 
   // ---------- helpers ----------
   function $(id){return document.getElementById(id);}
@@ -365,12 +436,12 @@
   // ---------- dice rendering ----------
   var PIPS={1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
   function renderDie(el,n){el.innerHTML="";var on=PIPS[n]||[];for(var i=0;i<9;i++){var c=document.createElement("div");if(on.indexOf(i)>-1){var p=document.createElement("div");p.className="pip";c.appendChild(p);}el.appendChild(c);}}
-  function animateDie(el,done){
+  function animateDie(el,done,fixedValue){
     playSound(sndDice);
     el.classList.add("rolling");
     var count=0, iv=setInterval(function(){
       renderDie(el,1+Math.floor(Math.random()*6)); count++;
-      if(count>9){clearInterval(iv);el.classList.remove("rolling");var n=1+Math.floor(Math.random()*6);renderDie(el,n);done(n);}
+      if(count>9){clearInterval(iv);el.classList.remove("rolling");var n=(fixedValue!=null)?fixedValue:(1+Math.floor(Math.random()*6));renderDie(el,n);if(done)done(n);}
     },70);
   }
   function buzz(ms){
@@ -496,6 +567,13 @@
   // shared by tap and drag
   function commitLine(a,b){
     if(S.phase!=="drawing"||a===b) return false;
+    if(S.online){
+      if(S.current!==S.myPlayer) return false;
+      if(hasEdge(a,b)){toast("Line already drawn");return false;}
+      NET.send({type:"draw_line",a:a,b:b});
+      S.selected=null; drawBoard();
+      return true;
+    }
     if(hasEdge(a,b)){toast("Line already drawn");return false;}
     if(crossesExisting(a,b)){toast("Lines can't cross");return false;}
     S.edges[edgeKey(a,b)]=S.current; S.selected=null;
@@ -511,6 +589,7 @@
   }
   function onDotTap(i){
     if(S.phase!=="drawing"||isAiTurn()) return;
+    if(S.online && S.current!==S.myPlayer) return;
     if(S.selected===null){S.selected=i;drawBoard();return;}
     if(S.selected===i){S.selected=null;drawBoard();return;}
     var a=S.selected;
@@ -537,6 +616,7 @@
   function clearRubber(){$("g-drag").innerHTML="";}
   function onPointerDown(e){
     if(S.phase!=="drawing"||isAiTurn()) return;
+    if(S.online && S.current!==S.myPlayer) return;
     var p=clientToSvg(e.clientX,e.clientY); if(!p) return;
     var i=dotAt(p); if(i<0) return;
     dragStart=i; dragMoved=false;
@@ -591,20 +671,30 @@
       var isActive=false, showBtn=false, label="", handler=null, text="";
 
       var ai=S.vsComputer && idx===S.aiPlayer;
+      var notMine=S.online && idx!==S.myPlayer;
+      var canAct = !ai && !notMine;
       if(S.phase==="rolloff"){
         if(idx===S.roWho){
           isActive=true;
-          if(S.roMatrix[idx]==null){text=ai?"Rolling…":"Shake or press space!";if(!ai){label="Tap to roll";handler=doRolloffRoll;showBtn=true;}}
-          else{text="Rolled "+S.roMatrix[idx];}                       // auto-advances — no Next button
+          if(S.roMatrix[idx]==null){
+            text = canAct ? "Shake or press space!" : (ai?"Rolling…":"Waiting for them to roll…");
+            if(canAct){label="Tap to roll";handler=doRolloffRoll;showBtn=true;}
+          } else { text="Rolled "+S.roMatrix[idx]; }
         } else {
           text=S.roMatrix[idx]!=null?("Rolled "+S.roMatrix[idx]):"Waiting…";
         }
       } else if(S.phase==="turn"){
-        if(idx===S.current){isActive=true;text=ai?"Thinking…":"Your turn — shake or press space!";if(!ai){label="Tap to roll";handler=doTurnRoll;showBtn=true;}}
-        else{text="Waiting…";}
+        if(idx===S.current){
+          isActive=true;
+          text = canAct ? "Your turn — shake or press space!" : (ai?"Thinking…":"Their turn…");
+          if(canAct){label="Tap to roll";handler=doTurnRoll;showBtn=true;}
+        } else { text="Waiting…"; }
       } else if(S.phase==="drawing"){
-        if(idx===S.current){isActive=true;text=ai?"Drawing…":("Draw "+S.linesLeft+" more line"+(S.linesLeft===1?"":"s"));if(!ai){label="End turn";handler=nextTurn;showBtn=true;}}
-        else{text="Waiting…";}
+        if(idx===S.current){
+          isActive=true;
+          text = canAct ? ("Draw "+S.linesLeft+" more line"+(S.linesLeft===1?"":"s")) : (ai?"Drawing…":"Their turn — drawing…");
+          if(canAct){label="End turn";handler=nextTurn;showBtn=true;}
+        } else { text="Waiting…"; }
       } else if(S.phase==="end"){
         var mine=S.scores[idx], other=S.scores[1-idx];
         if(mine>other){isActive=true;text="🏆 Winner!";}
@@ -649,6 +739,7 @@
   }
   function doRolloffRoll(){
     if(S.rolling||S.phase!=="rolloff"||S.roMatrix[S.roWho]!=null) return;
+    if(S.online){ if(S.roWho!==S.myPlayer) return; NET.send({type:"roll"}); return; }
     S.rolling=true;disarmRoll();
     var who=S.roWho;
     animateDie(panelDie(who),function(n){
@@ -679,6 +770,7 @@
   }
   function doTurnRoll(){
     if(S.rolling||S.phase!=="turn") return;
+    if(S.online){ if(S.current!==S.myPlayer) return; NET.send({type:"roll"}); return; }
     S.rolling=true;disarmRoll();
     var who=S.current;
     animateDie(panelDie(who),function(n){
@@ -690,6 +782,11 @@
     });
   }
   function nextTurn(){
+    if(S.online){
+      if(S.current!==S.myPlayer) return;
+      NET.send({type:"end_turn"});
+      return;
+    }
     if(allConnected()){endGame();return;}
     S.current=1-S.current;
     startTurn();
@@ -802,8 +899,18 @@
   }
   function fullStart(){
     enableMotion(); primeAudio();
-    if(!S.logos[0]||!S.logos[1]){toast("Both players pick a logo first");return;}
+    if(!S.logos[0]||(!S.online && !S.logos[1])){toast("Pick a logo first");return;}
     var n1=($("name1").value||"").trim().slice(0,14)||"Player 1";
+    if(S.online){
+      var code=genRoomCode();
+      S.names[0]=n1; S.names[1]="Friend"; S.myPlayer=-1; S.isHost=true;
+      $("host-code").textContent=code;
+      $("host-status").textContent="Waiting for friend to join…";
+      hideOverlay("ov-setup");
+      showOverlay("ov-host-wait");
+      connectToRoom(code,{type:"hello",intent:"create",name:n1,logo:S.logos[0],numDots:S.numDots});
+      return;
+    }
     if(S.vsComputer){
       S.names[0]=n1; S.names[1]="Computer";
     } else {
@@ -817,14 +924,16 @@
   }
   // ---------- mode + AI difficulty ----------
   function applyMode(){
-    var solo=S.vsComputer, n1=$("name1"), n2=$("name2");
+    var solo=S.vsComputer, online=S.online, single=(solo||online);
+    var n1=$("name1"), n2=$("name2");
     $("ai-row").style.display = solo ? "" : "none";
-    $("p2-logo-row").style.display = solo ? "none" : "";   // computer doesn't pick a logo
-    $("names-lbl").textContent = solo ? "Your name" : "Names";
-    if(solo){
-      n2.style.display="none";                              // only the human's name field
-      n1.style.width="100%";
-      S.logos[1]="🤖";                                      // computer is always the robot
+    $("p2-logo-row").style.display = single ? "none" : "";   // opponent picks their own logo in online
+    $("names-lbl").textContent = single ? "Your name" : "Names";
+    $("btn-start").textContent = online ? "Create room" : "Start game";
+    if(single){
+      n2.style.display="none"; n1.style.width="100%";
+      if(solo) S.logos[1]="🤖";
+      else if(!S.logos[1] || S.logos[1]==="🤖") S.logos[1]=(EMOJIS[1]===S.logos[0]?EMOJIS[0]:EMOJIS[1]);
     } else {
       n2.style.display=""; n1.style.width="";
       if(n2.value==="Computer") n2.value="";
@@ -837,8 +946,7 @@
       b.classList.toggle("sel", b.dataset.ai===S.aiLevel);
     });
   }
-  $("mode-solo").addEventListener("click",function(){S.vsComputer=true;applyMode();hideOverlay("ov-mode");showOverlay("ov-level");});
-  $("mode-2p").addEventListener("click",function(){S.vsComputer=false;applyMode();hideOverlay("ov-mode");showOverlay("ov-level");});
+  $("mode-solo").addEventListener("click",function(){S.vsComputer=true;S.online=false;applyMode();hideOverlay("ov-mode");showOverlay("ov-level");});
   $("btn-backmode").addEventListener("click",function(){hideOverlay("ov-level");showOverlay("ov-mode");});
   Array.prototype.forEach.call(document.querySelectorAll(".ai-opt"),function(b){
     b.addEventListener("click",function(){S.aiLevel=b.dataset.ai;refreshAi();});
@@ -866,10 +974,149 @@
   $("rules-level").addEventListener("click",openRules);
   $("rules-setup").addEventListener("click",openRules);
   $("rules-close").addEventListener("click",function(){hideOverlay("ov-rules");});
-  $("rollintro-ok").addEventListener("click",function(){hideOverlay("ov-rollintro");roTurn();});
+  $("rollintro-ok").addEventListener("click",function(){hideOverlay("ov-rollintro"); if(!S.online) roTurn();});
+
+  // ---------- online (PartyKit) ----------
+  var NET = { ws:null, code:null };
+  function connectToRoom(code, helloMsg){
+    var proto = (window.location.protocol==="https:")?"wss://":"ws://";
+    // localhost dev uses ws://, deployed PartyKit uses wss:// always
+    var isLocal = /^(localhost|127\.0\.0\.1)/.test(PARTYKIT_HOST);
+    var url = (isLocal?"ws://":"wss://") + PARTYKIT_HOST + "/parties/main/" + code;
+    try { NET.ws = new WebSocket(url); NET.code = code; }
+    catch(e){ toast("Couldn't connect"); return; }
+    NET.ws.onopen = function(){ NET.ws.send(JSON.stringify(helloMsg)); };
+    NET.ws.onmessage = function(ev){
+      var msg; try { msg = JSON.parse(ev.data); } catch(e){ return; }
+      if(msg.type==="you"){ S.myPlayer = msg.playerIdx; }
+      else if(msg.type==="update"){ applyServerUpdate(msg.state, msg.events||[]); }
+      else if(msg.type==="error"){
+        toast(msg.message||"Connection error");
+        if($("ov-join")&&!$("ov-join").classList.contains("hidden")){ $("join-status").textContent = msg.message; }
+      }
+    };
+    NET.ws.onclose = function(){
+      if(S.online && S.phase!=="end"){ toast("Connection lost"); onlineEndGame(1-S.myPlayer); }
+    };
+    NET.ws.onerror = function(){ toast("Network error"); };
+  }
+  NET.send = function(obj){ if(NET.ws && NET.ws.readyState===1) NET.ws.send(JSON.stringify(obj)); };
+  NET.disconnect = function(){ try{ if(NET.ws) NET.ws.close(); }catch(e){} NET.ws=null; NET.code=null; };
+
+  function genRoomCode(){
+    var chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789", s="";
+    for(var i=0;i<6;i++) s+=chars[Math.floor(Math.random()*chars.length)];
+    return s;
+  }
+
+  function applyServerUpdate(state, events){
+    var firstUpdate = (S.phase==="setup"||S.phase==="lobby");
+    // adopt server state
+    S.numDots = state.numDots; S.dots = state.dots;
+    S.edges = state.edges; S.triangles = state.triangles; S.scoredTri = state.scoredTri;
+    S.scores = state.scores; S.moves = state.moves; S.history = state.history;
+    S.current = state.current; S.roMatrix = state.roMatrix; S.roWho = state.roWho; S.linesLeft = state.linesLeft;
+    S.names = [state.players[0].name||"Player 1", state.players[1].name||"Friend"];
+    if(state.players[0].logo) S.logos[0] = state.players[0].logo;
+    if(state.players[1].logo) S.logos[1] = state.players[1].logo;
+    S.phase = (state.phase==="lobby")?"setup":state.phase;
+    // recompute dot sizes from server dot count
+    var n=Math.max(1,S.numDots), uW=VB.w-2*VB.margin, uH=VB.h-2*VB.margin;
+    var minDist=Math.max(34, Math.sqrt((uW*uH)/n)*0.62);
+    S.dotR=Math.max(6,Math.min(10,minDist*0.16));
+    S.hitR=Math.max(15,Math.min(30,minDist*0.5));
+    S.labelSize=Math.max(15,Math.min(34,minDist*0.34));
+
+    for(var i=0;i<events.length;i++){
+      var e=events[i];
+      if(e.type==="opponent_joined"){ hideOverlay("ov-host-wait"); hideOverlay("ov-join"); toast(state.players[e.idx].name+" joined!"); }
+      else if(e.type==="opponent_left"){ toast(state.players[e.idx].name+" left"); }
+      else if(e.type==="dice_rolled"){
+        animateDie(panelDie(e.playerIdx), null, e.value);
+        if(e.for==="turn"){ renderDiceLog(); toast("Rolled "+e.value+" — draw "+e.value+" line"+(e.value>1?"s":"")); }
+      }
+      else if(e.type==="line_drawn"){
+        buzz(e.triangles.length>0?[30,40,30]:12);
+        if(e.triangles.length>0){ playSound(sndWin); toast(e.triangles.length+" triangle"+(e.triangles.length>1?"s":"")+"!"); }
+      }
+      else if(e.type==="turn_changed"){ toast("▶ "+pname(state.current)+"'s turn"); }
+      else if(e.type==="rolloff_starter"){ $("rollnote").classList.add("hidden"); toast(pname(state.current)+" goes first!"); }
+      else if(e.type==="game_over"){ onlineEndGame(e.winnerIdx); }
+    }
+
+    if(firstUpdate && state.phase==="rolloff"){
+      hideOverlay("ov-host-wait"); hideOverlay("ov-join");
+      hideOverlay("ov-online"); hideOverlay("ov-setup");
+      hideOverlay("ov-mode"); hideOverlay("ov-level");
+      $("rollnote").classList.remove("hidden");
+      if(!introShown){ introShown=true; showOverlay("ov-rollintro"); }
+    }
+    drawBoard(); updatePanels(); renderDiceLog();
+  }
+
+  function onlineEndGame(winnerIdx){
+    S.phase="end"; updatePanels();
+    var a=S.scores[0],b=S.scores[1],score=S.logos[0]+" "+a+" &nbsp;—&nbsp; "+b+" "+S.logos[1];
+    if(winnerIdx===null||winnerIdx===undefined){ $("result-text").innerHTML="🤝 It's a tie! &nbsp; "+score; }
+    else { $("result-text").innerHTML=S.logos[winnerIdx]+" "+pname(winnerIdx)+" wins! &nbsp; "+score; buzz([40,60,40,60,80]); playSound(sndFanfare); }
+    $("resultbar").classList.remove("hidden");
+  }
+
+  function joinFlow(){
+    enableMotion(); primeAudio();
+    var code = ($("join-code").value||"").trim().toUpperCase().slice(0,6);
+    var name = ($("join-name").value||"").trim().slice(0,14)||"Friend";
+    var logo = S.guestLogo||"🔥";
+    if(code.length<4){ $("join-status").textContent="Enter a valid code"; return; }
+    S.online=true; S.isHost=false; S.vsComputer=false; S.myPlayer=-1;
+    S.logos[0]="⭐️"; S.logos[1]=logo; S.names[1]=name;
+    $("join-status").textContent="Connecting…";
+    connectToRoom(code,{type:"hello",intent:"join",name:name,logo:logo});
+  }
+
+  // build guest logo picker
+  (function(){
+    var box=$("picker-join"); if(!box) return;
+    EMOJIS.forEach(function(em){
+      var d=document.createElement("div");d.className="emoji";d.textContent=em;d.dataset.em=em;
+      if(em===S.guestLogo) d.classList.add("sel-p2");
+      d.addEventListener("click",function(){
+        S.guestLogo=em;
+        Array.prototype.forEach.call(box.children,function(c){c.classList.toggle("sel-p2",c.dataset.em===em);});
+      });
+      box.appendChild(d);
+    });
+  })();
 
   // ---------- wire up ----------
   $("btn-start").addEventListener("click",fullStart);
+  $("mode-online").addEventListener("click",function(){
+    S.online=false; S.vsComputer=false; applyMode();
+    hideOverlay("ov-mode"); showOverlay("ov-online");
+  });
+  $("online-create").addEventListener("click",function(){
+    S.online=true; S.isHost=true; S.vsComputer=false; applyMode();
+    hideOverlay("ov-online"); showOverlay("ov-level");
+  });
+  $("online-join").addEventListener("click",function(){
+    hideOverlay("ov-online"); showOverlay("ov-join");
+  });
+  $("online-back").addEventListener("click",function(){
+    hideOverlay("ov-online"); showOverlay("ov-mode");
+  });
+  $("host-copy").addEventListener("click",function(){
+    var code=$("host-code").textContent;
+    if(navigator.clipboard) navigator.clipboard.writeText(code).then(function(){toast("Code copied!");}).catch(function(){toast("Code: "+code);});
+    else toast("Code: "+code);
+  });
+  $("host-cancel").addEventListener("click",function(){
+    NET.disconnect(); S.online=false; S.isHost=false;
+    hideOverlay("ov-host-wait"); showOverlay("ov-mode");
+  });
+  $("join-back").addEventListener("click",function(){
+    hideOverlay("ov-join"); showOverlay("ov-online");
+  });
+  $("join-go").addEventListener("click",joinFlow);
   $("end-again").addEventListener("click",function(){newBoard();startRolloff();});
   $("end-logos").addEventListener("click",function(){
     $("resultbar").classList.add("hidden");S.phase="setup";updatePanels();
