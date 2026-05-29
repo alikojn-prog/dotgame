@@ -54,7 +54,8 @@
   #board{background:var(--board);border-radius:18px;width:100%;height:100%;max-width:880px;
     box-shadow:0 10px 30px rgba(0,0,0,.45);touch-action:none;}
   .hit{fill:transparent;cursor:pointer;}
-  .dot{transition:r .12s;}
+  .dot-grp{cursor:pointer;}
+  .dot{transition:r .15s ease;}
   .dot-sel{stroke:var(--accent);stroke-width:5;}
   .edge{stroke-linecap:round;}
   .tri-label{text-anchor:middle;dominant-baseline:central;}
@@ -124,7 +125,6 @@
   .card h1{margin:0 0 4px;font-size:26px;}
   .card h2{margin:0 0 14px;font-size:20px;}
   .card p{color:var(--muted);font-size:14px;margin:6px 0 18px;}
-  .winnerlogo{font-size:56px;margin:6px 0;}
   .hint{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.4;}
   .row{display:flex;gap:10px;align-items:center;justify-content:center;}
 
@@ -419,7 +419,7 @@
     roMatrix:[null,null], roWho:0,
     rolling:false,
     vsComputer:false, aiPlayer:1, aiLevel:"medium",
-    online:false, isHost:false, myPlayer:-1, guestLogo:"🔥"
+    online:false, myPlayer:-1, guestLogo:"🔥"
   };
 
   // Update this after you deploy your PartyKit server (see doTriangle-server/HOW-TO-DEPLOY.md).
@@ -523,10 +523,15 @@
     for(var key in S.edges){var ij=key.split("-"),a=S.dots[+ij[0]],b=S.dots[+ij[1]];
       ge.appendChild(svgEl("line",{x1:a.x,y1:a.y,x2:b.x,y2:b.y,class:"edge",stroke:colorVar(S.edges[key]),"stroke-width":"4"}));}
     S.dots.forEach(function(p,i){
-      gd.appendChild(svgEl("circle",{cx:p.x,cy:p.y,r:S.dotR,class:"dot"+(S.selected===i?" dot-sel":""),fill:"#222"}));
+      var grp=svgEl("g",{class:"dot-grp"});
+      grp.appendChild(svgEl("circle",{cx:p.x,cy:p.y,r:S.dotR,class:"dot"+(S.selected===i?" dot-sel":""),fill:"#222"}));
       var hit=svgEl("circle",{cx:p.x,cy:p.y,r:S.hitR,class:"hit"});
       hit.addEventListener("click",function(){onDotTap(i);});
-      gd.appendChild(hit);
+      hit.addEventListener("pointerdown",function(){ startDrag(i); });
+      hit.addEventListener("pointerenter",function(){ setHoverDot(i); });
+      hit.addEventListener("pointerleave",function(){ if(dragStart<0) setHoverDot(-1); });
+      grp.appendChild(hit);
+      gd.appendChild(grp);
     });
   }
 
@@ -550,32 +555,40 @@
     if(Math.abs(d4)<e&&onSeg(p1,p4,p2)) return true;
     return false;
   }
-  function crossesExisting(a,b){
+  function passesThroughDot(a,b){
     var p1=S.dots[a], p2=S.dots[b], len=Math.hypot(p2.x-p1.x,p2.y-p1.y)||1;
-    for(var c=0;c<S.dots.length;c++){ // line must not pass through a third dot
+    for(var c=0;c<S.dots.length;c++){
       if(c===a||c===b) continue;
       var pc=S.dots[c];
       if(Math.abs(orient(p1,p2,pc))/len < S.dotR && onSeg(p1,pc,p2)) return true;
     }
-    for(var key in S.edges){ // line must not cross an existing edge (shared dot is OK)
+    return false;
+  }
+  function crossesEdge(a,b){
+    var p1=S.dots[a], p2=S.dots[b];
+    for(var key in S.edges){
       var ij=key.split("-"), i=+ij[0], j=+ij[1];
       if(i===a||i===b||j===a||j===b) continue;
       if(segCross(p1,p2,S.dots[i],S.dots[j])) return true;
     }
     return false;
   }
+  function crossesExisting(a,b){ return passesThroughDot(a,b) || crossesEdge(a,b); }
   // shared by tap and drag
   function commitLine(a,b){
     if(S.phase!=="drawing"||a===b) return false;
     if(S.online){
       if(S.current!==S.myPlayer) return false;
       if(hasEdge(a,b)){toast("Line already drawn");return false;}
+      if(passesThroughDot(a,b)){toast("There's a dot in the way");return false;}
+      if(crossesEdge(a,b)){toast("Lines can't cross");return false;}
       NET.send({type:"draw_line",a:a,b:b});
       S.selected=null; drawBoard();
       return true;
     }
     if(hasEdge(a,b)){toast("Line already drawn");return false;}
-    if(crossesExisting(a,b)){toast("Lines can't cross");return false;}
+    if(passesThroughDot(a,b)){toast("There's a dot in the way");return false;}
+    if(crossesEdge(a,b)){toast("Lines can't cross");return false;}
     S.edges[edgeKey(a,b)]=S.current; S.selected=null;
     S.moves[S.current]++;
     var made=checkTriangles(a,b);
@@ -590,10 +603,15 @@
   function onDotTap(i){
     if(S.phase!=="drawing"||isAiTurn()) return;
     if(S.online && S.current!==S.myPlayer) return;
+    clearRubber();                                         // clear any prior preview line
     if(S.selected===null){S.selected=i;drawBoard();return;}
     if(S.selected===i){S.selected=null;drawBoard();return;}
     var a=S.selected;
-    if(!commitLine(a,i)){S.selected=a;drawBoard();} // keep first dot selected to retry on failure
+    if(!commitLine(a,i)){
+      S.selected=a;
+      flashRejectedLine(S.dots[a], S.dots[i]);             // brief red flash showing the rejected line
+      drawBoard();
+    }
   }
 
   // ---------- drag to draw (press a dot, drag to another, release) ----------
@@ -604,43 +622,124 @@
     var p=pt.matrixTransform(ctm.inverse()); return {x:p.x,y:p.y};
   }
   function dotAt(p){
-    var best=-1,bestd=0,lim=S.hitR*S.hitR*1.7;
+    var best=-1,bestd=0,lim=S.hitR*S.hitR*2.5;        // forgiving — drag releases near a dot still snap to it
     for(var i=0;i<S.dots.length;i++){var dx=S.dots[i].x-p.x,dy=S.dots[i].y-p.y,d2=dx*dx+dy*dy;if(d2<lim&&(best<0||d2<bestd)){best=i;bestd=d2;}}
     return best;
   }
-  function drawRubber(a,p){
+  function flashRejectedLine(a,b){
     var g=$("g-drag"); g.innerHTML="";
-    g.appendChild(svgEl("line",{x1:a.x,y1:a.y,x2:p.x,y2:p.y,stroke:colorVar(S.current),
-      "stroke-width":"4","stroke-dasharray":"9 9","stroke-linecap":"round",opacity:"0.75"}));
+    var line=svgEl("line",{x1:a.x,y1:a.y,x2:b.x,y2:b.y,
+      stroke:"#ff3344","stroke-width":"5","stroke-linecap":"round",opacity:"0.9"});
+    g.appendChild(line);
+    setTimeout(function(){
+      line.style.transition="opacity .35s";
+      line.style.opacity="0";
+      setTimeout(function(){ try{ g.innerHTML=""; }catch(e){} }, 380);
+    }, 380);
+  }
+  // Snap mechanics: closest valid target dot within SNAP_RADIUS of cursor (else -1)
+  var SNAP_RADIUS = 48;
+  var COLOR_AMBER = "#f0a040";   // rubber band while in transit
+  var COLOR_GREEN = "#2ec27a";   // rubber band when over a valid snap target
+  function snapTarget(startIdx, p){
+    if(startIdx<0 || !S.dots[startIdx]) return -1;
+    var best=-1, bestd=SNAP_RADIUS*SNAP_RADIUS;
+    for(var i=0;i<S.dots.length;i++){
+      if(i===startIdx) continue;
+      if(hasEdge(startIdx,i)) continue;
+      if(passesThroughDot(startIdx,i)) continue;
+      if(crossesEdge(startIdx,i)) continue;
+      var dx=S.dots[i].x-p.x, dy=S.dots[i].y-p.y, d2=dx*dx+dy*dy;
+      if(d2<bestd){ best=i; bestd=d2; }
+    }
+    return best;
+  }
+  function drawRubber(startIdx,p){
+    var g=$("g-drag"); g.innerHTML="";
+    if(startIdx<0 || !S.dots[startIdx]) return;
+    var a=S.dots[startIdx];
+    var target=snapTarget(startIdx,p);
+    g.appendChild(svgEl("line",{x1:a.x,y1:a.y,x2:p.x,y2:p.y,
+      stroke: target>=0 ? COLOR_GREEN : COLOR_AMBER,
+      "stroke-width":"4","stroke-dasharray":"9 9","stroke-linecap":"round",opacity:"0.95"}));
   }
   function clearRubber(){$("g-drag").innerHTML="";}
+  function setHoverDot(idx){
+    var dots=$("g-dot").querySelectorAll(".dot");
+    for(var k=0;k<dots.length;k++) dots[k].setAttribute("r", S.dotR);
+    if(idx>=0 && dots[idx]) dots[idx].setAttribute("r", S.dotR*1.7);
+  }
+  function startDrag(i){
+    if(S.phase!=="drawing"||isAiTurn()) return;
+    if(S.online && S.current!==S.myPlayer) return;
+    dragStart=i; dragMoved=false;
+    window.addEventListener("pointermove",onPointerMove);
+    window.addEventListener("pointerup",onPointerUp);
+  }
   function onPointerDown(e){
+    // fallback: pointerdown near a dot but not directly on its hit area
     if(S.phase!=="drawing"||isAiTurn()) return;
     if(S.online && S.current!==S.myPlayer) return;
     var p=clientToSvg(e.clientX,e.clientY); if(!p) return;
     var i=dotAt(p); if(i<0) return;
-    dragStart=i; dragMoved=false;
-    window.addEventListener("pointermove",onPointerMove);
-    window.addEventListener("pointerup",onPointerUp);
+    startDrag(i);
   }
   function onPointerMove(e){
     if(dragStart<0) return;
     var p=clientToSvg(e.clientX,e.clientY); if(!p) return;
     var dx=p.x-S.dots[dragStart].x, dy=p.y-S.dots[dragStart].y;
     if(dx*dx+dy*dy>S.dotR*S.dotR) dragMoved=true; // ignore tiny jitter so taps still work
-    if(dragMoved) drawRubber(S.dots[dragStart],p);
+    if(dragMoved){
+      drawRubber(dragStart,p);
+      setHoverDot(snapTarget(dragStart,p));        // only the valid snap target grows
+    }
   }
   function onPointerUp(e){
     window.removeEventListener("pointermove",onPointerMove);
     window.removeEventListener("pointerup",onPointerUp);
-    var start=dragStart; dragStart=-1; clearRubber();
-    if(start<0||!dragMoved) return;        // a tap → handled by the dot's click → onDotTap
-    var p=clientToSvg(e.clientX,e.clientY); if(!p) return;
-    var end=dotAt(p);
-    if(end<0||end===start){S.selected=null;drawBoard();return;}
-    S.selected=null; commitLine(start,end);
+    setHoverDot(-1);
+    var start=dragStart; dragStart=-1;
+    if(start<0||!dragMoved){ clearRubber(); return; }   // a tap → click handler does the work
+    var p=clientToSvg(e.clientX,e.clientY); if(!p){ clearRubber(); return; }
+
+    var target=snapTarget(start,p);
+    if(target>=0){
+      // Inside the snap radius of a VALID target — commit
+      S.selected=null;
+      if(commitLine(start,target)){ clearRubber(); toast("Connected!"); }
+      else { flashRejectedLine(S.dots[start], S.dots[target]); } // safety net (shouldn't happen — snapTarget pre-validates)
+      return;
+    }
+    // Outside snap radius of any valid target — give a precise hint
+    var nearest=dotAt(p);
+    if(nearest>=0 && nearest!==start){
+      // released right on a dot, but it wasn't a legal target
+      var why="Missed! Release on a valid dot";
+      if(hasEdge(start,nearest)) why="Line already drawn";
+      else if(passesThroughDot(start,nearest)) why="There's a dot in the way";
+      else if(crossesEdge(start,nearest)) why="Lines can't cross";
+      flashRejectedLine(S.dots[start], S.dots[nearest]);
+      toast(why);
+    } else {
+      clearRubber();
+      toast("Missed! Release on a dot to connect");
+    }
+    S.selected=null;
   }
   board.addEventListener("pointerdown",onPointerDown);
+  // Dashed preview from tap-selected dot to cursor (until they tap the second dot)
+  board.addEventListener("pointermove",function(e){
+    if(dragStart>=0) return;                              // drag has its own rubber band
+    if(S.selected===null) return;
+    if(S.phase!=="drawing"||isAiTurn()) return;
+    if(S.online && S.current!==S.myPlayer) return;
+    var p=clientToSvg(e.clientX,e.clientY); if(!p) return;
+    drawRubber(S.selected, p);
+  });
+  board.addEventListener("pointerleave",function(){
+    if(dragStart>=0) return;
+    if(S.selected!==null) clearRubber();
+  });
   function checkTriangles(a,b){
     var made=0;
     for(var c=0;c<S.dots.length;c++){
@@ -903,7 +1002,7 @@
     var n1=($("name1").value||"").trim().slice(0,14)||"Player 1";
     if(S.online){
       var code=genRoomCode();
-      S.names[0]=n1; S.names[1]="Friend"; S.myPlayer=-1; S.isHost=true;
+      S.names[0]=n1; S.names[1]="Friend"; S.myPlayer=-1;
       $("host-code").textContent=code;
       $("host-status").textContent="Waiting for friend to join…";
       hideOverlay("ov-setup");
@@ -1068,7 +1167,7 @@
     var name = ($("join-name").value||"").trim().slice(0,14)||"Friend";
     var logo = S.guestLogo||"🔥";
     if(code.length<4){ $("join-status").textContent="Enter a valid code"; return; }
-    S.online=true; S.isHost=false; S.vsComputer=false; S.myPlayer=-1;
+    S.online=true; S.vsComputer=false; S.myPlayer=-1;
     S.logos[0]="⭐️"; S.logos[1]=logo; S.names[1]=name;
     $("join-status").textContent="Connecting…";
     connectToRoom(code,{type:"hello",intent:"join",name:name,logo:logo});
@@ -1095,7 +1194,7 @@
     hideOverlay("ov-mode"); showOverlay("ov-online");
   });
   $("online-create").addEventListener("click",function(){
-    S.online=true; S.isHost=true; S.vsComputer=false; applyMode();
+    S.online=true; S.vsComputer=false; applyMode();
     hideOverlay("ov-online"); showOverlay("ov-level");
   });
   $("online-join").addEventListener("click",function(){
@@ -1110,7 +1209,7 @@
     else toast("Code: "+code);
   });
   $("host-cancel").addEventListener("click",function(){
-    NET.disconnect(); S.online=false; S.isHost=false;
+    NET.disconnect(); S.online=false;
     hideOverlay("ov-host-wait"); showOverlay("ov-mode");
   });
   $("join-back").addEventListener("click",function(){
