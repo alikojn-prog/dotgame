@@ -87,6 +87,11 @@
   button{font-family:inherit;border:none;border-radius:14px;padding:12px 18px;font-size:15px;font-weight:600;
     color:#10141f;background:var(--accent);cursor:pointer;transition:transform .1s, filter .1s;}
   button:active{transform:scale(.96);}
+  @keyframes rollpulse{
+    0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(255,206,58,0);}
+    50%{transform:scale(1.05);box-shadow:0 0 0 8px rgba(255,206,58,0.35);}
+  }
+  button.pulse{animation:rollpulse 1.5s ease-in-out infinite;}
   button.ghost{background:#2a3349;color:#fff;}
   button.ghost:active{filter:brightness(1.2);}
 
@@ -528,7 +533,7 @@
       var hit=svgEl("circle",{cx:p.x,cy:p.y,r:S.hitR,class:"hit"});
       hit.addEventListener("click",function(){onDotTap(i);});
       hit.addEventListener("pointerdown",function(){ startDrag(i); });
-      hit.addEventListener("pointerenter",function(){ setHoverDot(i); });
+      hit.addEventListener("pointerenter",function(){ if(canDrawNow()||dragStart>=0) setHoverDot(i); });
       hit.addEventListener("pointerleave",function(){ if(dragStart<0) setHoverDot(-1); });
       grp.appendChild(hit);
       gd.appendChild(grp);
@@ -669,6 +674,12 @@
     for(var k=0;k<dots.length;k++) dots[k].setAttribute("r", S.dotR);
     if(idx>=0 && dots[idx]) dots[idx].setAttribute("r", S.dotR*1.7);
   }
+  function canDrawNow(){
+    if(S.phase!=="drawing") return false;
+    if(isAiTurn()) return false;
+    if(S.online && S.current!==S.myPlayer) return false;
+    return true;
+  }
   function startDrag(i){
     if(S.phase!=="drawing"||isAiTurn()) return;
     if(S.online && S.current!==S.myPlayer) return;
@@ -804,6 +815,7 @@
       pp.classList.toggle("active",isActive);
       msg.textContent=text;
       btn.style.display=showBtn?"":"none";
+      btn.classList.toggle("pulse", showBtn && label==="Tap to roll");
       if(showBtn){btn.textContent=label;btn.onclick=handler;}
     });
   }
