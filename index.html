@@ -1120,7 +1120,6 @@
       buzz(20);
       S.linesLeft=n;S.phase="drawing";S.rolling=false;
       updateHUD();
-      toast("Rolled "+n+" — draw "+n+" line"+(n>1?"s":""));
       if(S.vsComputer && S.current===S.aiPlayer){ setTimeout(aiDrawStep,750); }
     });
   }
@@ -1456,7 +1455,6 @@
       else if(e.type==="dice_rolled"){
         var die = (S.phase==="rolloff") ? $("ro-die"+e.playerIdx) : $("game-die");
         animateDie(die, null, e.value);
-        if(e.for==="turn"){ toast("Rolled "+e.value+" — draw "+e.value+" line"+(e.value>1?"s":"")); }
         if(e.for==="rolloff"){ S.roMatrix[e.playerIdx]=e.value; updateRolloffUI(); }
       }
       else if(e.type==="line_drawn"){
