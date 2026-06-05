@@ -649,14 +649,15 @@
   function randomFrom(arr){return arr[Math.floor(Math.random()*arr.length)];}
   function primeAudio(){
     if(audioReady) return; audioReady=true;
-    // Unlock audio context on mobile with a single silent buffer — avoids playing multiple sounds at once
-    try{
-      var ctx=new(window.AudioContext||window.webkitAudioContext)();
-      var buf=ctx.createBuffer(1,1,22050);
-      var src=ctx.createBufferSource(); src.buffer=buf;
-      src.connect(ctx.destination); src.start(0);
-      ctx.resume().catch(function(){});
-    }catch(e){}
+    // Prime each HTMLAudioElement with a silent play during a user gesture
+    // so mobile Safari allows them to play later. Music excluded (handled separately).
+    var toUnlock=[sndClick,sndDice,sndSingle,sndDouble].concat(sndWinSounds).concat(sndLossSounds);
+    toUnlock.forEach(function(a){
+      var v=a.volume; a.volume=0;
+      var p=a.play();
+      if(p&&p.then){p.then(function(){a.pause();a.currentTime=0;a.volume=v;}).catch(function(){a.volume=v;});}
+      else{a.pause();a.currentTime=0;a.volume=v;}
+    });
   }
   function toggleMute(){
     soundMuted=!soundMuted;
