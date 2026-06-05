@@ -1079,10 +1079,11 @@
     if(!S.online) roTurn();
   }
   function doRolloffRoll(){
-    // Online: each player sends their own roll once; server resolves winner
+    // Online: server is sequential — only send roll when roWho===myPlayer
     if(S.online){
-      if(S.roMatrix[S.myPlayer]!=null) return; // already sent our roll
-      S.roMatrix[S.myPlayer]=-1; // mark as pending so we don't double-send
+      if(S.roWho!==S.myPlayer) return;
+      if(S.roMatrix[S.myPlayer]!=null) return; // already rolled
+      S.roMatrix[S.myPlayer]=-1; // mark as pending to prevent double-send
       NET.send({type:"roll"});
       return;
     }
@@ -1489,7 +1490,9 @@
       renderDie($("ro-die0"),1);renderDie($("ro-die1"),1);
       showGame();
       showOverlay("ov-rolloff");
-      // Auto-roll for this player immediately
+    }
+    // Auto-roll whenever it becomes this player's turn in the rolloff
+    if(S.phase==="rolloff" && S.online && S.roWho===S.myPlayer && S.roMatrix[S.myPlayer]==null){
       setTimeout(doRolloffRoll, 600);
     }
     drawBoard(); updateHUD();
