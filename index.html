@@ -616,12 +616,12 @@
 
   // ---------- sound ----------
   var sndClick=new Audio("Sounds/Click.mp3"); sndClick.preload="auto";
-  var sndMain1=new Audio("Sounds/main1.mp3"); sndMain1.preload="auto"; sndMain1.loop=true;
-  var sndMain2=new Audio("Sounds/main2.mp3"); sndMain2.preload="auto"; sndMain2.loop=true;
+  var sndMain1=new Audio("Sounds/main1.mp3"); sndMain1.preload="auto";
+  var sndMain2=new Audio("Sounds/main2.mp3"); sndMain2.preload="auto";
   var _activeMusic=null, _fadeTmr=null;
   function playMusic(track){
     if(soundMuted) return;
-    if(_activeMusic===track) return;
+    if(_activeMusic===track && !track.paused) return;
     stopMusic(false);
     _activeMusic=track;
     track.currentTime=0; track.volume=1;
@@ -631,8 +631,9 @@
     if(_fadeTmr){clearInterval(_fadeTmr);_fadeTmr=null;}
     var t=_activeMusic; if(!t) return;
     _activeMusic=null;
-    if(!fade){t.pause();t.currentTime=0;return;}
-    var step=t.volume/25;
+    if(!fade||t.volume<=0){t.pause();t.currentTime=0;return;}
+    // fade out over ~400ms
+    var step=t.volume/20;
     _fadeTmr=setInterval(function(){
       t.volume=Math.max(0,t.volume-step);
       if(t.volume<=0){clearInterval(_fadeTmr);_fadeTmr=null;t.pause();t.currentTime=0;}
@@ -647,12 +648,14 @@
   function randomFrom(arr){return arr[Math.floor(Math.random()*arr.length)];}
   function primeAudio(){
     if(audioReady) return; audioReady=true;
-    [sndClick,sndDice,sndSingle,sndDouble].concat(sndWinSounds).concat(sndLossSounds).forEach(function(a){
-      var v=a.volume; a.volume=0;
-      var p=a.play();
-      if(p&&p.then){p.then(function(){a.pause();a.currentTime=0;a.volume=v;}).catch(function(){a.volume=v;});}
-      else{a.volume=v;}
-    });
+    // Unlock audio context on mobile with a single silent buffer — avoids playing multiple sounds at once
+    try{
+      var ctx=new(window.AudioContext||window.webkitAudioContext)();
+      var buf=ctx.createBuffer(1,1,22050);
+      var src=ctx.createBufferSource(); src.buffer=buf;
+      src.connect(ctx.destination); src.start(0);
+      ctx.resume().catch(function(){});
+    }catch(e){}
   }
   function toggleMute(){
     soundMuted=!soundMuted;
