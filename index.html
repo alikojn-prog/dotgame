@@ -450,7 +450,7 @@
   <div class="overlay hidden" id="ov-rolloff">
     <div class="panel">
       <div class="ro-title">Who goes first?</div>
-      <div class="ro-sub">Highest roll starts. One tap settles it.</div>
+      <div class="ro-sub">Highest roll starts.</div>
       <div class="ro-dice">
         <div class="ro-col"><div class="die" id="ro-die0"></div><span class="ro-nm" id="ro-nm0">P1</span></div>
         <div class="ro-col"><div class="die" id="ro-die1"></div><span class="ro-nm" id="ro-nm1">P2</span></div>
@@ -1052,20 +1052,19 @@
   function updateRolloffUI(){
     $("ro-nm0").textContent=pname(0); $("ro-nm0").style.color=P1;
     $("ro-nm1").textContent=pname(1); $("ro-nm1").style.color=P2;
-    var bothRolled = S.roMatrix[0]!=null && S.roMatrix[1]!=null;
-    var canAct = !S.rolling && S.roMatrix[0]==null && (!S.online || S.myPlayer===0 || S.myPlayer===1);
     var btn=$("ro-roll");
-    if(bothRolled){
-      btn.style.display="none";
-    } else {
-      btn.style.display=""; btn.disabled=!canAct;
-      btn.style.opacity=canAct?"1":"0.4";
-      btn.textContent="Roll the dice";
+    // Hide button in online mode — rolls are automatic
+    if(S.online){ btn.style.display="none"; }
+    else {
+      var bothRolled = S.roMatrix[0]!=null && S.roMatrix[1]!=null;
+      var canAct = !S.rolling && S.roMatrix[0]==null;
+      if(bothRolled){ btn.style.display="none"; }
+      else { btn.style.display=""; btn.disabled=!canAct; btn.style.opacity=canAct?"1":"0.4"; }
     }
     var st=$("ro-status"), parts=[];
     [0,1].forEach(function(i){ if(S.roMatrix[i]!=null) parts.push(pname(i)+" rolled "+S.roMatrix[i]); });
     if(parts.length) st.textContent=parts.join("  ·  ");
-    else st.textContent = canAct ? "Tap to roll — both dice go at once!" : "Waiting…";
+    else st.textContent = S.online ? "Rolling…" : "Tap to roll — both dice go at once!";
   }
   function roTurn(){
     updateRolloffUI();
@@ -1080,8 +1079,14 @@
     if(!S.online) roTurn();
   }
   function doRolloffRoll(){
+    // Online: each player sends their own roll once; server resolves winner
+    if(S.online){
+      if(S.roMatrix[S.myPlayer]!=null) return; // already sent our roll
+      S.roMatrix[S.myPlayer]=-1; // mark as pending so we don't double-send
+      NET.send({type:"roll"});
+      return;
+    }
     if(S.rolling||S.phase!=="rolloff"||S.roMatrix[0]!=null) return;
-    if(S.online){ if(S.roWho!==S.myPlayer) return; NET.send({type:"roll"}); return; }
     S.rolling=true;disarmRoll();
     var done0=false, done1=false, val0, val1;
     function onBothDone(){
@@ -1456,7 +1461,10 @@
       else if(e.type==="dice_rolled"){
         var die = (S.phase==="rolloff") ? $("ro-die"+e.playerIdx) : $("game-die");
         animateDie(die, null, e.value);
-        if(e.for==="rolloff"){ S.roMatrix[e.playerIdx]=e.value; updateRolloffUI(); }
+        if(e.for==="rolloff"){
+          S.roMatrix[e.playerIdx]=e.value; // overwrite pending -1 with real value
+          updateRolloffUI();
+        }
       }
       else if(e.type==="line_drawn"){
         buzz(e.triangles.length>0?[30,40,30]:12);
@@ -1481,7 +1489,8 @@
       renderDie($("ro-die0"),1);renderDie($("ro-die1"),1);
       showGame();
       showOverlay("ov-rolloff");
-      armRoll(doRolloffRoll);
+      // Auto-roll for this player immediately
+      setTimeout(doRolloffRoll, 600);
     }
     drawBoard(); updateHUD();
     if(S.phase==="rolloff" && !$("ov-rolloff").classList.contains("hidden")) updateRolloffUI();
