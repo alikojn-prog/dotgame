@@ -649,14 +649,14 @@
   function randomFrom(arr){return arr[Math.floor(Math.random()*arr.length)];}
   function primeAudio(){
     if(audioReady) return; audioReady=true;
-    // Prime each HTMLAudioElement with a silent play during a user gesture
+    // Prime each HTMLAudioElement with a muted silent play during a user gesture
     // so mobile Safari allows them to play later. Music excluded (handled separately).
     var toUnlock=[sndClick,sndDice,sndSingle,sndDouble].concat(sndWinSounds).concat(sndLossSounds);
     toUnlock.forEach(function(a){
-      var v=a.volume; a.volume=0;
+      a.muted=true;
       var p=a.play();
-      if(p&&p.then){p.then(function(){a.pause();a.currentTime=0;a.volume=v;}).catch(function(){a.volume=v;});}
-      else{a.pause();a.currentTime=0;a.volume=v;}
+      if(p&&p.then){p.then(function(){a.pause();a.currentTime=0;a.muted=false;}).catch(function(){a.muted=false;});}
+      else{a.pause();a.currentTime=0;a.muted=false;}
     });
   }
   function toggleMute(){
