@@ -209,15 +209,16 @@
   .ro-nm{font-size:12px;font-weight:600;}
   .ro-status{text-align:center;font-size:13px;color:var(--dim);margin-top:12px;}
 
-  /* menu sheet (bottom) */
-  #sheet{position:fixed;inset:0;z-index:25;display:none;}
-  #sheet.show{display:block;}
-  #sheet .scrim{position:absolute;inset:0;background:rgba(0,0,0,.5);}
-  #sheet .sheet-body{position:absolute;left:0;right:0;bottom:0;background:var(--solid);
-    border-top-left-radius:22px;border-top-right-radius:22px;padding:14px 20px calc(env(safe-area-inset-bottom) + 22px);
-    display:flex;flex-direction:column;gap:12px;}
-  #sheet .grip{width:40px;height:5px;border-radius:3px;background:var(--border);margin:2px auto 6px;}
-  #sheet h3{text-align:center;font-size:22px;margin-bottom:2px;}
+  /* menu sheet (centred popup) */
+  #sheet{position:fixed;inset:0;z-index:25;display:none;align-items:center;justify-content:center;}
+  #sheet.show{display:flex;}
+  #sheet .scrim{position:absolute;inset:0;background:rgba(0,0,0,.55);}
+  #sheet .sheet-body{position:relative;width:min(340px,88vw);background:var(--solid);
+    border-radius:22px;padding:22px 20px 20px;
+    display:flex;flex-direction:column;gap:12px;
+    box-shadow:0 20px 60px rgba(0,0,0,.6);}
+  #sheet .grip{display:none;}
+  #sheet h3{text-align:center;font-size:20px;margin-bottom:2px;}
 
   /* game-over bottom panel */
   #gameover{position:fixed;left:0;right:0;bottom:0;z-index:18;display:none;
