@@ -650,8 +650,7 @@
   function randomFrom(arr){return arr[Math.floor(Math.random()*arr.length)];}
   function primeAudio(){
     if(audioReady) return; audioReady=true;
-    // Unlock audio with a single silent AudioContext buffer — zero audible noise.
-    // On iOS 15+ one user gesture unlocks all HTMLAudioElement playback too.
+    // Unlock AudioContext
     try{
       var ctx=new(window.AudioContext||window.webkitAudioContext)();
       var buf=ctx.createBuffer(1,1,22050);
@@ -659,6 +658,17 @@
       src.connect(ctx.destination);src.start(0);
       ctx.resume().catch(function(){});
     }catch(e){}
+    // Prime each HTMLAudioElement one at a time with a small delay between each,
+    // so iOS Safari unlocks them all without audible bleed.
+    var toUnlock=[sndDice,sndSingle,sndDouble,sndClick].concat(sndWinSounds).concat(sndLossSounds);
+    toUnlock.forEach(function(a,i){
+      setTimeout(function(){
+        a.muted=true; a.preload="auto";
+        var p=a.play();
+        if(p&&p.then){p.then(function(){a.pause();a.currentTime=0;a.muted=false;}).catch(function(){a.muted=false;});}
+        else{a.pause();a.currentTime=0;a.muted=false;}
+      }, i*30);
+    });
   }
   function toggleMute(){
     soundMuted=!soundMuted;
