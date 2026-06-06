@@ -483,6 +483,7 @@
       <div class="go-div"></div>
       <div class="go-btns">
         <button class="btn btn-primary" id="go-again">Play again</button>
+        <button class="btn btn-primary" id="go-rematch" style="display:none">Rematch</button>
         <button class="btn btn-ghost" id="go-home">Home</button>
       </div>
     </div>
@@ -1212,6 +1213,11 @@
     else if(S.vsComputer) head = (winnerIdx===S.aiPlayer) ? "Computer wins" : "You win!";
     else head = pname(winnerIdx)+" wins!";
     $("go-head").textContent=head;
+    // Online: show Rematch button; offline: show Play again
+    $("go-again").style.display = S.online ? "none" : "";
+    $("go-rematch").style.display = S.online ? "" : "none";
+    $("go-rematch").textContent = "Rematch";
+    $("go-rematch").disabled = false;
     $("gameover").classList.add("show");
     if(iWin) confettiBurst();
   }
@@ -1358,7 +1364,7 @@
    "create-go","create-copy","join-go",
    "howto-got",
    "m-resume","m-restart","m-howto","m-quit",
-   "go-again","go-home"
+   "go-again","go-rematch","go-home"
   ].forEach(function(id){
     var el=$(id); if(el) el.addEventListener("click",playClick,true);
   });
@@ -1393,9 +1399,13 @@
     showView("v-home");
   }
 
+  $("go-rematch").addEventListener("click",function(){
+    $("go-rematch").textContent="Waiting…";
+    $("go-rematch").disabled=true;
+    NET.send({type:"rematch"});
+  });
   $("go-again").addEventListener("click",function(){
     $("gameover").classList.remove("show");
-    if(S.online){ openOnline(); return; }
     newBoard(); startRolloff();
   });
   $("go-home").addEventListener("click",quitToHome);
@@ -1483,6 +1493,20 @@
       else if(e.type==="turn_changed"){ toast("▶ "+pname(state.current)+"'s turn"); }
       else if(e.type==="rolloff_starter"){ hideOverlay("ov-rolloff"); toast(pname(state.current)+" goes first!"); }
       else if(e.type==="game_over"){ onlineEndGame(e.winnerIdx); }
+      else if(e.type==="rematch_requested"){
+        // Opponent wants rematch — update button to show they're ready
+        if(e.idx!==S.myPlayer){
+          $("go-rematch").textContent="Rematch ✓ (waiting for you)";
+          $("go-rematch").disabled=false;
+        }
+      }
+      else if(e.type==="rematch_start"){
+        // Both agreed — reset and start new game in same room
+        $("gameover").classList.remove("show");
+        S.scores=[0,0]; displayedScores=[0,0];
+        S.edges={}; S.triangles=[]; S.scoredTri={}; S.selected=null;
+        S.roMatrix=[null,null]; S.roWho=0;
+      }
     }
 
     if(firstUpdate && state.phase==="rolloff"){
