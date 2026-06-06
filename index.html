@@ -652,9 +652,9 @@
   }
 
   // ---------- sound ----------
-  var sndClick=new Audio("Sounds/Click.mp3"); sndClick.preload="none";
-  var sndMain1=new Audio("Sounds/main1.mp3"); sndMain1.preload="none";
-  var sndMain2=new Audio("Sounds/main2.mp3"); sndMain2.preload="none";
+  var sndClick=new Audio("Sounds/Click.mp3"); sndClick.preload="auto";
+  var sndMain1=new Audio("Sounds/main1.mp3"); sndMain1.preload="auto";
+  var sndMain2=new Audio("Sounds/main2.mp3"); sndMain2.preload="auto";
   var _activeMusic=null, _fadeTmr=null;
   function playMusic(track){
     if(soundMuted) return;
@@ -676,11 +676,11 @@
       if(t.volume<=0){clearInterval(_fadeTmr);_fadeTmr=null;t.pause();t.currentTime=0;}
     },20);
   }
-  var sndDice=new Audio("Sounds/Dice/Dice.mp3"); sndDice.preload="none";
+  var sndDice=new Audio("Sounds/Dice/Dice.mp3"); sndDice.preload="auto";
   var sndSingle=new Audio("Sounds/Triangle/Single.mp3"), sndDouble=new Audio("Sounds/Triangle/Double.mp3");
-  sndSingle.preload="none"; sndDouble.preload="none";
-  var sndWinSounds=["Win1.mp3"].map(function(f){var a=new Audio("Sounds/Win/"+f);a.preload="none";return a;});
-  var sndLossSounds=["Loss1.mp3","Loss2.mp3","Loss3.mp3","Loss4.mp3","Loss5.mp3","Loss6.mp3","Loss7.mp3"].map(function(f){var a=new Audio("Sounds/Loss/"+f);a.preload="none";return a;});
+  sndSingle.preload="auto"; sndDouble.preload="auto";
+  var sndWinSounds=["Win1.mp3"].map(function(f){var a=new Audio("Sounds/Win/"+f);a.preload="auto";return a;});
+  var sndLossSounds=["Loss1.mp3","Loss2.mp3","Loss3.mp3","Loss4.mp3","Loss5.mp3","Loss6.mp3","Loss7.mp3"].map(function(f){var a=new Audio("Sounds/Loss/"+f);a.preload="auto";return a;});
   var audioReady=false, soundMuted=false;
   function randomFrom(arr){return arr[Math.floor(Math.random()*arr.length)];}
   function primeAudio(){
@@ -693,18 +693,17 @@
       src.connect(ctx.destination);src.start(0);
       ctx.resume().catch(function(){});
     }catch(e){}
-    // Sequentially unlock each HTMLAudioElement (one at a time so nothing bleeds through).
-    // muted+volume=0 guarantees silence; chaining ensures no overlap.
+    // Unlock all HTMLAudioElements synchronously in the same user-gesture tick.
+    // Must be synchronous — iOS rejects play() calls from promise callbacks.
+    // muted=true + volume=0 ensures no audible output.
     var toUnlock=[sndDice,sndSingle,sndDouble].concat(sndWinSounds).concat(sndLossSounds);
-    (function unlockNext(i){
-      if(i>=toUnlock.length) return;
-      var a=toUnlock[i];
+    toUnlock.forEach(function(a){
       a.muted=true; a.volume=0;
       var p=a.play();
-      var done=function(){a.pause();a.currentTime=0;a.muted=false;a.volume=1;unlockNext(i+1);};
-      if(p&&p.then){p.then(done).catch(function(){a.muted=false;a.volume=1;unlockNext(i+1);});}
-      else{done();}
-    })(0);
+      if(p&&p.then){p.then(function(){a.pause();a.currentTime=0;a.muted=false;a.volume=1;})
+                     .catch(function(){a.muted=false;a.volume=1;});}
+      else{a.pause();a.currentTime=0;a.muted=false;a.volume=1;}
+    });
   }
   function toggleMute(){
     soundMuted=!soundMuted;
