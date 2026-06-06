@@ -385,9 +385,12 @@
         </div>
         <button class="btn btn-primary" id="create-go">Create room</button>
         <div class="code-display" id="create-code-box" style="display:none">
-          <div class="sub" style="text-align:center">Share this code</div>
+          <div class="sub" style="text-align:center">Share with your friend</div>
           <div class="code-big" id="create-code">------</div>
-          <button class="btn-text" id="create-copy">Copy code</button>
+          <div style="display:flex;gap:8px;justify-content:center">
+            <button class="btn-text" id="create-copy">Copy code</button>
+            <button class="btn-text" id="create-copy-link">Copy link</button>
+          </div>
           <div class="sub" id="create-status" style="text-align:center">Waiting for friend to join…</div>
         </div>
       </div>
@@ -1363,6 +1366,15 @@
     if(navigator.clipboard) navigator.clipboard.writeText(code).then(function(){toast("Code copied!");}).catch(function(){toast("Code: "+code);});
     else toast("Code: "+code);
   });
+  $("create-copy-link").addEventListener("click",function(){
+    var code=$("create-code").textContent;
+    var link=location.origin+location.pathname+"?join="+code;
+    if(navigator.share){
+      navigator.share({title:"Join my doTriangle game",url:link}).catch(function(){});
+    } else if(navigator.clipboard){
+      navigator.clipboard.writeText(link).then(function(){toast("Link copied!");}).catch(function(){toast(link);});
+    } else { toast(link); }
+  });
   $("join-go").addEventListener("click",function(){
     enableMotion(); primeAudio();
     var code=($("join-code").value||"").trim().toUpperCase().slice(0,6);
@@ -1381,7 +1393,7 @@
    "fc-online","fc-pass",
    "setup-back","setup-start",
    "ol-create","ol-join","online-back",
-   "create-go","create-copy","join-go",
+   "create-go","create-copy","create-copy-link","join-go",
    "howto-got",
    "m-resume","m-restart","m-howto","m-quit",
    "go-again","go-rematch","go-home"
@@ -1558,7 +1570,22 @@
   renderDie($("game-die"),1);
   renderDie($("ro-die0"),1); renderDie($("ro-die1"),1);
   updateHUD();
-  showView("v-home");
+
+  // Auto-join if URL contains ?join=CODE (from a shared link)
+  (function(){
+    var params=new URLSearchParams(window.location.search);
+    var joinCode=params.get("join");
+    if(joinCode){
+      joinCode=joinCode.trim().toUpperCase().slice(0,6);
+      showView("v-friend");
+      showOnlineStep("join");
+      $("join-code").value=joinCode;
+      // Clean the URL so refreshing doesn't re-trigger
+      history.replaceState(null,"",location.pathname);
+    } else {
+      showView("v-home");
+    }
+  })();
 })();
 </script>
 </body>
