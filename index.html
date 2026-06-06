@@ -198,12 +198,12 @@
   .die.tappable{cursor:pointer;transition:transform .12s,box-shadow .12s;}
   .die.tappable:active{transform:scale(.92);box-shadow:0 2px 6px rgba(0,0,0,.4);}
   /* turn timer */
-  #turn-timer{position:absolute;inset:-7px;pointer-events:none;}
+  #turn-timer{position:absolute;inset:-4px;pointer-events:none;}
   #timer-ring{position:absolute;inset:0;width:100%;height:100%;}
-  #timer-track{stroke:rgba(255,255,255,.12);}
+  #timer-track{stroke:rgba(255,255,255,.1);}
   #timer-arc{stroke:var(--accent);transition:stroke-dashoffset .9s linear,stroke .3s;}
   #timer-arc.urgent{stroke:#ff4d6d;}
-  #timer-num{position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);
+  #timer-num{position:absolute;bottom:-22px;left:50%;transform:translateX(-50%);
     font-family:var(--display);font-weight:700;font-size:13px;color:var(--accent);
     transition:color .3s;white-space:nowrap;}
   #timer-num.urgent{color:#ff4d6d;}
@@ -466,11 +466,12 @@
         <div style="position:relative;display:inline-block">
           <div class="die" id="game-die"></div>
           <div id="turn-timer" style="display:none">
-            <svg id="timer-ring" viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
-              <circle id="timer-track" cx="36" cy="36" r="33" fill="none" stroke-width="3"/>
-              <circle id="timer-arc"  cx="36" cy="36" r="33" fill="none" stroke-width="3"
-                stroke-linecap="round" transform="rotate(-90 36 36)"
-                stroke-dasharray="207.3" stroke-dashoffset="0"/>
+            <svg id="timer-ring" viewBox="0 0 68 68" xmlns="http://www.w3.org/2000/svg">
+              <rect id="timer-track" x="2" y="2" width="64" height="64" rx="15" ry="15"
+                fill="none" stroke-width="3.5"/>
+              <rect id="timer-arc"  x="2" y="2" width="64" height="64" rx="15" ry="15"
+                fill="none" stroke-width="3.5" stroke-linecap="round"
+                stroke-dasharray="226" stroke-dashoffset="0"/>
             </svg>
             <span id="timer-num">10</span>
           </div>
@@ -1096,7 +1097,7 @@
 
   // ---------- turn countdown timer ----------
   var TURN_SECONDS=10, _turnTimer=null, _turnTimerLeft=0;
-  var TIMER_CIRC=2*Math.PI*33; // circumference of r=33 arc
+  var TIMER_CIRC=226; // perimeter of 64×64 rounded-rect (rx=15)
 
   function startTurnTimer(){
     clearTurnTimer();
