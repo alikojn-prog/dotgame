@@ -685,8 +685,7 @@
   function randomFrom(arr){return arr[Math.floor(Math.random()*arr.length)];}
   function primeAudio(){
     if(audioReady) return; audioReady=true;
-    // Unlock audio with a single silent AudioContext buffer.
-    // This is sufficient on iOS 15+ / Android Chrome to allow all subsequent audio.
+    // Unlock AudioContext
     try{
       var ctx=new(window.AudioContext||window.webkitAudioContext)();
       var buf=ctx.createBuffer(1,1,22050);
@@ -694,6 +693,18 @@
       src.connect(ctx.destination);src.start(0);
       ctx.resume().catch(function(){});
     }catch(e){}
+    // Sequentially unlock each HTMLAudioElement (one at a time so nothing bleeds through).
+    // muted+volume=0 guarantees silence; chaining ensures no overlap.
+    var toUnlock=[sndDice,sndSingle,sndDouble].concat(sndWinSounds).concat(sndLossSounds);
+    (function unlockNext(i){
+      if(i>=toUnlock.length) return;
+      var a=toUnlock[i];
+      a.muted=true; a.volume=0;
+      var p=a.play();
+      var done=function(){a.pause();a.currentTime=0;a.muted=false;a.volume=1;unlockNext(i+1);};
+      if(p&&p.then){p.then(done).catch(function(){a.muted=false;a.volume=1;unlockNext(i+1);});}
+      else{done();}
+    })(0);
   }
   function toggleMute(){
     soundMuted=!soundMuted;
