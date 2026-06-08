@@ -282,6 +282,41 @@
   @media (max-height:680px){
     .home-tag{margin:10px 0 22px;}
   }
+
+  /* ===================== ONBOARDING OVERLAY ===================== */
+  #onboarding{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;
+    background:rgba(6,4,20,.92);backdrop-filter:blur(10px);}
+  #onboarding.show{display:flex;}
+  .ob-panel{background:var(--solid);border:1px solid var(--border);border-radius:var(--radius);
+    padding:22px 20px 18px;width:min(350px,94vw);display:flex;flex-direction:column;gap:14px;
+    box-shadow:0 24px 60px rgba(0,0,0,.7);}
+  .ob-steps{display:flex;justify-content:center;gap:7px;margin-bottom:-2px;}
+  .ob-pip{width:8px;height:8px;border-radius:50%;background:var(--border);transition:background .35s,opacity .35s;}
+  .ob-pip.active{background:var(--accent);}
+  .ob-pip.done{background:var(--accent);opacity:.45;}
+  .ob-header{display:flex;flex-direction:column;gap:4px;text-align:center;}
+  .ob-badge{font-size:11px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--dim);}
+  .ob-title{font-family:var(--display);font-weight:700;font-size:22px;}
+  .ob-hint{font-size:13.5px;color:var(--dim);line-height:1.45;min-height:2.7em;}
+  .ob-board-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);
+    overflow:hidden;padding:6px;}
+  .ob-board-wrap svg{display:block;width:100%;touch-action:none;user-select:none;-webkit-user-select:none;}
+  .ob-status{text-align:center;font-size:14px;font-weight:700;min-height:1.5em;transition:opacity .25s;}
+  .ob-status.ok{color:#4ade80;}
+  .ob-status.retry{color:var(--dim);}
+  .ob-actions{display:flex;flex-direction:column;gap:9px;align-items:center;}
+  .ob-actions .btn{width:100%;}
+  .ob-skip{background:none;border:none;color:var(--dim);font-family:var(--body);font-weight:600;
+    font-size:14px;cursor:pointer;padding:6px 12px;}
+  .ob-skip:active{color:var(--text);}
+
+  @keyframes ob-ring-tap{0%,100%{r:15;opacity:.6;stroke-width:2;}50%{r:22;opacity:.18;stroke-width:1.5;}}
+  @keyframes ob-ring-drag{0%,100%{r:15;opacity:.65;stroke-width:2.5;}50%{r:24;opacity:.2;stroke-width:1.5;}}
+  .ob-anim-tap{animation:ob-ring-tap 1.1s ease-in-out infinite;}
+  .ob-anim-drag{animation:ob-ring-drag 1s ease-in-out infinite;}
+  @keyframes ob-line-draw{from{stroke-dashoffset:200;}to{stroke-dashoffset:0;}}
+  @keyframes ob-tri-fade{from{fill-opacity:0;}to{fill-opacity:.22;}}
+  @media(max-height:680px){.ob-panel{gap:10px;padding:16px 18px 14px;}}
 </style>
 </head>
 <body>
@@ -439,6 +474,63 @@
           <div class="step"><span class="step-n">4</span><div><div class="step-t">Most triangles wins</div><div class="step-d">The round ends when no more lines can be drawn. Whoever claimed the most triangles wins.</div></div></div>
         </div>
         <button class="btn btn-primary" id="howto-got">Got it</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== ONBOARDING ===================== -->
+  <div id="onboarding">
+    <div class="ob-panel">
+      <div class="ob-steps">
+        <div class="ob-pip active" id="ob-pip1"></div>
+        <div class="ob-pip" id="ob-pip2"></div>
+      </div>
+      <div class="ob-header">
+        <div class="ob-badge" id="ob-badge">Step 1 of 2</div>
+        <div class="ob-title" id="ob-title">Tap two dots</div>
+        <div class="ob-hint" id="ob-hint">Tap the glowing dot to select it</div>
+      </div>
+      <div class="ob-board-wrap">
+        <!-- viewBox: 220 wide × 178 tall; dots: A(110,25) B(182,148) C(38,148) -->
+        <svg id="ob-svg" viewBox="0 0 220 178" xmlns="http://www.w3.org/2000/svg">
+          <!-- triangle fill – revealed last -->
+          <polygon id="ob-tri" points="110,25 182,148 38,148"
+            fill="#B69BFF" fill-opacity="0" stroke="none"/>
+          <!-- drawn lines -->
+          <line id="ob-ln-ab" x1="110" y1="25" x2="182" y2="148"
+            stroke="#36E0E6" stroke-width="4.5" stroke-linecap="round"
+            stroke-dasharray="200" stroke-dashoffset="200" opacity="0"/>
+          <line id="ob-ln-bc" x1="182" y1="148" x2="38" y2="148"
+            stroke="#36E0E6" stroke-width="4.5" stroke-linecap="round"
+            stroke-dasharray="200" stroke-dashoffset="200" opacity="0"/>
+          <line id="ob-ln-ca" x1="38" y1="148" x2="110" y2="25"
+            stroke="#B69BFF" stroke-width="4.5" stroke-linecap="round"
+            stroke-dasharray="200" stroke-dashoffset="200" opacity="0"/>
+          <!-- live drag preview line -->
+          <line id="ob-drag-ln" x1="0" y1="0" x2="0" y2="0"
+            stroke="#36E0E6" stroke-width="3" stroke-linecap="round"
+            stroke-dasharray="7 6" opacity="0"/>
+          <!-- target rings (animated via class) -->
+          <circle id="ob-ring-0" cx="110" cy="25"  r="15" fill="none" stroke="#B69BFF" stroke-width="2" opacity="0"/>
+          <circle id="ob-ring-1" cx="182" cy="148" r="15" fill="none" stroke="#B69BFF" stroke-width="2" opacity="0"/>
+          <circle id="ob-ring-2" cx="38"  cy="148" r="15" fill="none" stroke="#36E0E6" stroke-width="2" opacity="0"/>
+          <!-- selection ring (shown when a dot is selected) -->
+          <circle id="ob-sel-ring" cx="0" cy="0" r="13" fill="none"
+            stroke="#B69BFF" stroke-width="2.5" opacity="0"/>
+          <!-- dots -->
+          <circle id="ob-d0" cx="110" cy="25"  r="8" fill="#fff"/>
+          <circle id="ob-d1" cx="182" cy="148" r="8" fill="#fff"/>
+          <circle id="ob-d2" cx="38"  cy="148" r="8" fill="#fff"/>
+          <!-- transparent hit areas (on top so they receive events) -->
+          <circle id="ob-hit-0" cx="110" cy="25"  r="32" fill="transparent" style="cursor:pointer"/>
+          <circle id="ob-hit-1" cx="182" cy="148" r="32" fill="transparent" style="cursor:pointer"/>
+          <circle id="ob-hit-2" cx="38"  cy="148" r="32" fill="transparent" style="cursor:pointer"/>
+        </svg>
+      </div>
+      <div class="ob-status" id="ob-status"></div>
+      <div class="ob-actions">
+        <button class="btn btn-primary" id="ob-got" style="display:none">Let's play!</button>
+        <button class="ob-skip" id="ob-skip">Skip tutorial</button>
       </div>
     </div>
   </div>
@@ -1096,7 +1188,7 @@
   }
 
   // ---------- turn countdown timer ----------
-  var TURN_SECONDS=10, _turnTimer=null, _turnTimerLeft=0;
+  var TURN_SECONDS=20, _turnTimer=null, _turnTimerLeft=0;
   var TIMER_CIRC=226; // perimeter of 64×64 rounded-rect (rx=15)
 
   function startTurnTimer(){
@@ -1370,6 +1462,233 @@
       b.classList.add("sel");
     });
   });
+  // ---------- onboarding (interactive tutorial) ----------
+  var OB_VW=220, OB_VH=178;
+  var OB_DOTS=[{x:110,y:25},{x:182,y:148},{x:38,y:148}];
+  var OB_HIT=34;
+  var obPhase="idle"; // tap1 | tap1sel | drag | done
+  var obDragActive=false, obDragCaptureId=-1;
+  var _pendingGameStart=null;
+
+  function obSvgPt(clientX,clientY){
+    var svg=$("ob-svg"),rect=svg.getBoundingClientRect();
+    return{x:(clientX-rect.left)*(OB_VW/rect.width),y:(clientY-rect.top)*(OB_VH/rect.height)};
+  }
+  function obNearDot(pt,excl){
+    for(var i=0;i<OB_DOTS.length;i++){
+      if(i===excl) continue;
+      var d=OB_DOTS[i],dx=d.x-pt.x,dy=d.y-pt.y;
+      if(dx*dx+dy*dy<OB_HIT*OB_HIT) return i;
+    }
+    return -1;
+  }
+  function obSetRing(idx,cls){
+    [0,1,2].forEach(function(i){var r=$("ob-ring-"+i);r.className.baseVal="";r.setAttribute("opacity","0");});
+    if(idx<0) return;
+    var r=$("ob-ring-"+idx); r.setAttribute("opacity","1");
+    if(cls) r.setAttribute("class",cls);
+  }
+  function obSetSelRing(idx){
+    var sr=$("ob-sel-ring");
+    if(idx<0){sr.setAttribute("opacity","0");return;}
+    var d=OB_DOTS[idx];
+    sr.setAttribute("cx",d.x);sr.setAttribute("cy",d.y);sr.setAttribute("opacity","1");
+  }
+  function obSetDotFill(idx,col){$("ob-d"+idx).setAttribute("fill",col||"#fff");}
+  function obAnimLine(id){
+    var ln=$(id);
+    ln.setAttribute("opacity","1");
+    ln.style.animation="none";
+    void ln.getBoundingClientRect(); // reflow
+    ln.setAttribute("stroke-dashoffset","200");
+    ln.style.animation="ob-line-draw .45s ease-out forwards";
+  }
+  function obSetStatus(txt,cls){
+    var el=$("ob-status");el.textContent=txt;el.className="ob-status "+(cls||"");
+  }
+  function obSetHeader(badge,title,hint){
+    $("ob-badge").textContent=badge;
+    $("ob-title").textContent=title;
+    $("ob-hint").textContent=hint;
+  }
+  function obSetPips(step){
+    $("ob-pip1").className="ob-pip"+(step>=1?" active":"")+(step>1?" done":"");
+    $("ob-pip2").className="ob-pip"+(step===2?" active":"")+(step>2?" done":"");
+  }
+
+  // ---- phase transitions ----
+  function obPhaseStart(){
+    obPhase="tap1";
+    obSetPips(1);
+    obSetHeader("Step 1 of 2","Tap two dots","Tap the glowing dot to select it");
+    obSetRing(0,"ob-anim-tap");
+    obSetSelRing(-1);
+    obSetStatus("","");
+    $("ob-drag-ln").setAttribute("opacity","0");
+  }
+  function obPhaseDrag(){
+    obPhase="drag";
+    obSetPips(2);
+    obSetHeader("Step 2 of 2","Now try dragging","Press and hold the glowing dot, then drag to another");
+    obSetRing(1,"ob-anim-drag");
+    obSetSelRing(-1);
+    obSetStatus("","");
+    obDragActive=false;
+  }
+  function obPhaseDone(){
+    obPhase="done";
+    obSetPips(3);
+    obSetHeader("Done!","You made a triangle!","Three connected lines score a point — now you know!");
+    obSetRing(-1);
+    obAnimLine("ob-ln-ca");
+    setTimeout(function(){
+      var tri=$("ob-tri");
+      tri.style.animation="none";
+      void tri.getBoundingClientRect();
+      tri.setAttribute("fill-opacity","0");
+      tri.style.animation="ob-tri-fade .55s ease-out forwards";
+    },430);
+    setTimeout(function(){
+      obSetStatus("","");
+      $("ob-got").style.display="";
+      $("ob-skip").style.display="none";
+    },950);
+  }
+
+  // ---- tap handler ----
+  function obOnTap(dotIdx){
+    if(obPhase==="tap1"){
+      if(dotIdx!==0) return;
+      obPhase="tap1sel";
+      obSetSelRing(0);
+      obSetDotFill(0,"#B69BFF");
+      // ring moves to dot 1
+      $("ob-ring-1").setAttribute("stroke","#B69BFF");
+      obSetRing(1,"ob-anim-tap");
+      obSetHeader("Step 1 of 2","Tap two dots","Now tap another dot to draw a line");
+    } else if(obPhase==="tap1sel"){
+      if(dotIdx===0){
+        // deselect
+        obPhase="tap1";
+        obSetSelRing(-1);
+        obSetDotFill(0,"#fff");
+        $("ob-ring-1").setAttribute("stroke","#B69BFF");
+        obSetRing(0,"ob-anim-tap");
+        obSetHeader("Step 1 of 2","Tap two dots","Tap the glowing dot to select it");
+        return;
+      }
+      // any other dot completes step 1
+      obPhase="tap1done";
+      obSetRing(-1);
+      obSetSelRing(-1);
+      obSetDotFill(0,"#fff");
+      var lineId=(dotIdx===1)?"ob-ln-ab":"ob-ln-ca";
+      if(dotIdx===2){
+        // drew C-A instead, relabel for next step
+        $("ob-ln-ca").setAttribute("x1",OB_DOTS[0].x);$("ob-ln-ca").setAttribute("y1",OB_DOTS[0].y);
+        $("ob-ln-ca").setAttribute("x2",OB_DOTS[2].x);$("ob-ln-ca").setAttribute("y2",OB_DOTS[2].y);
+        $("ob-ln-ca").setAttribute("stroke","#36E0E6");
+      }
+      obAnimLine(lineId);
+      obSetStatus("✓ Line drawn!","ok");
+      setTimeout(obPhaseDrag,1100);
+    }
+  }
+
+  // ---- drag handlers ----
+  var obSvg=$("ob-svg");
+  obSvg.addEventListener("pointerdown",function(e){
+    if(obPhase!=="drag") return;
+    var pt=obSvgPt(e.clientX,e.clientY);
+    if(obNearDot(pt,-1)!==1) return; // must start from dot 1
+    obDragActive=true;
+    try{obSvg.setPointerCapture(e.pointerId);}catch(ex){}
+    obDragCaptureId=e.pointerId;
+    var sd=OB_DOTS[1];
+    var dl=$("ob-drag-ln");
+    dl.setAttribute("x1",sd.x);dl.setAttribute("y1",sd.y);
+    dl.setAttribute("x2",pt.x);dl.setAttribute("y2",pt.y);
+    dl.setAttribute("opacity","0.75");
+    obSetRing(-1);
+  });
+  obSvg.addEventListener("pointermove",function(e){
+    if(!obDragActive) return;
+    var pt=obSvgPt(e.clientX,e.clientY);
+    var dl=$("ob-drag-ln");
+    dl.setAttribute("x2",pt.x);dl.setAttribute("y2",pt.y);
+    // highlight dot 2 if nearby
+    obSetDotFill(2, obNearDot(pt,1)===2 ? "#36E0E6" : "#fff");
+  });
+  function obEndDrag(e){
+    if(!obDragActive) return;
+    obDragActive=false;
+    $("ob-drag-ln").setAttribute("opacity","0");
+    obSetDotFill(2,"#fff");
+    var pt=obSvgPt(e.clientX,e.clientY);
+    if(obNearDot(pt,1)===2){
+      obPhase="dragdone";
+      obAnimLine("ob-ln-bc");
+      obSetStatus("✓ Line drawn!","ok");
+      setTimeout(obPhaseDone,1100);
+    } else {
+      // missed — ring comes back
+      obSetRing(1,"ob-anim-drag");
+      obSetStatus("Almost! Drag all the way to another dot","retry");
+    }
+  }
+  obSvg.addEventListener("pointerup",obEndDrag);
+  obSvg.addEventListener("pointercancel",function(e){
+    obDragActive=false;
+    $("ob-drag-ln").setAttribute("opacity","0");
+    obSetDotFill(2,"#fff");
+    if(obPhase==="drag") obSetRing(1,"ob-anim-drag");
+  });
+
+  // wire tap hit-areas
+  [0,1,2].forEach(function(i){
+    $("ob-hit-"+i).addEventListener("click",function(){ obOnTap(i); });
+  });
+
+  function showOnboarding(proceed){
+    _pendingGameStart=proceed;
+    // full reset
+    ["ob-ln-ab","ob-ln-bc","ob-ln-ca"].forEach(function(id){
+      var el=$(id);
+      el.setAttribute("stroke-dashoffset","200");el.setAttribute("opacity","0");
+      el.style.animation="";
+    });
+    // restore default line coords/colors
+    var D=OB_DOTS;
+    var ab=$("ob-ln-ab"),bc=$("ob-ln-bc"),ca=$("ob-ln-ca");
+    ab.setAttribute("x1",D[0].x);ab.setAttribute("y1",D[0].y);
+    ab.setAttribute("x2",D[1].x);ab.setAttribute("y2",D[1].y);ab.setAttribute("stroke","#36E0E6");
+    bc.setAttribute("x1",D[1].x);bc.setAttribute("y1",D[1].y);
+    bc.setAttribute("x2",D[2].x);bc.setAttribute("y2",D[2].y);bc.setAttribute("stroke","#36E0E6");
+    ca.setAttribute("x1",D[2].x);ca.setAttribute("y1",D[2].y);
+    ca.setAttribute("x2",D[0].x);ca.setAttribute("y2",D[0].y);ca.setAttribute("stroke","#B69BFF");
+    $("ob-ring-1").setAttribute("stroke","#B69BFF");
+    var tri=$("ob-tri");tri.setAttribute("fill-opacity","0");tri.style.animation="";
+    $("ob-drag-ln").setAttribute("opacity","0");
+    [0,1,2].forEach(function(i){obSetDotFill(i,"#fff");});
+    $("ob-got").style.display="none";
+    $("ob-skip").style.display="";
+    obSetStatus("","");
+    obPhaseStart();
+    $("onboarding").classList.add("show");
+  }
+  function dismissOnboarding(){
+    $("onboarding").classList.remove("show");
+    if(_pendingGameStart){_pendingGameStart();_pendingGameStart=null;}
+  }
+  $("ob-got").addEventListener("click",function(){
+    try{localStorage.setItem("ob_seen","1");}catch(e){}
+    dismissOnboarding();
+  });
+  $("ob-skip").addEventListener("click",function(){
+    try{localStorage.setItem("ob_seen","1");}catch(e){}
+    dismissOnboarding();
+  });
+
   $("setup-start").addEventListener("click",function(){
     enableMotion(); primeAudio();
     S.numDots=setupN;
@@ -1384,7 +1703,9 @@
       S.names=[n1,n2];
     }
     newBoard();
-    startRolloff();
+    var seen=false;try{seen=!!localStorage.getItem("ob_seen");}catch(e){}
+    if(!seen){ showOnboarding(startRolloff); }
+    else { startRolloff(); }
   });
 
   // ---------- Online lobby ----------
@@ -1464,7 +1785,8 @@
    "create-go","create-copy","create-copy-link","join-go",
    "howto-got",
    "m-resume","m-restart","m-howto","m-quit",
-   "go-again","go-rematch","go-home"
+   "go-again","go-rematch","go-home",
+   "ob-got","ob-skip"
   ].forEach(function(id){
     var el=$(id); if(el) el.addEventListener("click",playClick,true);
   });
