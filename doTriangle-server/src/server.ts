@@ -4,7 +4,13 @@ import type * as Party from "partykit/server";
 type Phase = "lobby" | "rolloff" | "turn" | "drawing" | "end";
 type Dot = { x: number; y: number };
 type Triangle = { a: number; b: number; c: number; player: number };
-type Player = { name: string; logo: string; connected: boolean; connId: string | null };
+type Player = {
+  name: string;
+  logo: string;
+  connected: boolean;
+  connId: string | null;
+  token: string | null; // session token so a dropped player can reclaim their seat
+};
 
 type State = {
   phase: Phase;
@@ -21,18 +27,32 @@ type State = {
   roMatrix: [number | null, number | null];
   roWho: number;
   linesLeft: number;
+  // best-of-N match
+  bestOf: number;
+  matchWins: [number, number];
+  matchOver: boolean;
+  // epoch-ms deadline for the current phase (clients render the countdown)
+  deadline: number | null;
 };
 
 type ServerEvent =
   | { type: "opponent_joined"; idx: number }
   | { type: "opponent_left"; idx: number }
+  | { type: "opponent_rejoined"; idx: number }
   | { type: "dice_rolled"; playerIdx: number; value: number; for: "rolloff" | "turn" }
   | { type: "line_drawn"; a: number; b: number; byPlayer: number; triangles: Triangle[] }
   | { type: "turn_changed"; current: number }
+  | { type: "turn_timeout"; idx: number }
   | { type: "rolloff_starter"; winnerIdx: number }
   | { type: "game_over"; winnerIdx: number | null }
   | { type: "rematch_requested"; idx: number }
   | { type: "rematch_start" };
+
+// ---------- timing ----------
+const ROLL_TIMEOUT_MS = 30_000;    // time to tap the dice before we auto-roll
+const DRAW_TIMEOUT_MS = 22_000;    // time to draw lines before the turn passes
+const ROLLOFF_TIMEOUT_MS = 12_000; // time to roll in the roll-off
+const GRACE_MS = 30_000;           // reconnect window after a disconnect
 
 // ---------- geometry (mirrors client rules so validation matches exactly) ----------
 const VB = { w: 800, h: 800, margin: 80 };
@@ -123,22 +143,24 @@ function checkTriangles(state: State, a: number, b: number, player: number): Tri
   return made;
 }
 
-function allConnected(state: State): boolean {
-  const deg: Record<number, boolean> = {};
-  for (const key of Object.keys(state.edges)) {
-    const [i, j] = key.split("-").map(Number);
-    deg[i] = true; deg[j] = true;
+// The round ends when no legal line remains — every triangle gets fought over.
+function hasAnyLegalMove(state: State): boolean {
+  for (let i = 0; i < state.dots.length; i++) {
+    for (let j = i + 1; j < state.dots.length; j++) {
+      if (hasEdge(state, i, j)) continue;
+      if (crossesExisting(state, i, j)) continue;
+      return true;
+    }
   }
-  for (let i = 0; i < state.dots.length; i++) if (!deg[i]) return false;
-  return true;
+  return false;
 }
 
 function emptyState(): State {
   return {
     phase: "lobby",
     players: [
-      { name: "", logo: "", connected: false, connId: null },
-      { name: "", logo: "", connected: false, connId: null },
+      { name: "", logo: "", connected: false, connId: null, token: null },
+      { name: "", logo: "", connected: false, connId: null, token: null },
     ],
     numDots: 10,
     dots: [],
@@ -152,6 +174,10 @@ function emptyState(): State {
     roMatrix: [null, null],
     roWho: 0,
     linesLeft: 0,
+    bestOf: 1,
+    matchWins: [0, 0],
+    matchOver: false,
+    deadline: null,
   };
 }
 
@@ -160,6 +186,8 @@ export default class Server implements Party.Server {
   state: State = emptyState();
   hostInitialized = false;
   rematchVotes: Set<number> = new Set();
+  phaseTimer: ReturnType<typeof setTimeout> | null = null;
+  graceTimers: [ReturnType<typeof setTimeout> | null, ReturnType<typeof setTimeout> | null] = [null, null];
 
   constructor(readonly room: Party.Room) {}
 
@@ -184,8 +212,16 @@ export default class Server implements Party.Server {
         this.state.players[i].connId = null;
         const events: ServerEvent[] = [{ type: "opponent_left", idx: i }];
         if (this.state.phase !== "lobby" && this.state.phase !== "end") {
-          this.state.phase = "end";
-          events.push({ type: "game_over", winnerIdx: 1 - i });
+          // Pause the clock and give them a grace window to reconnect
+          // instead of instantly forfeiting on a network blip.
+          this.clearPhaseTimer();
+          this.clearGrace(i);
+          this.graceTimers[i] = setTimeout(() => {
+            this.graceTimers[i] = null;
+            if (this.state.players[i].connected) return;
+            if (this.state.phase === "lobby" || this.state.phase === "end") return;
+            this.endGame([], (1 - i) as 0 | 1); // forfeit — they never came back
+          }, GRACE_MS);
         }
         this.broadcastUpdate(events);
         break;
@@ -200,7 +236,38 @@ export default class Server implements Party.Server {
   }
   private send(conn: Party.Connection, obj: any) { conn.send(JSON.stringify(obj)); }
   private broadcastUpdate(events: ServerEvent[]) {
-    this.room.broadcast(JSON.stringify({ type: "update", state: this.state, events }));
+    // Never broadcast session tokens or connection ids.
+    const s = this.state;
+    const publicState = {
+      ...s,
+      players: s.players.map((p) => ({ name: p.name, logo: p.logo, connected: p.connected })),
+    };
+    this.room.broadcast(JSON.stringify({ type: "update", state: publicState, events }));
+  }
+
+  private clearPhaseTimer() {
+    if (this.phaseTimer) { clearTimeout(this.phaseTimer); this.phaseTimer = null; }
+    this.state.deadline = null;
+  }
+  private setPhaseDeadline(ms: number, fn: () => void) {
+    this.clearPhaseTimer();
+    this.state.deadline = Date.now() + ms;
+    this.phaseTimer = setTimeout(fn, ms);
+  }
+  private clearGrace(idx: number) {
+    if (this.graceTimers[idx]) { clearTimeout(this.graceTimers[idx]!); this.graceTimers[idx] = null; }
+  }
+  // Re-arm the right timer for the current phase (used after reconnects).
+  private rearmPhase() {
+    if (this.state.phase === "turn") {
+      this.setPhaseDeadline(ROLL_TIMEOUT_MS, () => this.autoRoll());
+    } else if (this.state.phase === "drawing") {
+      this.setPhaseDeadline(DRAW_TIMEOUT_MS, () => this.timeoutTurn());
+    } else if (this.state.phase === "rolloff") {
+      this.armRolloffTimeout();
+    } else {
+      this.clearPhaseTimer();
+    }
   }
 
   // ---------- message handlers ----------
@@ -212,12 +279,14 @@ export default class Server implements Party.Server {
       }
       this.state = emptyState();
       this.state.numDots = Math.max(4, Math.min(60, (m.numDots | 0) || 10));
+      this.state.bestOf = (m.bestOf | 0) === 3 ? 3 : 1;
       this.state.dots = genDots(this.state.numDots);
       this.state.players[0] = {
         name: String(m.name || "Player 1").slice(0, 14),
         logo: String(m.logo || "⭐️").slice(0, 8),
         connected: true,
         connId: sender.id,
+        token: m.token ? String(m.token).slice(0, 64) : null,
       };
       this.hostInitialized = true;
       this.send(sender, { type: "you", playerIdx: 0, code: this.room.id });
@@ -242,12 +311,32 @@ export default class Server implements Party.Server {
         logo,
         connected: true,
         connId: sender.id,
+        token: m.token ? String(m.token).slice(0, 64) : null,
       };
       this.send(sender, { type: "you", playerIdx: 1, code: this.room.id });
       this.state.phase = "rolloff";
       this.state.roMatrix = [null, null];
       this.state.roWho = 0;
+      this.armRolloffTimeout();
       this.broadcastUpdate([{ type: "opponent_joined", idx: 1 }]);
+      return;
+    }
+    if (m.intent === "resume") {
+      const tok = m.token ? String(m.token).slice(0, 64) : "";
+      let idx = -1;
+      for (let i = 0; i < 2; i++) {
+        if (tok && this.state.players[i].token && this.state.players[i].token === tok) idx = i;
+      }
+      if (idx === -1) {
+        this.send(sender, { type: "error", message: "Nothing to resume" });
+        return;
+      }
+      this.state.players[idx].connected = true;
+      this.state.players[idx].connId = sender.id;
+      this.clearGrace(idx);
+      this.send(sender, { type: "you", playerIdx: idx, code: this.room.id });
+      if (this.state.phase !== "lobby" && this.state.phase !== "end") this.rearmPhase();
+      this.broadcastUpdate([{ type: "opponent_rejoined", idx }]);
       return;
     }
   }
@@ -258,27 +347,60 @@ export default class Server implements Party.Server {
     if (this.state.phase === "rolloff") {
       if (idx !== this.state.roWho) return;
       if (this.state.roMatrix[idx] != null) return;
-      const n = 1 + Math.floor(Math.random() * 6);
-      this.state.roMatrix[idx] = n;
-      this.broadcastUpdate([{ type: "dice_rolled", playerIdx: idx, value: n, for: "rolloff" }]);
-      setTimeout(() => this.rolloffAdvance(), 1300);
+      this.doRolloffRoll(idx);
       return;
     }
     if (this.state.phase === "turn") {
       if (idx !== this.state.current) return;
-      const n = 1 + Math.floor(Math.random() * 6);
-      this.state.linesLeft = n;
-      this.state.history[idx].push(n);
-      this.state.phase = "drawing";
-      this.broadcastUpdate([{ type: "dice_rolled", playerIdx: idx, value: n, for: "turn" }]);
+      this.doTurnRoll(idx);
       return;
     }
+  }
+
+  private doRolloffRoll(idx: number) {
+    const n = 1 + Math.floor(Math.random() * 6);
+    this.state.roMatrix[idx] = n;
+    this.clearPhaseTimer();
+    this.broadcastUpdate([{ type: "dice_rolled", playerIdx: idx, value: n, for: "rolloff" }]);
+    setTimeout(() => this.rolloffAdvance(), 1300);
+  }
+
+  private doTurnRoll(idx: number) {
+    const n = 1 + Math.floor(Math.random() * 6);
+    this.state.linesLeft = n;
+    this.state.history[idx].push(n);
+    this.state.phase = "drawing";
+    this.setPhaseDeadline(DRAW_TIMEOUT_MS, () => this.timeoutTurn());
+    this.broadcastUpdate([{ type: "dice_rolled", playerIdx: idx, value: n, for: "turn" }]);
+  }
+
+  private armRolloffTimeout() {
+    this.setPhaseDeadline(ROLLOFF_TIMEOUT_MS, () => {
+      if (this.state.phase !== "rolloff") return;
+      const w = this.state.roWho;
+      if (this.state.roMatrix[w] == null) this.doRolloffRoll(w);
+    });
+  }
+
+  // The active player never rolled — roll for them so the game can't stall.
+  private autoRoll() {
+    if (this.state.phase !== "turn") return;
+    if (!this.state.players[this.state.current].connected) return; // grace timer will resolve this
+    this.doTurnRoll(this.state.current);
+  }
+
+  // The active player ran out of drawing time — pass the turn.
+  private timeoutTurn() {
+    if (this.state.phase !== "drawing") return;
+    if (!this.state.players[this.state.current].connected) return; // grace timer will resolve this
+    this.advanceTurn([{ type: "turn_timeout", idx: this.state.current }]);
   }
 
   private rolloffAdvance() {
     if (this.state.phase !== "rolloff") return;
     if (this.state.roWho === 0) {
       this.state.roWho = 1;
+      this.armRolloffTimeout();
       this.broadcastUpdate([]);
       return;
     }
@@ -286,11 +408,13 @@ export default class Server implements Party.Server {
     if (a === b) {
       this.state.roMatrix = [null, null];
       this.state.roWho = 0;
+      this.armRolloffTimeout();
       this.broadcastUpdate([]);
       return;
     }
     this.state.current = a > b ? 0 : 1;
     this.state.phase = "turn";
+    this.setPhaseDeadline(ROLL_TIMEOUT_MS, () => this.autoRoll());
     this.broadcastUpdate([{ type: "rolloff_starter", winnerIdx: this.state.current }]);
   }
 
@@ -309,7 +433,7 @@ export default class Server implements Party.Server {
     const newTri = checkTriangles(this.state, a, b, idx);
     this.state.linesLeft--;
     const events: ServerEvent[] = [{ type: "line_drawn", a, b, byPlayer: idx, triangles: newTri }];
-    if (allConnected(this.state)) { this.endGame(events); return; }
+    if (!hasAnyLegalMove(this.state)) { this.endGame(events); return; }
     if (this.state.linesLeft <= 0) { this.advanceTurn(events); return; }
     this.broadcastUpdate(events);
   }
@@ -322,18 +446,32 @@ export default class Server implements Party.Server {
   }
 
   private advanceTurn(events: ServerEvent[]) {
-    if (allConnected(this.state)) { this.endGame(events); return; }
+    if (!hasAnyLegalMove(this.state)) { this.endGame(events); return; }
     this.state.current = 1 - this.state.current;
     this.state.phase = "turn";
+    this.setPhaseDeadline(ROLL_TIMEOUT_MS, () => this.autoRoll());
     events.push({ type: "turn_changed", current: this.state.current });
     this.broadcastUpdate(events);
   }
 
-  private endGame(events: ServerEvent[]) {
+  private endGame(events: ServerEvent[], forcedWinner?: 0 | 1) {
+    this.clearPhaseTimer();
     this.state.phase = "end";
     this.rematchVotes.clear();
     const [a, b] = this.state.scores;
-    events.push({ type: "game_over", winnerIdx: a === b ? null : (a > b ? 0 : 1) });
+    const winner: number | null =
+      forcedWinner !== undefined ? forcedWinner : (a === b ? null : (a > b ? 0 : 1));
+    if (forcedWinner !== undefined) {
+      // disconnect forfeit ends the whole match
+      this.state.matchOver = true;
+    } else if (this.state.bestOf > 1) {
+      if (winner != null) this.state.matchWins[winner]++;
+      const need = Math.floor(this.state.bestOf / 2) + 1;
+      this.state.matchOver = this.state.matchWins[0] >= need || this.state.matchWins[1] >= need;
+    } else {
+      this.state.matchOver = true;
+    }
+    events.push({ type: "game_over", winnerIdx: winner });
     this.broadcastUpdate(events);
   }
 
@@ -343,21 +481,27 @@ export default class Server implements Party.Server {
     if (idx === -1) return;
     this.rematchVotes.add(idx);
     if (this.rematchVotes.size < 2) {
-      // Tell both players one person wants a rematch
+      // Tell both players one person wants to keep playing
       this.broadcastUpdate([{ type: "rematch_requested", idx }]);
       return;
     }
-    // Both want rematch — reset board, keep players, start new rolloff
+    // Both agreed — reset board, keep players (and the match score if the
+    // match is still running; start fresh if it's decided).
     this.rematchVotes.clear();
     const players = this.state.players;
     const numDots = this.state.numDots;
+    const bestOf = this.state.bestOf;
+    const matchWins: [number, number] = this.state.matchOver ? [0, 0] : this.state.matchWins;
     this.state = emptyState();
     this.state.players = players;
     this.state.numDots = numDots;
+    this.state.bestOf = bestOf;
+    this.state.matchWins = matchWins;
     this.state.dots = genDots(numDots);
     this.state.phase = "rolloff";
     this.state.roMatrix = [null, null];
     this.state.roWho = 0;
+    this.armRolloffTimeout();
     this.broadcastUpdate([{ type: "rematch_start" }]);
   }
 }

@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="theme-color" content="#060414" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="apple-touch-icon" href="icon-180.png" />
 <title>doTriangle</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -354,6 +357,7 @@
     box-shadow:0 -10px 30px rgba(0,0,0,.5);}
   #gameover.show{display:flex;align-items:center;gap:14px;justify-content:center;}
   .go-head{font-family:var(--display);font-weight:700;font-size:18px;white-space:nowrap;}
+  .go-sub{font-size:11.5px;font-weight:700;color:var(--dim);margin-top:2px;white-space:nowrap;}
   .go-div{width:1px;align-self:stretch;background:var(--border);margin:0 4px;}
   .go-row{display:flex;align-items:center;gap:10px;}
   .go-col{text-align:center;}
@@ -579,6 +583,13 @@
             <button data-ai="hard">Hard</button>
           </div>
         </div>
+        <div id="setup-match-wrap">
+          <div class="seclabel">Match</div>
+          <div class="seg" id="setup-match">
+            <button data-mb="1" class="sel">Single game</button>
+            <button data-mb="3">Best of 3</button>
+          </div>
+        </div>
         <div id="setup-names-wrap">
           <div class="seclabel">Player names</div>
           <div class="gap10">
@@ -622,6 +633,13 @@
         <div>
           <div class="seclabel">Board</div>
           <div class="gap10" id="create-boards"></div>
+        </div>
+        <div id="create-match-wrap">
+          <div class="seclabel">Match</div>
+          <div class="seg" id="create-match">
+            <button data-mb="1" class="sel">Single game</button>
+            <button data-mb="3">Best of 3</button>
+          </div>
         </div>
         <div id="create-form">
           <div class="seclabel">Your name</div>
@@ -892,7 +910,7 @@
 
   <!-- game over -->
   <div id="gameover">
-    <div class="go-head" id="go-head">You win!</div>
+    <div><div class="go-head" id="go-head">You win!</div><div class="go-sub" id="go-match" style="display:none"></div></div>
     <div class="go-row">
       <div class="go-col p1"><div class="nm" id="go-nm0">You</div><div class="sc" id="go-sc0">0</div></div>
       <div class="go-dash">–</div>
@@ -937,6 +955,8 @@
     mode:"cpu",               // cpu | pass | online
     vsComputer:false, aiPlayer:1, aiLevel:"medium",
     online:false, myPlayer:-1,
+    // match (best-of-N; 1 = single game)
+    matchBest:1, matchWins:[0,0], matchOver:true,
     // campaign
     campaign:false, campLevel:0, diceCap:0, handicap:0, forcedFirst:-1, powerUsedTurn:false
   };
@@ -1038,11 +1058,12 @@
 
   // ---------- sound ----------
   var sndClick=new Audio("Sounds/Click.mp3"); sndClick.preload="auto";
-  var sndMain1=new Audio("Sounds/main1.mp3"); sndMain1.preload="auto";
-  var sndMain2=new Audio("Sounds/main2.mp3"); sndMain2.preload="auto";
-  var sndMain3=new Audio("Sounds/Main3.mp3"); sndMain3.preload="auto";
-  var _activeMusic=null, _fadeTmr=null;
+  var sndMain1=new Audio("Sounds/main1.mp3"); sndMain1.preload="auto"; sndMain1.loop=true;
+  var sndMain2=new Audio("Sounds/main2.mp3"); sndMain2.preload="auto"; sndMain2.loop=true;
+  var sndMain3=new Audio("Sounds/Main3.mp3"); sndMain3.preload="auto"; sndMain3.loop=true;
+  var _activeMusic=null, _fadeTmr=null, _wantMusic=null;
   function playMusic(track){
+    _wantMusic=track;            // remember intent so unmuting can resume it
     if(soundMuted) return;
     if(_activeMusic===track && !track.paused) return;
     stopMusic(false);
@@ -1051,6 +1072,7 @@
     track.play().catch(function(){});
   }
   function stopMusic(fade){
+    _wantMusic=null;
     if(_fadeTmr){clearInterval(_fadeTmr);_fadeTmr=null;}
     var t=_activeMusic; if(!t) return;
     _activeMusic=null;
@@ -1066,8 +1088,9 @@
   var sndSingle=new Audio("Sounds/Triangle/Single.mp3"), sndDouble=new Audio("Sounds/Triangle/Double.mp3");
   sndSingle.preload="auto"; sndDouble.preload="auto";
   var sndWinSounds=["Win1.mp3"].map(function(f){var a=new Audio("Sounds/Win/"+f);a.preload="auto";return a;});
-  var sndLossSounds=["Loss1.mp3","Loss2.mp3","Loss3.mp3","Loss4.mp3","Loss5.mp3","Loss6.mp3","Loss7.mp3"].map(function(f){var a=new Audio("Sounds/Loss/"+f);a.preload="auto";return a;});
+  var sndLossSounds=["Loss1.mp3"].map(function(f){var a=new Audio("Sounds/Loss/"+f);a.preload="auto";return a;});
   var audioReady=false, soundMuted=false;
+  try{soundMuted=localStorage.getItem("dt_muted")==="1";}catch(e){}
   function randomFrom(arr){return arr[Math.floor(Math.random()*arr.length)];}
   function primeAudio(){
     if(audioReady) return; audioReady=true;
@@ -1091,12 +1114,17 @@
       else{a.pause();a.currentTime=0;a.muted=false;a.volume=1;}
     });
   }
-  function toggleMute(){
-    soundMuted=!soundMuted;
-    if(soundMuted){ stopMusic(false); }
+  function applyMuteIcon(){
     $("ico-sound").innerHTML = soundMuted
       ? '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>'
       : '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/>';
+  }
+  function toggleMute(){
+    soundMuted=!soundMuted;
+    try{localStorage.setItem("dt_muted",soundMuted?"1":"0");}catch(e){}
+    if(soundMuted){ var w=_wantMusic; stopMusic(false); _wantMusic=w; }
+    else if(_wantMusic){ playMusic(_wantMusic); }
+    applyMuteIcon();
   }
   function playSound(a){if(soundMuted)return;try{a.currentTime=0;var p=a.play();if(p&&p.catch)p.catch(function(){});}catch(e){}}
   function playEndSound(iWin){playSound(randomFrom(iWin?sndWinSounds:sndLossSounds));}
@@ -1376,17 +1404,16 @@
     }
     return made;
   }
-  // Campaign plays on until no legal line remains, so every possible
-  // triangle gets formed. Other modes end once all dots are connected.
-  function gameOverNow(){
-    if(S.campaign) return legalMoves().length===0;
-    return allConnected();
-  }
-  function allConnected(){
-    var deg={};
-    for(var key in S.edges){var ij=key.split("-");deg[ij[0]]=1;deg[ij[1]]=1;}
-    for(var i=0;i<S.dots.length;i++){if(!deg[i])return false;}
-    return true;
+  // Every mode plays on until no legal line remains, so every possible
+  // triangle gets fought over (same rule offline, online and in campaign).
+  function gameOverNow(){ return !hasAnyLegalMove(); }
+  function hasAnyLegalMove(){
+    for(var i=0;i<S.dots.length;i++) for(var j=i+1;j<S.dots.length;j++){
+      if(hasEdge(i,j)) continue;
+      if(crossesExisting(i,j)) continue;
+      return true;
+    }
+    return false;
   }
 
   // ---------- flying +1 badges (mirrors iOS FlyingPointView) ----------
@@ -1547,21 +1574,26 @@
   }
 
   // ---------- turn countdown timer ----------
-  var TURN_SECONDS=20, _turnTimer=null, _turnTimerLeft=0;
+  var TURN_SECONDS=20, _turnTimer=null, _turnTimerLeft=0, _turnTimerTotal=20;
   var TIMER_CIRC=226; // perimeter of 64×64 rounded-rect (rx=15)
 
-  function startTurnTimer(){
+  function startTurnTimer(){ _startCountdown(TURN_SECONDS); }
+  // Online: countdown driven by the server's authoritative deadline.
+  function startServerCountdown(deadline){
+    var secs=Math.max(1,Math.round((deadline-Date.now())/1000));
+    _startCountdown(secs);
+  }
+  function _startCountdown(secs){
     clearTurnTimer();
-    _turnTimerLeft=TURN_SECONDS;
+    _turnTimerLeft=secs; _turnTimerTotal=secs;
     _updateTimerUI();
     _turnTimer=setInterval(function(){
       _turnTimerLeft--;
       _updateTimerUI();
       if(_turnTimerLeft<=0){
         clearTurnTimer();
-        // Only the active player ends the turn
-        var isMine=!S.online || S.current===S.myPlayer;
-        if(!isAiTurn() && isMine) nextTurn();
+        if(S.online) return;          // the server enforces timeouts online
+        if(!isAiTurn() && S.phase==="drawing"){ toast("⏱ Time's up!"); nextTurn(); }
       }
     },1000);
   }
@@ -1575,9 +1607,10 @@
   function _updateTimerUI(){
     var timer=$("turn-timer"),arc=$("timer-arc"),num=$("timer-num");
     if(!timer) return;
-    if(_turnTimer && S.phase==="drawing"){
+    var visible=_turnTimer && (S.phase==="drawing" || (S.online && S.phase==="turn"));
+    if(visible){
       timer.style.display="";
-      var pct=_turnTimerLeft/TURN_SECONDS;
+      var pct=_turnTimerLeft/Math.max(1,_turnTimerTotal);
       arc.style.strokeDashoffset=TIMER_CIRC*(1-pct);
       var urgent=_turnTimerLeft<=3;
       arc.classList.toggle("urgent",urgent);
@@ -1702,22 +1735,55 @@
     var bestTri=0, claim=[];
     for(var i=0;i<L.length;i++){ var t=newTriCount(L[i][0],L[i][1]);
       if(t>bestTri){bestTri=t;claim=[L[i]];} else if(t===bestTri && t>0){claim.push(L[i]);} }
-    if(bestTri>0) return claim[(Math.random()*claim.length)|0];
-    if(S.aiLevel==="medium"){ return L[(Math.random()*L.length)|0]; }
-    var legalSet={}; L.forEach(function(m){legalSet[m[0]+"-"+m[1]]=1;});
-    function legalPair(u,v){ return legalSet[(u<v?u+"-"+v:v+"-"+u)]?true:false; }
-    function danger(a,b){
-      var d=0;
-      for(var k=0;k<S.dots.length;k++){
-        if(k===a||k===b) continue;
-        var ac=hasEdge(a,k), bc=hasEdge(b,k);
-        if(ac!==bc){ var u=ac?b:a; if(legalPair(u,k)) d++; }
-      }
-      return d;
+    if(S.aiLevel==="medium"){
+      if(bestTri>0) return claim[(Math.random()*claim.length)|0];
+      return L[(Math.random()*L.length)|0];
     }
+    // ---- hard: 1-ply lookahead ----
+    // Simulate each candidate line, then measure the best triangle haul the
+    // opponent could grab in reply. Prefer scoring moves; among equals pick
+    // the one that gives the opponent the least.
+    // On huge early boards (lots of legal moves, giveaways nearly impossible)
+    // fall back to the cheap adjacency heuristic to stay snappy.
+    if(L.length>250){
+      if(bestTri>0) return claim[(Math.random()*claim.length)|0];
+      var legalSet={}; L.forEach(function(m){legalSet[m[0]+"-"+m[1]]=1;});
+      function legalPair(u,v){ return legalSet[(u<v?u+"-"+v:v+"-"+u)]?true:false; }
+      function danger(a,b){
+        var d=0;
+        for(var k=0;k<S.dots.length;k++){
+          if(k===a||k===b) continue;
+          var ac=hasEdge(a,k), bc=hasEdge(b,k);
+          if(ac!==bc){ var u=ac?b:a; if(legalPair(u,k)) d++; }
+        }
+        return d;
+      }
+      var bd0=Infinity, safe0=[];
+      for(var x0=0;x0<L.length;x0++){ var dg0=danger(L[x0][0],L[x0][1]);
+        if(dg0<bd0){bd0=dg0;safe0=[L[x0]];} else if(dg0===bd0){safe0.push(L[x0]);} }
+      return safe0[(Math.random()*safe0.length)|0];
+    }
+    function oppBestAfter(a,b){
+      var key=edgeKey(a,b);
+      S.edges[key]=S.current;            // simulate
+      var pa=S.dots[a], pb=S.dots[b], best=0;
+      for(var x=0;x<L.length;x++){
+        var u=L[x][0], v=L[x][1];
+        if(u===a&&v===b) continue;
+        // the new edge may block this reply
+        if(u!==a&&u!==b&&v!==a&&v!==b && segCross(pa,pb,S.dots[u],S.dots[v])) continue;
+        var t=newTriCount(u,v);
+        if(t>best) best=t;
+      }
+      delete S.edges[key];               // undo
+      return best;
+    }
+    var candidates = bestTri>0 ? claim : L;
     var bd=Infinity, safe=[];
-    for(var x=0;x<L.length;x++){ var dg=danger(L[x][0],L[x][1]);
-      if(dg<bd){bd=dg;safe=[L[x]];} else if(dg===bd){safe.push(L[x]);} }
+    for(var y=0;y<candidates.length;y++){
+      var dg=oppBestAfter(candidates[y][0],candidates[y][1]);
+      if(dg<bd){bd=dg;safe=[candidates[y]];} else if(dg===bd){safe.push(candidates[y]);}
+    }
     return safe[(Math.random()*safe.length)|0];
   }
   function aiDrawStep(){
@@ -1746,6 +1812,7 @@
     }
     setTimeout(function(){c.classList.remove("show");c.innerHTML="";},3600);
   }
+  function matchNeed(){ return Math.floor(S.matchBest/2)+1; }
   function showGameOver(winnerIdx, iWin){
     $("go-nm0").textContent=pname(0).toUpperCase();
     $("go-nm1").textContent=pname(1).toUpperCase();
@@ -1754,12 +1821,30 @@
     var head;
     if(winnerIdx===null||winnerIdx===undefined) head="It's a tie!";
     else if(S.vsComputer) head = (winnerIdx===S.aiPlayer) ? "Computer wins" : "You win!";
+    else if(S.online && S.myPlayer>=0) head = (winnerIdx===S.myPlayer) ? "You win!" : pname(winnerIdx)+" wins";
     else head = pname(winnerIdx)+" wins!";
+    // match (best-of-N) status line
+    var m=$("go-match");
+    var inMatch = S.matchBest>1;
+    if(inMatch){
+      var w0=S.matchWins[0]||0, w1=S.matchWins[1]||0;
+      if(S.matchOver){
+        var mw = w0>w1?0:1;
+        if(S.vsComputer) head = (mw===S.aiPlayer) ? "Computer takes the match" : "You win the match! 🏆";
+        else if(S.online && S.myPlayer>=0) head = (mw===S.myPlayer) ? "You win the match! 🏆" : pname(mw)+" takes the match";
+        else head = pname(mw)+" wins the match! 🏆";
+        m.textContent="Final score "+w0+"–"+w1;
+      } else {
+        m.textContent="Match "+w0+"–"+w1+" · first to "+matchNeed()+(winnerIdx==null?" · tie — replay":"");
+      }
+      m.style.display="";
+    } else { m.style.display="none"; }
     $("go-head").textContent=head;
     // Online: show Rematch button; offline: show Play again
     $("go-again").style.display = S.online ? "none" : "";
+    $("go-again").textContent = (inMatch && !S.matchOver) ? "Next game" : "Play again";
     $("go-rematch").style.display = S.online ? "" : "none";
-    $("go-rematch").textContent = "Rematch";
+    $("go-rematch").textContent = (inMatch && !S.matchOver) ? "Next game" : "Rematch";
     $("go-rematch").disabled = false;
     $("gameover").classList.add("show");
     if(iWin) confettiBurst();
@@ -1772,6 +1857,10 @@
     var iWin = winnerIdx!=null && (!S.vsComputer || winnerIdx!==S.aiPlayer);
     if(winnerIdx!=null){ buzz([40,60,40,60,80]); playEndSound(iWin); }
     if(S.campaign){ campaignResult(a,b,iWin); return; }
+    if(S.matchBest>1){
+      if(winnerIdx!=null) S.matchWins[winnerIdx]++;
+      S.matchOver = S.matchWins[0]>=matchNeed() || S.matchWins[1]>=matchNeed();
+    } else { S.matchOver=true; }
     showGameOver(winnerIdx, iWin);
   }
 
@@ -2021,6 +2110,13 @@
 
   function startCampaignLevel(idx){
     if(idx<0||idx>=CAMPAIGN.length) return;
+    // First-timers get the interactive tutorial before level 1.
+    var obSeen=false; try{obSeen=!!localStorage.getItem("ob_seen");}catch(e){}
+    if(!obSeen && idx===0){
+      hideOverlay("ov-levelintro");
+      showOnboarding(function(){ startCampaignLevel(idx); });
+      return;
+    }
     var L=CAMPAIGN[idx];
     // 3-star bonus from the previous level: player gets the first move here.
     var prog=loadCampaign();
@@ -2030,6 +2126,7 @@
     hideOverlay("ov-levelintro");
     $("campresult").classList.remove("show");
     S.campaign=true; S.campLevel=idx;
+    S.matchBest=1; S.matchWins=[0,0]; S.matchOver=true;
     S.mode="cpu"; S.online=false; S.myPlayer=-1;
     S.vsComputer=true; S.aiPlayer=1; S.aiLevel=L.ai;
     S.numDots=L.dots; S.names=["You","AI Bot"];
@@ -2137,6 +2234,26 @@
       b.classList.add("sel");
     });
   });
+  // match length segmented controls (setup + online create)
+  var setupMB=1, createMB=1;
+  function wireMatchSeg(segId, setFn){
+    var seg=$(segId); if(!seg) return;
+    Array.prototype.forEach.call(seg.querySelectorAll("button"),function(b){
+      b.addEventListener("click",function(){
+        setFn((+b.dataset.mb)||1);
+        Array.prototype.forEach.call(seg.children,function(c){c.classList.remove("sel");});
+        b.classList.add("sel");
+      });
+    });
+  }
+  function resetMatchSeg(segId){
+    var seg=$(segId); if(!seg) return;
+    Array.prototype.forEach.call(seg.children,function(c){
+      c.classList.toggle("sel", c.dataset.mb==="1");
+    });
+  }
+  wireMatchSeg("setup-match",function(v){setupMB=v;});
+  wireMatchSeg("create-match",function(v){createMB=v;});
   // ---------- onboarding (interactive tutorial) ----------
   var OB_VW=220, OB_VH=178;
   var OB_DOTS=[{x:110,y:25},{x:182,y:148},{x:38,y:148}];
@@ -2398,6 +2515,7 @@
   $("setup-start").addEventListener("click",function(){
     enableMotion(); primeAudio();
     S.campaign=false; S.diceCap=0; S.handicap=0; TURN_SECONDS=20;
+    S.matchBest=setupMB; S.matchWins=[0,0]; S.matchOver=(setupMB<=1);
     S.numDots=setupN;
     if(S.mode==="cpu"){
       S.vsComputer=true; S.aiPlayer=1;
@@ -2429,6 +2547,7 @@
     $("online-join").style.display   = step==="join"   ? "" : "none";
     if(step==="create"){
       createN=DEFAULT_DOTS;
+      createMB=1; resetMatchSeg("create-match");
       buildBoardCards("create-boards",function(){return createN;},function(n){createN=n;});
       $("create-code-box").style.display="none";
       $("create-form").style.display="";
@@ -2450,13 +2569,14 @@
     if(!name){toast("Enter your name first");return;}
     S.online=true; S.vsComputer=false; S.myPlayer=-1;
     S.numDots=createN; S.names=[name,"Friend"];
+    S.matchBest=createMB; S.matchWins=[0,0]; S.matchOver=(createMB<=1);
     var code=genRoomCode();
     $("create-code").textContent=code;
     $("create-status").textContent="Waiting for friend to join…";
     $("create-form").style.display="none";
     $("create-go").style.display="none";
     $("create-code-box").style.display="";
-    connectToRoom(code,{type:"hello",intent:"create",name:name,logo:"",numDots:createN});
+    connectToRoom(code,{type:"hello",intent:"create",name:name,logo:"",numDots:createN,bestOf:createMB,token:getToken()});
   });
   $("create-copy").addEventListener("click",function(){
     var code=$("create-code").textContent;
@@ -2481,7 +2601,7 @@
     S.online=true; S.vsComputer=false; S.myPlayer=-1;
     S.names=["Friend",name];
     $("join-status").textContent="Connecting…";
-    connectToRoom(code,{type:"hello",intent:"join",name:name,logo:""});
+    connectToRoom(code,{type:"hello",intent:"join",name:name,logo:"",token:getToken()});
   });
 
   // ---------- click sound on setup buttons ----------
@@ -2527,6 +2647,7 @@
     if(S.online) NET.disconnect();
     S.phase="setup"; disarmRoll(); clearTurnTimer();
     S.campaign=false; S.diceCap=0; S.handicap=0; TURN_SECONDS=20;
+    S.matchBest=1; S.matchWins=[0,0]; S.matchOver=true;
     $("gameover").classList.remove("show");
     $("campresult").classList.remove("show");
     stopMusic(false);
@@ -2540,6 +2661,7 @@
   });
   $("go-again").addEventListener("click",function(){
     $("gameover").classList.remove("show");
+    if(S.matchBest>1 && S.matchOver){ S.matchWins=[0,0]; S.matchOver=false; }
     newBoard(); startRolloff();
   });
   $("go-home").addEventListener("click",quitToHome);
@@ -2572,29 +2694,66 @@
   });
 
   // ---------- online (PartyKit) ----------
-  var NET = { ws:null, code:null };
+  var NET = { ws:null, code:null, intentional:false, retries:0, retryTmr:null, resync:false };
+  // Stable per-device token so a dropped player can reclaim their seat.
+  function getToken(){
+    var t=null;
+    try{
+      t=localStorage.getItem("dt_token");
+      if(!t){ t=genRoomCode()+Date.now().toString(36)+Math.random().toString(36).slice(2,8); localStorage.setItem("dt_token",t); }
+    }catch(e){}
+    return t || ("t"+Math.random().toString(36).slice(2));
+  }
   function connectToRoom(code, helloMsg){
     var isLocal = /^(localhost|127\.0\.0\.1)/.test(PARTYKIT_HOST);
     var url = (isLocal?"ws://":"wss://") + PARTYKIT_HOST + "/parties/main/" + code;
     try { NET.ws = new WebSocket(url); NET.code = code; }
     catch(e){ toast("Couldn't connect"); return; }
+    NET.intentional=false;
     NET.ws.onopen = function(){ NET.ws.send(JSON.stringify(helloMsg)); };
     NET.ws.onmessage = function(ev){
       var msg; try { msg = JSON.parse(ev.data); } catch(e){ return; }
-      if(msg.type==="you"){ S.myPlayer = msg.playerIdx; }
+      if(msg.type==="you"){
+        S.myPlayer = msg.playerIdx;
+        if(NET.retries>0){ NET.retries=0; NET.resync=true; toast("Reconnected!"); }
+      }
       else if(msg.type==="update"){ applyServerUpdate(msg.state, msg.events||[]); }
       else if(msg.type==="error"){
+        if(NET.retries>0){ giveUpReconnect(); return; }
         toast(msg.message||"Connection error");
         $("join-status").textContent = msg.message||"";
       }
     };
     NET.ws.onclose = function(){
-      if(S.online && S.phase!=="end" && S.phase!=="setup"){ toast("Connection lost"); onlineEndGame(1-S.myPlayer); }
+      if(NET.intentional){ NET.intentional=false; return; }
+      if(!S.online || S.phase==="end" || S.phase==="setup") return;
+      scheduleReconnect();
     };
-    NET.ws.onerror = function(){ toast("Network error"); };
+    NET.ws.onerror = function(){};
+  }
+  // Try to silently rejoin for ~30s (matches the server's grace window).
+  function scheduleReconnect(){
+    NET.retries++;
+    if(NET.retries>12){ giveUpReconnect(); return; }
+    if(NET.retries===1) toast("Connection lost — reconnecting…");
+    clearTimeout(NET.retryTmr);
+    NET.retryTmr=setTimeout(function(){
+      if(!S.online || S.phase==="end") return;
+      connectToRoom(NET.code,{type:"hello",intent:"resume",token:getToken()});
+    }, NET.retries===1?400:2500);
+  }
+  function giveUpReconnect(){
+    NET.retries=0;
+    toast("Couldn't reconnect");
+    if(S.phase!=="end" && S.phase!=="setup") onlineEndGame(1-S.myPlayer);
   }
   NET.send = function(obj){ if(NET.ws && NET.ws.readyState===1) NET.ws.send(JSON.stringify(obj)); };
-  NET.disconnect = function(){ try{ if(NET.ws) NET.ws.close(); }catch(e){} NET.ws=null; NET.code=null; };
+  NET.disconnect = function(){
+    NET.intentional=true;
+    clearTimeout(NET.retryTmr); NET.retries=0;
+    try{ if(NET.ws) NET.ws.close(); }catch(e){}
+    NET.ws=null; NET.code=null;
+  };
 
   function genRoomCode(){
     var chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789", s="";
@@ -2610,7 +2769,9 @@
     if(firstUpdate){ displayedScores=[S.scores[0],S.scores[1]]; }
     S.current = state.current; S.roMatrix = state.roMatrix; S.roWho = state.roWho; S.linesLeft = state.linesLeft;
     S.names = [state.players[0].name||"Player 1", state.players[1].name||"Friend"];
+    S.matchBest = state.bestOf||1; S.matchWins = state.matchWins||[0,0]; S.matchOver = (state.matchOver!==undefined)?!!state.matchOver:true;
     S.phase = (state.phase==="lobby")?"setup":state.phase;
+    if(NET.resync){ displayedScores=[S.scores[0],S.scores[1]]; NET.resync=false; }
     var n=Math.max(1,S.numDots), uW=VB.w-2*VB.margin, uH=VB.h-2*VB.margin;
     var minDist=Math.max(34, Math.sqrt((uW*uH)/n)*0.62);
     S.dotR=Math.max(7,Math.min(11,minDist*0.17));
@@ -2619,17 +2780,19 @@
     for(var i=0;i<events.length;i++){
       var e=events[i];
       if(e.type==="opponent_joined"){ toast((state.players[e.idx].name||"Friend")+" joined!"); }
-      else if(e.type==="opponent_left"){ toast((state.players[e.idx].name||"Friend")+" left"); }
+      else if(e.type==="opponent_rejoined"){ if(e.idx!==S.myPlayer) toast((state.players[e.idx].name||"Friend")+" reconnected!"); }
+      else if(e.type==="opponent_left"){
+        if(e.idx!==S.myPlayer) toast((state.players[e.idx].name||"Friend")+" disconnected — waiting for them…");
+      }
+      else if(e.type==="turn_timeout"){
+        toast(e.idx===S.myPlayer ? "⏱ Time's up!" : "⏱ "+pname(e.idx)+" ran out of time");
+      }
       else if(e.type==="dice_rolled"){
         var die = (S.phase==="rolloff") ? $("ro-die"+e.playerIdx) : $("game-die");
         animateDie(die, null, e.value);
         if(e.for==="rolloff"){
           S.roMatrix[e.playerIdx]=e.value;
           updateRolloffUI();
-        }
-        if(e.for==="turn"){
-          // Start timer for the drawing phase (both players see it; only active player acts on expire)
-          setTimeout(startTurnTimer, 400);
         }
       }
       else if(e.type==="line_drawn"){
@@ -2649,9 +2812,9 @@
       else if(e.type==="rolloff_starter"){ hideOverlay("ov-rolloff"); toast(pname(state.current)+" goes first!"); }
       else if(e.type==="game_over"){ onlineEndGame(e.winnerIdx); }
       else if(e.type==="rematch_requested"){
-        // Opponent wants rematch — update button to show they're ready
+        // Opponent wants to keep playing — update button to show they're ready
         if(e.idx!==S.myPlayer){
-          $("go-rematch").textContent="Rematch ✓ (waiting for you)";
+          $("go-rematch").textContent="✓ Opponent ready — tap to play";
           $("go-rematch").disabled=false;
         }
       }
@@ -2675,6 +2838,9 @@
       setTimeout(doRolloffRoll, 600);
     }
     drawBoard(); updateHUD();
+    // Countdown ring follows the server's deadline (roll + draw phases).
+    if(state.deadline && (S.phase==="drawing" || S.phase==="turn")) startServerCountdown(state.deadline);
+    else clearTurnTimer();
     if(S.phase==="rolloff" && !$("ov-rolloff").classList.contains("hidden")) updateRolloffUI();
     if(S.phase==="turn" && S.current===S.myPlayer) armRoll(doTurnRoll); else if(S.phase!=="rolloff") disarmRoll();
   }
@@ -2694,6 +2860,13 @@
   renderDie($("game-die"),1);
   renderDie($("ro-die0"),1); renderDie($("ro-die1"),1);
   updateHUD();
+  applyMuteIcon();
+  // PWA: offline cache + installability (no-op on unsupported browsers / file://)
+  try{
+    if("serviceWorker" in navigator && location.protocol!=="file:"){
+      navigator.serviceWorker.register("sw.js").catch(function(){});
+    }
+  }catch(e){}
 
   // Auto-join if URL contains ?join=CODE (from a shared link)
   (function(){
