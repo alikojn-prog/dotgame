@@ -1,0 +1,14 @@
+{
+  "name": "dotriangle-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "doTriangle multiplayer server (PartyKit on Cloudflare)",
+  "scripts": {
+    "dev": "partykit dev",
+    "deploy": "partykit deploy"
+  },
+  "devDependencies": {
+    "partykit": "^0.0.114",
+    "typescript": "^5.4.0"
+  }
+}

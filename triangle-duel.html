@@ -1,0 +1,2716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="theme-color" content="#060414" />
+<title>doTriangle</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* ----- Nebula theme (ported from the iOS app) ----- */
+    --p1:#36E0E6;            /* cyan  */
+    --p2:#FF5FB0;            /* magenta */
+    --accent:#B69BFF;        /* purple */
+    --accent-ink:#0B0726;
+    --text:#F4F1FF;
+    --dim:rgba(214,206,255,.62);
+    --border:rgba(150,130,255,.26);
+    --surface:rgba(28,24,58,.66);
+    --surface2:rgba(42,36,80,.55);
+    --solid:#181336;
+    --radius:24px;
+    --radius-sm:15px;
+    --display:"Space Grotesk",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --body:"Sora",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;}
+  body{
+    font-family:var(--body);
+    color:var(--text);
+    overflow:hidden;
+    user-select:none;-webkit-user-select:none;
+    height:100dvh;
+    /* radial(130% 100% at 70% -10%, #1b1147, #0c0823, #060414) */
+    background:radial-gradient(130% 100% at 70% -10%, #1B1147 0%, #0C0823 45%, #060414 100%);
+    background-attachment:fixed;
+  }
+
+  /* ===================== shared text / buttons ===================== */
+  h1,h2,h3{font-family:var(--display);font-weight:700;margin:0;}
+  .display{font-family:var(--display);font-weight:700;}
+  .dim{color:var(--dim);}
+  .seclabel{font-size:13px;font-weight:800;letter-spacing:1px;color:var(--dim);
+    text-transform:uppercase;margin:2px 0 2px;}
+
+  .btn{font-family:var(--body);border:none;cursor:pointer;font-size:17px;font-weight:700;
+    width:100%;padding:16px 18px;border-radius:var(--radius-sm);transition:transform .1s, filter .12s;}
+  .btn:active{transform:scale(.98);}
+  .btn-primary{background:var(--accent);color:var(--accent-ink);
+    box-shadow:0 6px 18px rgba(182,155,255,.38);}
+  .btn-ghost{background:var(--surface);color:var(--text);border:1px solid var(--border);font-weight:600;}
+  .btn-text{background:none;border:none;color:var(--dim);font-family:var(--body);font-weight:600;
+    font-size:15px;cursor:pointer;padding:8px;}
+  .btn-text:active{color:var(--text);}
+
+  /* ===================== full-screen views ===================== */
+  .view{position:fixed;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
+    display:none;z-index:10;padding:calc(env(safe-area-inset-top) + 18px) 0 40px;}
+  .view.show{display:block;}
+  .view-inner{max-width:430px;margin:0 auto;padding:0 22px;}
+  /* center the "Play with a Friend" view vertically */
+  #v-friend.show{display:flex;flex-direction:column;justify-content:center;}
+  .backlink{font-size:16px;font-weight:600;color:var(--dim);background:none;border:none;
+    cursor:pointer;font-family:var(--body);padding:6px 0 10px;}
+  .backlink:active{color:var(--text);}
+
+  /* ----- Home ----- */
+  #v-home{display:none;}
+  #v-home.show{display:flex;align-items:center;justify-content:center;}
+  .home-stack{display:flex;flex-direction:column;align-items:center;text-align:center;
+    max-width:330px;padding:0 22px;width:100%;}
+  .home-stack .logomark{margin-bottom:6px;}
+  .wordmark{font-family:var(--display);font-weight:700;font-size:44px;letter-spacing:-.8px;line-height:1;}
+  .wordmark .t{color:var(--accent);}
+  .home-tag{font-size:16px;color:var(--dim);line-height:1.4;max-width:290px;margin:13px 0 34px;}
+  .home-stack .btn{margin-bottom:13px;}
+
+  /* ----- card list (board sizes / choices) ----- */
+  .card-btn{width:100%;display:flex;align-items:center;gap:14px;text-align:left;cursor:pointer;
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    padding:16px;color:var(--text);font-family:var(--body);transition:transform .1s;margin-bottom:10px;}
+  .card-btn:active{transform:scale(.99);}
+  .card-btn.sel{background:rgba(182,155,255,.12);border-color:var(--accent);border-width:2px;padding:15px;}
+  .card-ico{flex:0 0 auto;width:44px;height:44px;border-radius:12px;background:var(--surface2);
+    display:flex;align-items:center;justify-content:center;color:var(--accent);}
+  .card-ico svg{width:24px;height:24px;}
+  .mini{flex:0 0 auto;width:80px;height:60px;border-radius:10px;background:var(--surface2);display:block;}
+  .card-meta{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;}
+  .card-title{font-size:17px;font-weight:700;}
+  .card-sub{font-size:13.5px;color:var(--dim);}
+  .radio{flex:0 0 auto;width:24px;height:24px;border-radius:50%;border:2px solid var(--border);
+    display:flex;align-items:center;justify-content:center;}
+  .card-btn.sel .radio{border-color:var(--accent);background:var(--accent);}
+  .radio svg{width:13px;height:13px;display:none;color:var(--accent-ink);}
+  .card-btn.sel .radio svg{display:block;}
+  .chev{flex:0 0 auto;color:var(--dim);}
+
+  /* ----- segmented control ----- */
+  .seg{display:flex;gap:4px;padding:4px;background:var(--surface);border:1px solid var(--border);
+    border-radius:999px;}
+  .seg button{flex:1;border:none;background:none;cursor:pointer;font-family:var(--body);
+    font-size:15px;font-weight:600;color:var(--text);padding:11px 0;border-radius:999px;transition:background .15s;}
+  .seg button.sel{background:var(--accent);color:var(--accent-ink);}
+
+  /* ----- name field ----- */
+  .field{position:relative;}
+  .field input{width:100%;font-family:var(--body);font-size:16px;color:var(--text);text-align:center;
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);
+    padding:14px 40px;outline:none;}
+  .field input:focus{border-color:var(--accent);border-width:2px;padding:13px 39px;}
+  .field .pencil{position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--dim);
+    font-size:14px;pointer-events:none;}
+  .field input:focus + .pencil{color:var(--accent);}
+
+  .code-input{width:100%;font-family:ui-monospace,Menlo,monospace;font-size:18px;font-weight:600;
+    letter-spacing:6px;color:var(--text);text-transform:uppercase;
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);
+    padding:14px;outline:none;text-align:center;}
+  .code-input:focus{border-color:var(--accent);}
+
+  .stack{display:flex;flex-direction:column;gap:18px;}
+  .gap10{display:flex;flex-direction:column;gap:10px;}
+  .center-title{font-family:var(--display);font-weight:700;font-size:32px;text-align:center;}
+  .left-title{font-family:var(--display);font-weight:700;font-size:32px;}
+  .sub{font-size:15px;color:var(--dim);line-height:1.4;}
+
+  /* ----- how to play steps ----- */
+  .steps-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;}
+  .step{display:flex;gap:14px;align-items:flex-start;margin-bottom:14px;}
+  .step:last-child{margin-bottom:0;}
+  .step-n{flex:0 0 auto;width:32px;height:32px;border-radius:50%;background:var(--accent);
+    color:var(--accent-ink);font-family:var(--display);font-weight:700;font-size:18px;
+    display:flex;align-items:center;justify-content:center;}
+  .step-t{font-size:17px;font-weight:700;margin-bottom:3px;}
+  .step-d{font-size:14px;color:var(--dim);line-height:1.4;}
+
+  /* ----- animated hand gesture demo (tap then swipe) ----- */
+  .gesture-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    padding:16px 14px 12px;display:flex;flex-direction:column;align-items:center;}
+  .gesture-demo{position:relative;width:280px;height:190px;max-width:100%;}
+  .gd-svg{width:280px;height:190px;display:block;overflow:visible;}
+  .gd-dot{fill:#fff;}
+  .gd-line{fill:none;stroke-width:5;stroke-linecap:round;stroke-dasharray:230;stroke-dashoffset:230;opacity:0;}
+  .gd-ab{stroke:#36E0E6;animation:gd-ab 7s linear infinite;}
+  .gd-bc{stroke:#36E0E6;animation:gd-bc 7s linear infinite;}
+  .gd-ca{stroke:#B69BFF;animation:gd-ca 7s linear infinite;}
+  .gd-fill{fill:#B69BFF;fill-opacity:0;stroke:none;animation:gd-fill 7s linear infinite;}
+  .gd-hand{position:absolute;left:0;top:0;width:34px;height:34px;line-height:1;pointer-events:none;
+    filter:drop-shadow(0 3px 5px rgba(0,0,0,.5));transform:translate(125px,40px);opacity:0;
+    animation:gd-hand 7s ease-in-out infinite;}
+  .gd-hand svg{width:34px;height:34px;display:block;
+    stroke:rgba(204,206,224,.7);stroke-width:1.7;fill:rgba(204,206,224,.16);}
+  .gd-ripple{position:absolute;left:0;top:0;width:26px;height:26px;border-radius:50%;
+    border:2px solid #fff;pointer-events:none;opacity:0;transform:translate(0,0) scale(.4);
+    animation:gd-ripple 7s ease-out infinite;}
+  .gd-cap{font-size:13.5px;color:var(--dim);font-weight:600;text-align:center;margin-top:6px;line-height:1.4;}
+  @keyframes gd-hand{
+    0%{transform:translate(127px,36px) scale(.9);opacity:0;}
+    4%{transform:translate(127px,36px) scale(1);opacity:1;}
+    8%{transform:translate(127px,36px) scale(.78);}
+    12%{transform:translate(127px,36px) scale(1);}
+    18%{transform:translate(225px,158px) scale(1);}
+    22%{transform:translate(225px,158px) scale(.78);}
+    26%{transform:translate(225px,158px) scale(1);}
+    31%{transform:translate(225px,158px) scale(.85);}
+    45%{transform:translate(29px,158px) scale(.85);}
+    49%{transform:translate(29px,158px) scale(1);}
+    72%{transform:translate(29px,158px) scale(1);opacity:1;}
+    80%{transform:translate(29px,158px) scale(1);opacity:0;}
+    100%{transform:translate(127px,36px) scale(.9);opacity:0;}
+  }
+  /* tap ripples at the two tapped dots */
+  @keyframes gd-ripple{
+    0%,7%{opacity:0;transform:translate(127px,21px) scale(.4);}
+    8%{opacity:.9;transform:translate(127px,21px) scale(.5);}
+    13%{opacity:0;transform:translate(127px,21px) scale(1.3);}
+    13.001%,21%{opacity:0;transform:translate(225px,143px) scale(.4);}
+    22%{opacity:.9;transform:translate(225px,143px) scale(.5);}
+    27%{opacity:0;transform:translate(225px,143px) scale(1.3);}
+    27.001%,100%{opacity:0;}
+  }
+  @keyframes gd-ab{
+    0%,22%{stroke-dashoffset:230;opacity:0;}
+    23%{opacity:1;}28%{stroke-dashoffset:0;opacity:1;}
+    74%{stroke-dashoffset:0;opacity:1;}75%,100%{opacity:0;stroke-dashoffset:230;}
+  }
+  @keyframes gd-bc{
+    0%,46%{stroke-dashoffset:230;opacity:0;}
+    47%{opacity:1;}53%{stroke-dashoffset:0;opacity:1;}
+    74%{stroke-dashoffset:0;opacity:1;}75%,100%{opacity:0;stroke-dashoffset:230;}
+  }
+  @keyframes gd-ca{
+    0%,54%{stroke-dashoffset:230;opacity:0;}
+    55%{opacity:1;}61%{stroke-dashoffset:0;opacity:1;}
+    74%{stroke-dashoffset:0;opacity:1;}75%,100%{opacity:0;stroke-dashoffset:230;}
+  }
+  @keyframes gd-fill{
+    0%,61%{fill-opacity:0;}67%{fill-opacity:.45;}74%{fill-opacity:.45;}75%,100%{fill-opacity:0;}
+  }
+
+  /* room code display */
+  .code-display{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    padding:20px;text-align:center;}
+  .code-big{font-family:ui-monospace,Menlo,monospace;font-size:38px;font-weight:700;letter-spacing:6px;
+    color:var(--accent);margin:6px 0;}
+
+  /* ===================== GAME stage ===================== */
+  #stage{position:fixed;inset:0;display:none;z-index:5;}
+  #stage.show{display:block;}
+  #board{position:absolute;inset:0;width:100%;height:100%;touch-action:none;}
+
+  /* top bar */
+  #topbar{position:absolute;top:calc(env(safe-area-inset-top) + 14px);left:0;right:0;
+    display:flex;align-items:center;justify-content:space-between;padding:0 18px;z-index:8;}
+  .circ-btn{width:42px;height:42px;border-radius:50%;background:var(--surface);border:1px solid var(--border);
+    color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;}
+  .circ-btn svg{width:18px;height:18px;}
+  #turnpill{font-size:13px;font-weight:800;letter-spacing:.3px;color:#fff;padding:7px 16px;border-radius:999px;
+    background:var(--p1);transition:background .3s, box-shadow .3s;white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,.28);}
+  #turnpill.mine{animation:turnPulse 1.5s ease-in-out infinite;}
+  @keyframes turnPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,0), 0 4px 14px rgba(0,0,0,.28);}
+    50%{box-shadow:0 0 0 5px rgba(255,255,255,.18), 0 4px 14px rgba(0,0,0,.28);}}
+
+  /* lines-left counter — absolutely placed midway between P1 card and the dice */
+  #linesleft{position:absolute;z-index:8;display:flex;flex-direction:column;align-items:center;
+    transform:translate(-50%,-50%);pointer-events:none;}
+  #ll-stage{position:relative;display:flex;align-items:center;justify-content:center;
+    width:54px;height:46px;}
+  .ll-num{font-family:var(--display);font-weight:700;font-size:38px;line-height:1;
+    color:var(--accent);text-shadow:0 0 14px rgba(54,224,230,.55);}
+  /* the live number that pops when the count drops */
+  #ll-num.bump{animation:llBump .42s cubic-bezier(.34,1.56,.64,1);}
+  @keyframes llBump{0%{transform:scale(.5);opacity:.2;}55%{transform:scale(1.35);}100%{transform:scale(1);opacity:1;}}
+  /* a ghost of the old number that falls away */
+  .ll-ghost{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    color:#fff;text-shadow:0 0 16px #fff;pointer-events:none;animation:llGhost .5s ease forwards;}
+  @keyframes llGhost{0%{transform:translate(-50%,-50%) scale(1);opacity:.9;}
+    100%{transform:translate(-50%,28px) scale(.5);opacity:0;}}
+  #ll-cap{font-size:9px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--dim);margin-top:1px;}
+
+  /* bottom HUD */
+  #hud{position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 10px);
+    display:flex;align-items:flex-end;justify-content:space-between;padding:0 18px;gap:8px;z-index:8;}
+  .scard{flex:0 0 auto;width:96px;text-align:center;padding:10px 6px;border-radius:var(--radius-sm);position:relative;
+    background:var(--surface);border:1px solid var(--border);transition:transform .25s, box-shadow .25s, background .25s, border-color .25s;}
+  .scard .nm{font-size:11px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--dim);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .scard .sc{font-family:var(--display);font-weight:700;font-size:30px;line-height:1.1;
+    transition:transform .25s;}
+  .scard.p1 .sc{color:var(--p1);}
+  .scard.p2 .sc{color:var(--p2);}
+  .scard.bump .sc{transform:scale(1.16);transition:transform .15s cubic-bezier(.34,1.56,.64,1) !important;}
+  .scard.active{transform:scale(1.07);}
+  .scard.p1.active{background:rgba(54,224,230,.15);border-color:var(--p1);border-width:2px;
+    animation:glowP1 1.6s ease-in-out infinite;}
+  .scard.p2.active{background:rgba(255,95,176,.15);border-color:var(--p2);border-width:2px;
+    animation:glowP2 1.6s ease-in-out infinite;}
+  @keyframes glowP1{0%,100%{box-shadow:0 0 10px rgba(54,224,230,.3);}50%{box-shadow:0 0 26px rgba(54,224,230,.8);}}
+  @keyframes glowP2{0%,100%{box-shadow:0 0 10px rgba(255,95,176,.3);}50%{box-shadow:0 0 26px rgba(255,95,176,.8);}}
+  .scard.p1.active .nm{color:var(--p1);}
+  .scard.p2.active .nm{color:var(--p2);}
+  /* turn arrow indicator */
+  .scard::after{content:"";display:block;height:4px;border-radius:2px;margin-top:6px;
+    background:transparent;transition:background .25s;}
+  .scard.p1.active::after{background:var(--p1);animation:barPulse 1.6s ease-in-out infinite;}
+  .scard.p2.active::after{background:var(--p2);animation:barPulse 1.6s ease-in-out infinite;}
+  @keyframes barPulse{0%,100%{opacity:.5;transform:scaleX(.6);}50%{opacity:1;transform:scaleX(1);}}
+
+  #dicecluster{flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;padding-bottom:2px;}
+  .pill{font-size:13px;font-weight:700;padding:7px 14px;border-radius:999px;cursor:pointer;border:none;
+    font-family:var(--body);min-height:30px;}
+  .pill.roll{background:var(--accent);color:var(--accent-ink);animation:rollpulse 1.5s ease-in-out infinite;}
+  .pill.end{background:var(--surface2);color:var(--text);}
+  @keyframes rollpulse{0%,100%{transform:scale(1);opacity:.78;}50%{transform:scale(1.08);opacity:1;}}
+  /* extra-roll power: an animated star above the player's score card */
+  .power-star{position:absolute;left:50%;top:-58px;transform:translateX(-50%);z-index:9;
+    display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;
+    cursor:pointer;font-family:var(--body);padding:0;}
+  .power-star:disabled{cursor:default;}
+  .ps-orb{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:21px;line-height:1;color:#FFD25F;background:rgba(255,210,95,.14);
+    border:1.5px solid rgba(255,210,95,.55);transition:transform .12s,color .2s,border-color .2s,background .2s;}
+  .ps-cap{font-size:10px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:#FFD25F;
+    background:rgba(20,14,40,.78);border-radius:999px;padding:2px 8px;white-space:nowrap;transition:color .2s;}
+  .power-star:active .ps-orb{transform:scale(.9);}
+  /* ready: glow + gentle bob + twinkle */
+  .power-star.ready{animation:ps-bob 2.2s ease-in-out infinite;}
+  .power-star.ready .ps-orb{box-shadow:0 0 16px 2px rgba(255,210,95,.5);animation:ps-pulse 1.4s ease-in-out infinite;}
+  /* unaffordable / used: dimmed */
+  .power-star.dim .ps-orb{color:var(--dim);border-color:var(--border);background:var(--surface);box-shadow:none;}
+  .power-star.dim .ps-cap{color:var(--dim);}
+  @keyframes ps-pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.12);}}
+  @keyframes ps-bob{0%,100%{transform:translate(-50%,0);}50%{transform:translate(-50%,-4px);}}
+  .ps-spark{position:fixed;pointer-events:none;z-index:60;color:#FFD25F;
+    transform:translate(-50%,-50%);transition:transform .7s ease-out,opacity .7s ease-out;}
+
+  /* dice */
+  .die{width:62px;height:62px;background:#fff;border-radius:14px;
+    display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);padding:9px;gap:2px;
+    box-shadow:0 6px 14px rgba(0,0,0,.4);}
+  .die.tappable{cursor:pointer;transition:transform .12s,box-shadow .12s;}
+  .die.tappable:active{transform:scale(.92);box-shadow:0 2px 6px rgba(0,0,0,.4);}
+  /* turn timer */
+  #turn-timer{position:absolute;inset:-4px;pointer-events:none;}
+  #timer-ring{position:absolute;inset:0;width:100%;height:100%;}
+  #timer-track{stroke:rgba(255,255,255,.1);}
+  #timer-arc{stroke:var(--accent);transition:stroke-dashoffset .9s linear,stroke .3s;}
+  #timer-arc.urgent{stroke:#ff4d6d;}
+  #timer-num{position:absolute;bottom:-22px;left:50%;transform:translateX(-50%);
+    font-family:var(--display);font-weight:700;font-size:13px;color:var(--accent);
+    transition:color .3s;white-space:nowrap;}
+  #timer-num.urgent{color:#ff4d6d;}
+  .die .pip{width:10px;height:10px;border-radius:50%;background:var(--solid);align-self:center;justify-self:center;}
+  .die.rolling{animation:shake .25s linear infinite;}
+  @keyframes shake{0%{transform:rotate(0) scale(1);}25%{transform:rotate(-8deg) scale(1.06);}
+    50%{transform:rotate(7deg) scale(1.06);}75%{transform:rotate(-5deg) scale(1.04);}100%{transform:rotate(0) scale(1);}}
+
+  /* ===================== overlays ===================== */
+  .overlay{position:fixed;inset:0;background:rgba(6,4,20,.6);backdrop-filter:blur(4px);
+    display:flex;align-items:center;justify-content:center;padding:24px;z-index:20;}
+  .overlay.hidden{display:none;}
+  .panel{background:var(--solid);border:1px solid var(--border);border-radius:var(--radius);
+    padding:26px;width:100%;max-width:360px;box-shadow:0 24px 60px rgba(0,0,0,.55);}
+
+  /* roll-off */
+  .ro-title{font-family:var(--display);font-weight:700;font-size:24px;text-align:center;}
+  .ro-sub{font-size:14px;color:var(--dim);text-align:center;margin:6px 0 18px;}
+  .ro-dice{display:flex;justify-content:center;gap:24px;margin-bottom:20px;}
+  .ro-col{display:flex;flex-direction:column;align-items:center;gap:6px;}
+  .ro-col .die{width:54px;height:54px;}
+  .ro-col .die .pip{width:8px;height:8px;}
+  .ro-nm{font-size:12px;font-weight:600;}
+  .ro-status{text-align:center;font-size:13px;color:var(--dim);margin-top:12px;}
+
+  /* menu sheet (centred popup) */
+  #sheet{position:fixed;inset:0;z-index:25;display:none;align-items:center;justify-content:center;}
+  #sheet.show{display:flex;}
+  #sheet .scrim{position:absolute;inset:0;background:rgba(0,0,0,.55);}
+  #sheet .sheet-body{position:relative;width:min(340px,88vw);background:var(--solid);
+    border-radius:22px;padding:22px 20px 20px;
+    display:flex;flex-direction:column;gap:12px;
+    box-shadow:0 20px 60px rgba(0,0,0,.6);}
+  #sheet .grip{display:none;}
+  #sheet h3{text-align:center;font-size:20px;margin-bottom:2px;}
+
+  /* game-over bottom panel */
+  #gameover{position:fixed;left:0;right:0;bottom:0;z-index:18;display:none;
+    background:var(--solid);border-top:1px solid var(--border);
+    padding:10px 18px calc(env(safe-area-inset-bottom) + 10px);
+    box-shadow:0 -10px 30px rgba(0,0,0,.5);}
+  #gameover.show{display:flex;align-items:center;gap:14px;justify-content:center;}
+  .go-head{font-family:var(--display);font-weight:700;font-size:18px;white-space:nowrap;}
+  .go-div{width:1px;align-self:stretch;background:var(--border);margin:0 4px;}
+  .go-row{display:flex;align-items:center;gap:10px;}
+  .go-col{text-align:center;}
+  .go-col .nm{font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--dim);}
+  .go-col .sc{font-family:var(--display);font-weight:700;font-size:30px;line-height:1.1;}
+  .go-col.p1 .sc{color:var(--p1);} .go-col.p2 .sc{color:var(--p2);}
+  .go-dash{font-family:var(--display);font-size:20px;color:var(--dim);}
+  .go-btns{display:flex;flex-direction:column;gap:6px;min-width:120px;}
+  .go-btns .btn{font-size:13px;padding:9px 12px;}
+
+  /* flying +1 badge */
+  .flying-badge{position:fixed;pointer-events:none;z-index:40;font-weight:800;font-size:22px;
+    line-height:1;text-shadow:0 0 10px currentColor;transform-origin:center;will-change:transform,opacity;}
+
+  /* toast */
+  .toast{position:fixed;left:50%;bottom:200px;transform:translateX(-50%);background:var(--solid);
+    border:1px solid var(--border);color:var(--text);font-weight:600;padding:10px 16px;border-radius:999px;
+    font-size:14px;z-index:30;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap;}
+  .toast.show{opacity:1;}
+
+  /* confetti dom layer */
+  #confetti{position:fixed;inset:0;pointer-events:none;z-index:17;overflow:hidden;display:none;}
+  #confetti.show{display:block;}
+  .conf{position:absolute;width:7px;height:11px;border-radius:2px;top:-20px;}
+
+  /* ===================== responsive ===================== */
+  @media (max-width:380px){
+    .wordmark{font-size:38px;}
+    .scard{width:84px;}
+    .die{width:54px;height:54px;}
+    .mini{width:64px;height:48px;}
+  }
+  @media (max-height:680px){
+    .home-tag{margin:10px 0 22px;}
+  }
+
+  /* ===================== ONBOARDING OVERLAY ===================== */
+  #onboarding{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;
+    background:rgba(6,4,20,.92);backdrop-filter:blur(10px);}
+  #onboarding.show{display:flex;}
+  .ob-panel{background:var(--solid);border:1px solid var(--border);border-radius:var(--radius);
+    padding:22px 20px 18px;width:min(350px,94vw);display:flex;flex-direction:column;gap:14px;
+    box-shadow:0 24px 60px rgba(0,0,0,.7);}
+  .ob-steps{display:flex;justify-content:center;gap:7px;margin-bottom:-2px;}
+  .ob-pip{width:8px;height:8px;border-radius:50%;background:var(--border);transition:background .35s,opacity .35s;}
+  .ob-pip.active{background:var(--accent);}
+  .ob-pip.done{background:var(--accent);opacity:.45;}
+  .ob-header{display:flex;flex-direction:column;gap:4px;text-align:center;}
+  .ob-badge{font-size:11px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--dim);}
+  .ob-title{font-family:var(--display);font-weight:700;font-size:22px;}
+  .ob-hint{font-size:13.5px;color:var(--dim);line-height:1.45;min-height:2.7em;}
+  .ob-board-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);
+    overflow:hidden;padding:6px;}
+  .ob-board-wrap svg{display:block;width:100%;touch-action:none;user-select:none;-webkit-user-select:none;}
+  #ob-hand{filter:drop-shadow(0 1.5px 2px rgba(0,0,0,.55));}
+  #ob-hand .ob-hand-ico{stroke:rgba(204,206,224,.7);stroke-width:1.9;fill:rgba(204,206,224,.16);}
+  .ob-hand-inner{transform-box:fill-box;transform-origin:center top;}
+  #ob-hand.tap .ob-hand-inner{animation:ob-hand-tap 1.1s ease-in-out infinite;}
+  @keyframes ob-hand-tap{0%,100%{transform:translateY(0) scale(1);}45%{transform:translateY(-5px) scale(.86);}}
+  .ob-status{text-align:center;font-size:14px;font-weight:700;min-height:1.5em;transition:opacity .25s;}
+  .ob-status.ok{color:#4ade80;}
+  .ob-status.retry{color:var(--dim);}
+  .ob-actions{display:flex;flex-direction:column;gap:9px;align-items:center;}
+  .ob-actions .btn{width:100%;}
+  .ob-skip{background:none;border:none;color:var(--dim);font-family:var(--body);font-weight:600;
+    font-size:14px;cursor:pointer;padding:6px 12px;}
+  .ob-skip:active{color:var(--text);}
+
+  @keyframes ob-ring-tap{0%,100%{r:15;opacity:.6;stroke-width:2;}50%{r:22;opacity:.18;stroke-width:1.5;}}
+  @keyframes ob-ring-drag{0%,100%{r:15;opacity:.65;stroke-width:2.5;}50%{r:24;opacity:.2;stroke-width:1.5;}}
+  .ob-anim-tap{animation:ob-ring-tap 1.1s ease-in-out infinite;}
+  .ob-anim-drag{animation:ob-ring-drag 1s ease-in-out infinite;}
+  @keyframes ob-line-draw{from{stroke-dashoffset:200;}to{stroke-dashoffset:0;}}
+  @keyframes ob-tri-fade{from{fill-opacity:0;}to{fill-opacity:.22;}}
+  @media(max-height:680px){.ob-panel{gap:10px;padding:16px 18px 14px;}}
+
+  /* ===================== campaign ===================== */
+  .camp-progress{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;}
+  .camp-progress-bar{height:8px;border-radius:5px;background:rgba(150,130,255,.16);overflow:hidden;}
+  .camp-progress-fill{height:100%;width:0%;border-radius:5px;
+    background:linear-gradient(90deg,var(--p1),var(--accent),var(--p2));transition:width .5s ease;}
+  .camp-progress-meta{font-size:13px;color:var(--dim);margin-top:9px;font-weight:600;letter-spacing:.3px;}
+  .camp-progress-meta span{color:var(--text);}
+  .camp-progress-hint{font-size:12px;color:#FFD25F;margin-top:6px;font-weight:600;opacity:.9;}
+  /* level carousel — album-browsing coverflow through the 20 duels */
+  .camp-list{display:flex;gap:7%;overflow-x:auto;scroll-snap-type:x mandatory;
+    -webkit-overflow-scrolling:touch;padding:22px 13% 16px;scrollbar-width:none;
+    perspective:1200px;}
+  .camp-list::-webkit-scrollbar{display:none;}
+  .lvl-card{flex:0 0 78%;scroll-snap-align:center;display:flex;flex-direction:column;align-items:center;
+    text-align:center;gap:14px;cursor:pointer;justify-content:center;min-height:300px;
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    padding:34px 24px 28px;font-family:var(--body);color:var(--text);
+    transform-style:preserve-3d;backface-visibility:hidden;will-change:transform;
+    transition:border-color .2s,box-shadow .3s;}
+  .lvl-card.in-view{background:rgba(30,26,64,.94);box-shadow:0 18px 50px rgba(0,0,0,.45);}
+  .lvl-card.locked{cursor:not-allowed;}
+  .lvl-card.current{border-color:var(--accent);border-width:2px;
+    box-shadow:0 16px 46px rgba(182,155,255,.34);}
+  .lvl-card.cleared .lvl-num{background:var(--accent);color:var(--accent-ink);}
+  .lvl-num{width:72px;height:72px;border-radius:20px;display:flex;align-items:center;justify-content:center;
+    font-family:var(--display);font-weight:700;font-size:31px;background:var(--surface2);
+    border:1px solid var(--border);color:var(--text);}
+  .lvl-num svg{width:28px;height:28px;}
+  .lvl-meta{display:flex;flex-direction:column;gap:7px;align-items:center;}
+  .lvl-name{font-size:21px;font-weight:700;line-height:1.15;}
+  .lvl-twist{font-size:14px;color:var(--dim);line-height:1.42;
+    display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+  .lvl-stars{display:flex;gap:3px;font-size:18px;letter-spacing:1px;}
+  .lvl-stars .s{color:rgba(150,130,255,.28);}
+  .lvl-stars .s.on{color:#FFD25F;}
+  .lvl-cta{margin-top:2px;font-size:12.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;
+    color:var(--accent);display:flex;align-items:center;gap:5px;}
+  .lvl-cta.locked{color:var(--dim);}
+  .lvl-cta svg{width:14px;height:14px;}
+  /* carousel position dots */
+  .camp-dots{display:flex;justify-content:center;gap:6px;margin-top:2px;flex-wrap:wrap;padding:0 4px;}
+  .camp-dots .cd{width:7px;height:7px;border-radius:50%;background:rgba(150,130,255,.28);
+    transition:transform .2s,background .2s;}
+  .camp-dots .cd.cleared{background:rgba(255,210,95,.5);}
+  .camp-dots .cd.on{background:var(--accent);transform:scale(1.4);}
+
+  /* level intro overlay */
+  .li-panel{text-align:left;padding:24px 24px 20px;max-width:380px;}
+  .li-badge{align-self:flex-start;display:inline-block;font-size:11px;font-weight:800;letter-spacing:1.4px;
+    text-transform:uppercase;color:var(--accent);background:rgba(182,155,255,.12);
+    border:1px solid rgba(182,155,255,.30);border-radius:999px;padding:5px 11px;}
+  .li-title{font-family:var(--display);font-weight:700;font-size:29px;line-height:1.05;margin:14px 0 6px;}
+  .li-twist{font-size:14.5px;color:var(--dim);line-height:1.45;margin:0 0 16px;}
+  .li-divider{height:1px;background:var(--border);margin:0 0 16px;}
+  .li-seclabel{font-size:11px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;
+    color:var(--dim);margin:0 0 10px;}
+  .li-specs{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-start;margin-bottom:16px;}
+  .li-chip{font-size:12.5px;font-weight:600;color:var(--text);background:var(--surface2);
+    border:1px solid var(--border);border-radius:10px;padding:7px 12px;white-space:nowrap;}
+  .li-wallet{display:flex;align-items:center;gap:10px;text-align:left;
+    background:rgba(255,210,95,.09);border:1px solid rgba(255,210,95,.28);border-radius:14px;
+    padding:11px 12px;margin:0 0 18px;font-size:12.5px;font-weight:600;color:#F4E3B4;line-height:1.35;}
+  .li-w-ico{flex:0 0 auto;width:30px;height:30px;border-radius:9px;display:flex;align-items:center;
+    justify-content:center;background:rgba(255,210,95,.16);font-size:15px;}
+  .li-w-amt{color:#FFD25F;font-weight:800;}
+  .li-cancel{width:100%;text-align:center;margin-top:8px;}
+  #ov-levelintro .panel .btn-primary{margin-top:2px;}
+
+  /* campaign result — docked to the lower part so the board stays visible */
+  #campresult{position:fixed;left:0;right:0;bottom:0;z-index:19;display:none;justify-content:center;
+    padding:0 12px calc(env(safe-area-inset-bottom) + 12px);pointer-events:none;}
+  #campresult.show{display:flex;}
+  .cr-panel{width:100%;max-width:430px;background:var(--solid);border:1px solid var(--border);
+    border-radius:var(--radius);padding:16px 18px 16px;text-align:center;pointer-events:auto;
+    box-shadow:0 -14px 50px rgba(0,0,0,.55);}
+  .cr-head{font-family:var(--display);font-weight:700;font-size:21px;}
+  .cr-stars{display:flex;justify-content:center;gap:10px;margin:8px 0 4px;}
+  .cr-star{font-size:34px;line-height:1;color:rgba(150,130,255,.25);transform:scale(.6);opacity:0;
+    transition:transform .35s cubic-bezier(.34,1.56,.64,1),opacity .25s,color .25s;}
+  .cr-star.on{color:#FFD25F;text-shadow:0 0 18px rgba(255,210,95,.55);}
+  .cr-star.pop{transform:scale(1);opacity:1;}
+  .cr-score{font-family:var(--display);font-weight:700;font-size:18px;margin:6px 0 3px;}
+  .cr-msg{font-size:13.5px;color:var(--dim);line-height:1.4;min-height:18px;margin-bottom:14px;}
+  .cr-btns{display:flex;flex-direction:row;flex-wrap:wrap;gap:8px;}
+  .cr-btns .btn{flex:1;min-width:96px;font-size:14px;padding:12px 10px;}
+</style>
+</head>
+<body>
+
+  <!-- ===================== HOME ===================== -->
+  <div class="view show" id="v-home">
+    <div class="home-stack">
+      <div class="logomark" id="home-logo"></div>
+      <div class="wordmark">do<span class="t">Triangle</span></div>
+      <div class="home-tag">Connect the dots, close triangles, claim more than your rival.</div>
+      <button class="btn btn-primary" id="home-play">Play</button>
+      <button class="btn btn-ghost" id="home-campaign">Campaign</button>
+      <button class="btn btn-ghost" id="home-friend">Play with a friend</button>
+      <button class="btn-text" id="home-howto">How to play</button>
+    </div>
+  </div>
+
+  <!-- ===================== FRIEND CHOICE ===================== -->
+  <div class="view" id="v-friend">
+    <div class="view-inner">
+      <div class="stack">
+        <div>
+          <div class="left-title">Play with a Friend</div>
+          <div class="sub" style="margin-top:6px">Play online with a shared code, or pass one phone back and forth.</div>
+        </div>
+        <div class="gap10">
+          <button class="card-btn" id="fc-online">
+            <span class="card-ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13a10 10 0 0 1 14 0"/><path d="M8.5 16.5a5 5 0 0 1 7 0"/><path d="M2 8.8a15 15 0 0 1 20 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+            </span>
+            <span class="card-meta"><span class="card-title">Online vs friend</span><span class="card-sub">Create a room or join with a code</span></span>
+            <span class="chev"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+          </button>
+          <button class="card-btn" id="fc-pass">
+            <span class="card-ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="3"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+            </span>
+            <span class="card-meta"><span class="card-title">Pass &amp; play</span><span class="card-sub">Two players, one phone</span></span>
+            <span class="chev"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+          </button>
+        </div>
+        <button class="backlink" data-back="v-home" style="margin-top:4px">‹ Back</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== SETUP (CPU / pass&play) ===================== -->
+  <div class="view" id="v-setup">
+    <div class="view-inner">
+      <button class="backlink" id="setup-back">‹ Back</button>
+      <div class="stack">
+        <div class="center-title">Select Mode</div>
+        <div>
+          <div class="seclabel">Board</div>
+          <div class="gap10" id="setup-boards"></div>
+        </div>
+        <div id="setup-skill-wrap">
+          <div class="seclabel">Computer skill</div>
+          <div class="seg" id="setup-skill">
+            <button data-ai="easy">Easy</button>
+            <button data-ai="medium" class="sel">Medium</button>
+            <button data-ai="hard">Hard</button>
+          </div>
+        </div>
+        <div id="setup-names-wrap">
+          <div class="seclabel">Player names</div>
+          <div class="gap10">
+            <div class="field"><input id="name1" maxlength="14" placeholder="Player 1" /><span class="pencil">✎</span></div>
+            <div class="field"><input id="name2" maxlength="14" placeholder="Player 2" /><span class="pencil">✎</span></div>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="setup-start">Start game</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== ONLINE LOBBY ===================== -->
+  <div class="view" id="v-online">
+    <div class="view-inner">
+      <button class="backlink" id="online-back">‹ Back</button>
+
+      <!-- choose -->
+      <div class="stack" id="online-choose">
+        <div>
+          <div class="left-title">Online vs friend</div>
+          <div class="sub" style="margin-top:6px">One of you starts a game and shares the code, the other joins it.</div>
+        </div>
+        <div class="gap10">
+          <button class="card-btn" id="ol-create">
+            <span class="card-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></span>
+            <span class="card-meta"><span class="card-title">Create a room</span><span class="card-sub">get a code to share</span></span>
+            <span class="chev"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+          </button>
+          <button class="card-btn" id="ol-join">
+            <span class="card-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/><polyline points="13 9 16 12 13 15"/></svg></span>
+            <span class="card-meta"><span class="card-title">Join a room</span><span class="card-sub">enter a friend's code</span></span>
+            <span class="chev"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- create -->
+      <div class="stack" id="online-create" style="display:none">
+        <div class="left-title" style="font-size:28px">Create a room</div>
+        <div>
+          <div class="seclabel">Board</div>
+          <div class="gap10" id="create-boards"></div>
+        </div>
+        <div id="create-form">
+          <div class="seclabel">Your name</div>
+          <div class="field"><input id="create-name" maxlength="14" placeholder="Enter your name" /><span class="pencil">✎</span></div>
+        </div>
+        <button class="btn btn-primary" id="create-go">Create room</button>
+        <div class="code-display" id="create-code-box" style="display:none">
+          <div class="sub" style="text-align:center">Share with your friend</div>
+          <div class="code-big" id="create-code">------</div>
+          <div style="display:flex;gap:8px;justify-content:center">
+            <button class="btn-text" id="create-copy">Copy code</button>
+            <button class="btn-text" id="create-copy-link">Copy link</button>
+          </div>
+          <div class="sub" id="create-status" style="text-align:center">Waiting for friend to join…</div>
+        </div>
+      </div>
+
+      <!-- join -->
+      <div class="stack" id="online-join" style="display:none">
+        <div class="left-title" style="font-size:28px">Join a game</div>
+        <div class="sub">Enter the code your friend shared.</div>
+        <div>
+          <div class="seclabel">Code</div>
+          <input class="code-input" id="join-code" maxlength="6" placeholder="ABC123" />
+        </div>
+        <div>
+          <div class="seclabel">Your name</div>
+          <div class="field"><input id="join-name" maxlength="14" placeholder="Enter your name" /><span class="pencil">✎</span></div>
+        </div>
+        <button class="btn btn-primary" id="join-go">Join game</button>
+        <div class="sub" id="join-status" style="text-align:center"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== HOW TO PLAY ===================== -->
+  <div class="view" id="v-howto">
+    <div class="view-inner">
+      <button class="backlink" id="howto-back">‹ Back</button>
+      <div class="stack">
+        <div>
+          <div class="left-title">How to play</div>
+          <div class="sub" style="margin-top:6px">Four steps. You'll have it after one round.</div>
+        </div>
+        <div class="gesture-card">
+          <div class="gesture-demo" aria-hidden="true">
+            <svg class="gd-svg" viewBox="0 0 280 190" xmlns="http://www.w3.org/2000/svg">
+              <polygon class="gd-fill" points="140,34 238,156 42,156"/>
+              <line class="gd-line gd-ab" x1="140" y1="34"  x2="238" y2="156"/>
+              <line class="gd-line gd-bc" x1="238" y1="156" x2="42"  y2="156"/>
+              <line class="gd-line gd-ca" x1="42"  y1="156" x2="140" y2="34"/>
+              <circle class="gd-dot" cx="140" cy="34"  r="7"/>
+              <circle class="gd-dot" cx="238" cy="156" r="7"/>
+              <circle class="gd-dot" cx="42"  cy="156" r="7"/>
+            </svg>
+            <div class="gd-ripple"></div>
+            <div class="gd-hand">
+              <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M8 13V4.5a1.5 1.5 0 0 1 3 0V12"/>
+                <path d="M11 11.5v-2a1.5 1.5 0 0 1 3 0V12"/>
+                <path d="M14 10.5a1.5 1.5 0 0 1 3 0V12"/>
+                <path d="M17 11.5a1.5 1.5 0 0 1 3 0V16a6 6 0 0 1-6 6h-2a8 8 0 0 1-8-8 2 2 0 0 1 4 0"/>
+              </svg>
+            </div>
+          </div>
+          <div class="gd-cap">Tap a dot, then another — or press &amp; drag between them</div>
+        </div>
+        <div class="steps-card">
+          <div class="step"><span class="step-n">1</span><div><div class="step-t">Roll the dice</div><div class="step-d">On your turn, tap the dice. The number you roll is how many lines you can draw.</div></div></div>
+          <div class="step"><span class="step-n">2</span><div><div class="step-t">Connect two dots</div><div class="step-d">Tap one dot then another — or drag between them. Lines can't cross or clip another dot.</div></div></div>
+          <div class="step"><span class="step-n">3</span><div><div class="step-t">Close a triangle</div><div class="step-d">Three dots joined by three lines becomes your triangle. It fills with your colour and scores a point.</div></div></div>
+          <div class="step"><span class="step-n">4</span><div><div class="step-t">Most triangles wins</div><div class="step-d">The round ends when no more lines can be drawn. Whoever claimed the most triangles wins.</div></div></div>
+        </div>
+        <button class="btn btn-primary" id="howto-got">Got it</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== CAMPAIGN MAP ===================== -->
+  <div class="view" id="v-campaign">
+    <div class="view-inner">
+      <button class="backlink" data-back="v-home">‹ Back</button>
+      <div class="stack" style="gap:14px">
+        <div>
+          <div class="left-title">Campaign</div>
+          <div class="sub" style="margin-top:6px">20 duels. Each one harder, each with a new twist. Beat the rival to unlock the next.</div>
+        </div>
+        <div class="camp-progress">
+          <div class="camp-progress-bar"><div class="camp-progress-fill" id="camp-progress-fill"></div></div>
+          <div class="camp-progress-meta"><span id="camp-stars-total">0</span>★ to spend &nbsp;·&nbsp; <span id="camp-levels-done">0</span>/20 cleared</div>
+          <div class="camp-progress-hint">⚡ Spend 5★ during a duel for one extra dice roll</div>
+        </div>
+        <div class="camp-list" id="camp-list"></div>
+        <div class="camp-dots" id="camp-dots"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== LEVEL INTRO ===================== -->
+  <div class="overlay hidden" id="ov-levelintro">
+    <div class="panel li-panel">
+      <span class="li-badge" id="li-badge">Level 1 of 20</span>
+      <h2 class="li-title" id="li-title">First Steps</h2>
+      <p class="li-twist" id="li-twist">Learn the ropes.</p>
+      <div class="li-divider"></div>
+      <div class="li-seclabel">Challenge</div>
+      <div class="li-specs" id="li-specs"></div>
+      <div class="li-wallet" id="li-wallet"></div>
+      <button class="btn btn-primary" id="li-start">Start duel</button>
+      <button class="btn-text li-cancel" id="li-cancel">Back to map</button>
+    </div>
+  </div>
+
+  <!-- ===================== CAMPAIGN RESULT ===================== -->
+  <div id="campresult">
+    <div class="cr-panel">
+      <div class="cr-head" id="cr-head">Level cleared!</div>
+      <div class="cr-stars" id="cr-stars">
+        <span class="cr-star" id="cr-star0">★</span>
+        <span class="cr-star" id="cr-star1">★</span>
+        <span class="cr-star" id="cr-star2">★</span>
+      </div>
+      <div class="cr-score" id="cr-score">You 0 – 0 AI Bot</div>
+      <div class="cr-msg" id="cr-msg"></div>
+      <div class="cr-btns">
+        <button class="btn btn-primary" id="cr-next">Next level</button>
+        <button class="btn btn-ghost" id="cr-retry">Retry</button>
+        <button class="btn btn-ghost" id="cr-map">Level map</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== ONBOARDING ===================== -->
+  <div id="onboarding">
+    <div class="ob-panel">
+      <div class="ob-steps">
+        <div class="ob-pip active" id="ob-pip1"></div>
+        <div class="ob-pip" id="ob-pip2"></div>
+      </div>
+      <div class="ob-header">
+        <div class="ob-badge" id="ob-badge">Step 1 of 2</div>
+        <div class="ob-title" id="ob-title">Tap two dots</div>
+        <div class="ob-hint" id="ob-hint">Tap the glowing dot to select it</div>
+      </div>
+      <div class="ob-board-wrap">
+        <!-- viewBox: 220 wide × 178 tall; dots: A(110,25) B(182,148) C(38,148) -->
+        <svg id="ob-svg" viewBox="0 0 220 178" xmlns="http://www.w3.org/2000/svg">
+          <!-- triangle fill – revealed last -->
+          <polygon id="ob-tri" points="110,25 182,148 38,148"
+            fill="#B69BFF" fill-opacity="0" stroke="none"/>
+          <!-- drawn lines -->
+          <line id="ob-ln-ab" x1="110" y1="25" x2="182" y2="148"
+            stroke="#36E0E6" stroke-width="4.5" stroke-linecap="round"
+            stroke-dasharray="200" stroke-dashoffset="200" opacity="0"/>
+          <line id="ob-ln-bc" x1="182" y1="148" x2="38" y2="148"
+            stroke="#36E0E6" stroke-width="4.5" stroke-linecap="round"
+            stroke-dasharray="200" stroke-dashoffset="200" opacity="0"/>
+          <line id="ob-ln-ca" x1="38" y1="148" x2="110" y2="25"
+            stroke="#B69BFF" stroke-width="4.5" stroke-linecap="round"
+            stroke-dasharray="200" stroke-dashoffset="200" opacity="0"/>
+          <!-- live drag preview line -->
+          <line id="ob-drag-ln" x1="0" y1="0" x2="0" y2="0"
+            stroke="#36E0E6" stroke-width="3" stroke-linecap="round"
+            stroke-dasharray="7 6" opacity="0"/>
+          <!-- target rings (animated via class) -->
+          <circle id="ob-ring-0" cx="110" cy="25"  r="15" fill="none" stroke="#B69BFF" stroke-width="2" opacity="0"/>
+          <circle id="ob-ring-1" cx="182" cy="148" r="15" fill="none" stroke="#B69BFF" stroke-width="2" opacity="0"/>
+          <circle id="ob-ring-2" cx="38"  cy="148" r="15" fill="none" stroke="#36E0E6" stroke-width="2" opacity="0"/>
+          <!-- selection ring (shown when a dot is selected) -->
+          <circle id="ob-sel-ring" cx="0" cy="0" r="13" fill="none"
+            stroke="#B69BFF" stroke-width="2.5" opacity="0"/>
+          <!-- dots -->
+          <circle id="ob-d0" cx="110" cy="25"  r="8" fill="#fff"/>
+          <circle id="ob-d1" cx="182" cy="148" r="8" fill="#fff"/>
+          <circle id="ob-d2" cx="38"  cy="148" r="8" fill="#fff"/>
+          <!-- guiding hand (points where to tap / swipe) -->
+          <g id="ob-hand" class="ob-hand" pointer-events="none" opacity="0" transform="translate(102,28)">
+            <g class="ob-hand-inner">
+              <g class="ob-hand-ico" transform="scale(0.85)" fill="none"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M8 13V4.5a1.5 1.5 0 0 1 3 0V12"/>
+                <path d="M11 11.5v-2a1.5 1.5 0 0 1 3 0V12"/>
+                <path d="M14 10.5a1.5 1.5 0 0 1 3 0V12"/>
+                <path d="M17 11.5a1.5 1.5 0 0 1 3 0V16a6 6 0 0 1-6 6h-2a8 8 0 0 1-8-8 2 2 0 0 1 4 0"/>
+              </g>
+            </g>
+          </g>
+          <!-- transparent hit areas (on top so they receive events) -->
+          <circle id="ob-hit-0" cx="110" cy="25"  r="32" fill="transparent" style="cursor:pointer"/>
+          <circle id="ob-hit-1" cx="182" cy="148" r="32" fill="transparent" style="cursor:pointer"/>
+          <circle id="ob-hit-2" cx="38"  cy="148" r="32" fill="transparent" style="cursor:pointer"/>
+        </svg>
+      </div>
+      <div class="ob-status" id="ob-status"></div>
+      <div class="ob-actions">
+        <button class="btn btn-primary" id="ob-got" style="display:none">Let's play!</button>
+        <button class="ob-skip" id="ob-skip">Skip tutorial</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== GAME STAGE ===================== -->
+  <div id="stage">
+    <svg id="board" viewBox="0 0 800 900" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+      <g id="g-tri"></g><g id="g-edge"></g><g id="g-ring"></g><g id="g-dot"></g><g id="g-drag"></g>
+    </svg>
+
+    <div id="topbar">
+      <button class="circ-btn" id="btn-menu" title="Menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+      </button>
+      <button class="circ-btn" id="btn-mute" title="Sound">
+        <svg id="ico-sound" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>
+      </button>
+    </div>
+
+    <div id="hud">
+      <div class="scard p1" id="sc0"><button class="power-star" id="power-extra" style="display:none"><span class="ps-orb">★</span><span class="ps-cap">Extra roll</span></button><div class="nm" id="sc0-nm">You</div><div class="sc" id="sc0-val">0</div></div>
+      <div id="dicecluster">
+        <div id="turnpill">Your turn</div>
+        <button class="pill" id="hud-action" style="display:none"></button>
+        <div style="position:relative;display:inline-block">
+          <div class="die" id="game-die"></div>
+          <div id="turn-timer" style="display:none">
+            <svg id="timer-ring" viewBox="0 0 68 68" xmlns="http://www.w3.org/2000/svg">
+              <rect id="timer-track" x="2" y="2" width="64" height="64" rx="15" ry="15"
+                fill="none" stroke-width="3.5"/>
+              <rect id="timer-arc"  x="2" y="2" width="64" height="64" rx="15" ry="15"
+                fill="none" stroke-width="3.5" stroke-linecap="round"
+                stroke-dasharray="226" stroke-dashoffset="0"/>
+            </svg>
+            <span id="timer-num">10</span>
+          </div>
+        </div>
+      </div>
+      <div class="scard p2" id="sc1"><div class="nm" id="sc1-nm">Computer</div><div class="sc" id="sc1-val">0</div></div>
+    </div>
+    <!-- lines-left counter: JS positions it midway between the P1 card and the dice -->
+    <div id="linesleft" style="display:none"><div id="ll-stage"><span class="ll-num" id="ll-num">0</span></div><span id="ll-cap">lines left</span></div>
+  </div>
+
+  <!-- roll-off overlay -->
+  <div class="overlay hidden" id="ov-rolloff">
+    <div class="panel">
+      <div class="ro-title">Who goes first?</div>
+      <div class="ro-sub">Highest roll starts.</div>
+      <div class="ro-dice">
+        <div class="ro-col"><div class="die" id="ro-die0"></div><span class="ro-nm" id="ro-nm0">P1</span></div>
+        <div class="ro-col"><div class="die" id="ro-die1"></div><span class="ro-nm" id="ro-nm1">P2</span></div>
+      </div>
+      <button class="btn btn-primary" id="ro-roll">Roll the dice</button>
+      <div class="ro-status" id="ro-status"></div>
+    </div>
+  </div>
+
+  <!-- menu sheet -->
+  <div id="sheet">
+    <div class="scrim" id="sheet-scrim"></div>
+    <div class="sheet-body">
+      <div class="grip"></div>
+      <h3>Menu</h3>
+      <button class="btn btn-primary" id="m-resume">Resume</button>
+      <button class="btn btn-ghost" id="m-restart">Restart round</button>
+      <button class="btn btn-ghost" id="m-howto">How to play</button>
+      <button class="btn btn-ghost" id="m-quit">Quit to home</button>
+    </div>
+  </div>
+
+  <!-- game over -->
+  <div id="gameover">
+    <div class="go-head" id="go-head">You win!</div>
+    <div class="go-row">
+      <div class="go-col p1"><div class="nm" id="go-nm0">You</div><div class="sc" id="go-sc0">0</div></div>
+      <div class="go-dash">–</div>
+      <div class="go-col p2"><div class="nm" id="go-nm1">Computer</div><div class="sc" id="go-sc1">0</div></div>
+      <div class="go-div"></div>
+      <div class="go-btns">
+        <button class="btn btn-primary" id="go-again">Play again</button>
+        <button class="btn btn-primary" id="go-rematch" style="display:none">Rematch</button>
+        <button class="btn btn-ghost" id="go-home">Home</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="confetti"></div>
+  <div id="toast" class="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ====================================================================
+     doTriangle — web build. UI/UX ported from the doTriangle-iOS app
+     (Nebula theme, Home/Setup/Board/Win flow). Game engine, geometry,
+     AI and PartyKit netcode are carried over from the original prototype.
+  ==================================================================== */
+
+  var DEFAULT_DOTS=20;
+  var VB={w:800,h:900,margin:80,marginBottom:180};
+  var P1="#36E0E6", P2="#FF5FB0", ACCENT="#B69BFF";
+
+  var S={
+    phase:"setup",            // setup | rolloff | turn | drawing | end
+    numDots:DEFAULT_DOTS,
+    dotR:9, hitR:28,
+    names:["Player 1","Player 2"],
+    scores:[0,0],
+    current:0,
+    dots:[], edges:{}, triangles:[], scoredTri:{},
+    linesLeft:0, lineTotal:0, selected:null,
+    roMatrix:[null,null], roWho:0,
+    rolling:false,
+    mode:"cpu",               // cpu | pass | online
+    vsComputer:false, aiPlayer:1, aiLevel:"medium",
+    online:false, myPlayer:-1,
+    // campaign
+    campaign:false, campLevel:0, diceCap:0, handicap:0, forcedFirst:-1, powerUsedTurn:false
+  };
+
+  // Update after deploying your PartyKit server (see doTriangle-server/HOW-TO-DEPLOY.md).
+  var PARTYKIT_HOST = "dotriangle.alikojn-prog.partykit.dev";
+
+  // ---------- helpers ----------
+  function $(id){return document.getElementById(id);}
+  function svgEl(tag,attrs){var e=document.createElementNS("http://www.w3.org/2000/svg",tag);for(var k in attrs){e.setAttribute(k,attrs[k]);}return e;}
+  function pcolor(i){return i===0?P1:P2;}
+  function pname(i){return S.names[i]||("Player "+(i+1));}
+
+  // ---------- overlays ----------
+  function showOverlay(id){$(id).classList.remove("hidden");}
+  function hideOverlay(id){$(id).classList.add("hidden");}
+
+  // ---------- screen router ----------
+  var VIEWS=["v-home","v-friend","v-setup","v-online","v-howto","v-campaign"];
+  function showView(id){
+    VIEWS.forEach(function(v){$(v).classList.toggle("show", v===id);});
+    $("stage").classList.remove("show");
+    hideOverlay("ov-rolloff"); hideOverlay("ov-levelintro"); $("gameover").classList.remove("show");
+    $("campresult").classList.remove("show");
+    $("sheet").classList.remove("show"); $("confetti").classList.remove("show");
+  }
+  function showGame(){
+    VIEWS.forEach(function(v){$(v).classList.remove("show");});
+    $("stage").classList.add("show");
+  }
+
+  // ---------- logo mark (two sub-triangles, dots at vertices) ----------
+  function logoSVG(size){
+    var w=size,h=size;
+    var top=[w*0.5,h*0.08], bl=[w*0.08,h*0.92], br=[w*0.92,h*0.92], mid=[w*0.5,h*0.92];
+    function pts(a){return a.map(function(p){return p[0]+","+p[1];}).join(" ");}
+    var s='<svg width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'" xmlns="http://www.w3.org/2000/svg">';
+    s+='<polygon points="'+pts([top,bl,mid])+'" fill="'+P1+'" fill-opacity="0.85"/>';
+    s+='<polygon points="'+pts([top,mid,br])+'" fill="'+P2+'" fill-opacity="0.85"/>';
+    [top,bl,br].forEach(function(p){s+='<circle cx="'+p[0]+'" cy="'+p[1]+'" r="'+(w*0.06)+'" fill="#fff"/>';});
+    s+='</svg>'; return s;
+  }
+  $("home-logo").innerHTML=logoSVG(88);
+
+  // ---------- mini board preview (seeded random dots) ----------
+  function seeded(seed){var st=(seed*2654435761+1)>>>0;return function(){st=(st*1103515245+12345)>>>0;return st/4294967296;};}
+  function miniSVG(count){
+    var w=80,h=60,rnd=seeded(count),n=Math.min(count,14),s='';
+    for(var i=0;i<n;i++){var x=rnd()*(w-12)+6,y=rnd()*(h-12)+6;s+='<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="2" fill="#fff" fill-opacity="0.85"/>';}
+    return '<svg class="mini" viewBox="0 0 '+w+' '+h+'" xmlns="http://www.w3.org/2000/svg">'+s+'</svg>';
+  }
+
+  // ---------- board-size cards ----------
+  var BOARD_OPTS=[
+    {n:10,title:"Quick",sub:"10 dots · a few seconds"},
+    {n:20,title:"Classic",sub:"20 dots · the sweet spot"},
+    {n:40,title:"Marathon",sub:"40 dots · long & tactical"}
+  ];
+  function buildBoardCards(containerId, getN, setN){
+    var box=$(containerId); box.innerHTML="";
+    BOARD_OPTS.forEach(function(o){
+      var b=document.createElement("button");
+      b.className="card-btn"+(getN()===o.n?" sel":"");
+      b.innerHTML=miniSVG(o.n)+
+        '<span class="card-meta"><span class="card-title">'+o.title+'</span><span class="card-sub">'+o.sub+'</span></span>'+
+        '<span class="radio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>';
+      b.addEventListener("click",function(){
+        setN(o.n);
+        Array.prototype.forEach.call(box.children,function(c){c.classList.remove("sel");});
+        b.classList.add("sel");
+      });
+      box.appendChild(b);
+    });
+  }
+
+  // ---------- dice rendering ----------
+  var PIPS={1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
+  function renderDie(el,n){if(!el)return;el.innerHTML="";var on=PIPS[n]||[];for(var i=0;i<9;i++){var c=document.createElement("div");if(on.indexOf(i)>-1){var p=document.createElement("div");p.className="pip";c.appendChild(p);}el.appendChild(c);}}
+  function animateDie(el,done,fixedValue){
+    if(!el){if(done)done(fixedValue!=null?fixedValue:(1+Math.floor(Math.random()*6)));return;}
+    playSound(sndDice);
+    el.classList.add("rolling");
+    var count=0, iv=setInterval(function(){
+      renderDie(el,1+Math.floor(Math.random()*6)); count++;
+      if(count>9){clearInterval(iv);el.classList.remove("rolling");var n=(fixedValue!=null)?fixedValue:(1+Math.floor(Math.random()*6));renderDie(el,n);if(done)done(n);}
+    },70);
+  }
+  function buzz(ms){
+    try{
+      var Cap=window.Capacitor;
+      if(Cap&&Cap.Plugins&&Cap.Plugins.Haptics){
+        var H=Cap.Plugins.Haptics;
+        if(Array.isArray(ms)) H.notification({type:"SUCCESS"}); else H.impact({style:"LIGHT"});
+        return;
+      }
+      if(navigator.vibrate) navigator.vibrate(ms);
+    }catch(e){}
+  }
+
+  // ---------- sound ----------
+  var sndClick=new Audio("Sounds/Click.mp3"); sndClick.preload="auto";
+  var sndMain1=new Audio("Sounds/main1.mp3"); sndMain1.preload="auto";
+  var sndMain2=new Audio("Sounds/main2.mp3"); sndMain2.preload="auto";
+  var sndMain3=new Audio("Sounds/Main3.mp3"); sndMain3.preload="auto";
+  var _activeMusic=null, _fadeTmr=null;
+  function playMusic(track){
+    if(soundMuted) return;
+    if(_activeMusic===track && !track.paused) return;
+    stopMusic(false);
+    _activeMusic=track;
+    track.currentTime=0; track.volume=1;
+    track.play().catch(function(){});
+  }
+  function stopMusic(fade){
+    if(_fadeTmr){clearInterval(_fadeTmr);_fadeTmr=null;}
+    var t=_activeMusic; if(!t) return;
+    _activeMusic=null;
+    if(!fade||t.volume<=0){t.pause();t.currentTime=0;return;}
+    // fade out over ~400ms
+    var step=t.volume/20;
+    _fadeTmr=setInterval(function(){
+      t.volume=Math.max(0,t.volume-step);
+      if(t.volume<=0){clearInterval(_fadeTmr);_fadeTmr=null;t.pause();t.currentTime=0;}
+    },20);
+  }
+  var sndDice=new Audio("Sounds/Dice/Dice.mp3"); sndDice.preload="auto";
+  var sndSingle=new Audio("Sounds/Triangle/Single.mp3"), sndDouble=new Audio("Sounds/Triangle/Double.mp3");
+  sndSingle.preload="auto"; sndDouble.preload="auto";
+  var sndWinSounds=["Win1.mp3"].map(function(f){var a=new Audio("Sounds/Win/"+f);a.preload="auto";return a;});
+  var sndLossSounds=["Loss1.mp3","Loss2.mp3","Loss3.mp3","Loss4.mp3","Loss5.mp3","Loss6.mp3","Loss7.mp3"].map(function(f){var a=new Audio("Sounds/Loss/"+f);a.preload="auto";return a;});
+  var audioReady=false, soundMuted=false;
+  function randomFrom(arr){return arr[Math.floor(Math.random()*arr.length)];}
+  function primeAudio(){
+    if(audioReady) return; audioReady=true;
+    // Unlock AudioContext
+    try{
+      var ctx=new(window.AudioContext||window.webkitAudioContext)();
+      var buf=ctx.createBuffer(1,1,22050);
+      var src=ctx.createBufferSource();src.buffer=buf;
+      src.connect(ctx.destination);src.start(0);
+      ctx.resume().catch(function(){});
+    }catch(e){}
+    // Unlock all HTMLAudioElements synchronously in the same user-gesture tick.
+    // Must be synchronous — iOS rejects play() calls from promise callbacks.
+    // muted=true + volume=0 ensures no audible output.
+    var toUnlock=[sndDice,sndSingle,sndDouble].concat(sndWinSounds).concat(sndLossSounds);
+    toUnlock.forEach(function(a){
+      a.muted=true; a.volume=0;
+      var p=a.play();
+      if(p&&p.then){p.then(function(){a.pause();a.currentTime=0;a.muted=false;a.volume=1;})
+                     .catch(function(){a.muted=false;a.volume=1;});}
+      else{a.pause();a.currentTime=0;a.muted=false;a.volume=1;}
+    });
+  }
+  function toggleMute(){
+    soundMuted=!soundMuted;
+    if(soundMuted){ stopMusic(false); }
+    $("ico-sound").innerHTML = soundMuted
+      ? '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>'
+      : '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/>';
+  }
+  function playSound(a){if(soundMuted)return;try{a.currentTime=0;var p=a.play();if(p&&p.catch)p.catch(function(){});}catch(e){}}
+  function playEndSound(iWin){playSound(randomFrom(iWin?sndWinSounds:sndLossSounds));}
+  function toast(msg){var t=$("toast");t.textContent=msg;t.classList.add("show");clearTimeout(toast._t);toast._t=setTimeout(function(){t.classList.remove("show");},1700);}
+
+  // ---------- motion (shake to roll) ----------
+  var rollArmed=false, prevMag=null, lastRoll=0, motionBound=false, onRollFn=null;
+  function handleMotion(e){
+    if(!rollArmed) return;
+    var a=e.accelerationIncludingGravity||e.acceleration; if(!a) return;
+    var mag=Math.sqrt((a.x||0)*(a.x||0)+(a.y||0)*(a.y||0)+(a.z||0)*(a.z||0));
+    if(prevMag!==null){var d=Math.abs(mag-prevMag);if(d>16 && Date.now()-lastRoll>900){lastRoll=Date.now();if(onRollFn)onRollFn();}}
+    prevMag=mag;
+  }
+  function enableMotion(){
+    function bind(){if(!motionBound){window.addEventListener("devicemotion",handleMotion);motionBound=true;}}
+    try{
+      if(typeof DeviceMotionEvent!=="undefined" && typeof DeviceMotionEvent.requestPermission==="function"){
+        DeviceMotionEvent.requestPermission().then(function(r){if(r==="granted")bind();}).catch(function(){});
+      } else { bind(); }
+    }catch(e){}
+  }
+  function armRoll(fn){rollArmed=true;onRollFn=fn;prevMag=null;$("game-die").classList.add("tappable");}
+  function disarmRoll(){rollArmed=false;onRollFn=null;$("game-die").classList.remove("tappable");}
+
+
+  // ---------- board generation ----------
+  function genDots(){
+    var mb=VB.marginBottom||VB.margin;
+    var n=S.numDots, uW=VB.w-2*VB.margin, uH=VB.h-VB.margin-mb;
+    var minDist=Math.max(34, Math.sqrt((uW*uH)/n)*0.62);
+    S.dotR=Math.max(7,Math.min(11,minDist*0.17));
+    S.hitR=Math.max(18,Math.min(34,minDist*0.55));
+    var d=[],tries=0,maxTries=n*800,md2=minDist*minDist;
+    while(d.length<n && tries<maxTries){
+      tries++;
+      var x=VB.margin+Math.random()*uW, y=VB.margin+Math.random()*uH, ok=true;
+      for(var i=0;i<d.length;i++){var dx=d[i].x-x,dy=d[i].y-y;if(dx*dx+dy*dy<md2){ok=false;break;}}
+      if(ok) d.push({x:x,y:y});
+    }
+    while(d.length<n){d.push({x:VB.margin+Math.random()*uW,y:VB.margin+Math.random()*uH});}
+    S.dots=d;
+  }
+  function drawBoard(){
+    var gd=$("g-dot"),ge=$("g-edge"),gt=$("g-tri"),gr=$("g-ring");
+    gd.innerHTML="";ge.innerHTML="";gt.innerHTML="";gr.innerHTML="";
+    S.triangles.forEach(function(t){
+      var pts=[S.dots[t.a],S.dots[t.b],S.dots[t.c]];
+      gt.appendChild(svgEl("polygon",{points:pts.map(function(p){return p.x+","+p.y;}).join(" "),
+        fill:pcolor(t.player),"fill-opacity":"0.20",stroke:pcolor(t.player),"stroke-width":"2","stroke-linejoin":"round"}));
+    });
+    for(var key in S.edges){
+      var ij=key.split("-"),a=S.dots[+ij[0]],b=S.dots[+ij[1]],col=pcolor(S.edges[key]);
+      ge.appendChild(svgEl("line",{x1:a.x,y1:a.y,x2:b.x,y2:b.y,stroke:col,"stroke-opacity":"0.35","stroke-width":"9","stroke-linecap":"round"}));
+      ge.appendChild(svgEl("line",{x1:a.x,y1:a.y,x2:b.x,y2:b.y,stroke:col,"stroke-width":"5","stroke-linecap":"round"}));
+    }
+    if(S.selected!=null && canDrawNow()){
+      for(var c=0;c<S.dots.length;c++){
+        if(c===S.selected) continue;
+        if(hasEdge(S.selected,c)||passesThroughDot(S.selected,c)||crossesEdge(S.selected,c)) continue;
+        var p=S.dots[c];
+        gr.appendChild(svgEl("circle",{cx:p.x,cy:p.y,r:S.dotR*2.6,fill:"none",stroke:ACCENT,"stroke-opacity":"0.35","stroke-width":"2.5"}));
+      }
+    }
+    S.dots.forEach(function(p,i){
+      var grp=svgEl("g",{class:"dot-grp"});
+      var sel=S.selected===i;
+      if(sel){grp.appendChild(svgEl("circle",{cx:p.x,cy:p.y,r:S.dotR*1.2+7,fill:"none",stroke:ACCENT,"stroke-width":"3"}));}
+      grp.appendChild(svgEl("circle",{cx:p.x,cy:p.y,r:sel?S.dotR*1.2:S.dotR,fill:"#fff",class:"dot"}));
+      var hit=svgEl("circle",{cx:p.x,cy:p.y,r:S.hitR,fill:"transparent",style:"cursor:pointer"});
+      hit.addEventListener("click",function(){onDotTap(i);});
+      hit.addEventListener("pointerdown",function(){ startDrag(i); });
+      hit.addEventListener("pointerenter",function(){ if(canDrawNow()||dragStart>=0) setHoverDot(i); });
+      hit.addEventListener("pointerleave",function(){ if(dragStart<0) setHoverDot(-1); });
+      grp.appendChild(hit);
+      gd.appendChild(grp);
+    });
+  }
+
+  // ---------- drawing / scoring ----------
+  function edgeKey(i,j){return i<j?i+"-"+j:j+"-"+i;}
+  function hasEdge(i,j){return Object.prototype.hasOwnProperty.call(S.edges,edgeKey(i,j));}
+  function orient(p,q,r){return (q.x-p.x)*(r.y-p.y)-(q.y-p.y)*(r.x-p.x);}
+  function onSeg(p,q,r){
+    return Math.min(p.x,r.x)-0.001<=q.x && q.x<=Math.max(p.x,r.x)+0.001 &&
+           Math.min(p.y,r.y)-0.001<=q.y && q.y<=Math.max(p.y,r.y)+0.001;
+  }
+  function segCross(p1,p2,p3,p4){
+    var d1=orient(p3,p4,p1), d2=orient(p3,p4,p2), d3=orient(p1,p2,p3), d4=orient(p1,p2,p4);
+    if(((d1>0&&d2<0)||(d1<0&&d2>0)) && ((d3>0&&d4<0)||(d3<0&&d4>0))) return true;
+    var e=1e-6;
+    if(Math.abs(d1)<e&&onSeg(p3,p1,p4)) return true;
+    if(Math.abs(d2)<e&&onSeg(p3,p2,p4)) return true;
+    if(Math.abs(d3)<e&&onSeg(p1,p3,p2)) return true;
+    if(Math.abs(d4)<e&&onSeg(p1,p4,p2)) return true;
+    return false;
+  }
+  function passesThroughDot(a,b){
+    var p1=S.dots[a], p2=S.dots[b], len=Math.hypot(p2.x-p1.x,p2.y-p1.y)||1;
+    for(var c=0;c<S.dots.length;c++){
+      if(c===a||c===b) continue;
+      var pc=S.dots[c];
+      if(Math.abs(orient(p1,p2,pc))/len < S.dotR && onSeg(p1,pc,p2)) return true;
+    }
+    return false;
+  }
+  function crossesEdge(a,b){
+    var p1=S.dots[a], p2=S.dots[b];
+    for(var key in S.edges){
+      var ij=key.split("-"), i=+ij[0], j=+ij[1];
+      if(i===a||i===b||j===a||j===b) continue;
+      if(segCross(p1,p2,S.dots[i],S.dots[j])) return true;
+    }
+    return false;
+  }
+  function crossesExisting(a,b){ return passesThroughDot(a,b) || crossesEdge(a,b); }
+
+  function commitLine(a,b){
+    if(S.phase!=="drawing"||a===b) return false;
+    if(S.online){
+      if(S.current!==S.myPlayer) return false;
+      if(hasEdge(a,b)){toast("Line already drawn");return false;}
+      if(passesThroughDot(a,b)){toast("There's a dot in the way");return false;}
+      if(crossesEdge(a,b)){toast("Lines can't cross");return false;}
+      NET.send({type:"draw_line",a:a,b:b});
+      S.selected=null; drawBoard();
+      return true;
+    }
+    if(hasEdge(a,b)){toast("Line already drawn");return false;}
+    if(passesThroughDot(a,b)){toast("There's a dot in the way");return false;}
+    if(crossesEdge(a,b)){toast("Lines can't cross");return false;}
+    S.edges[edgeKey(a,b)]=S.current; S.selected=null;
+    var prevTri=S.triangles.length;
+    var made=checkTriangles(a,b);
+    S.linesLeft--;
+    drawBoard(); updateHUD();
+    if(made>0) spawnBadgesForNewTriangles(prevTri);
+    buzz(made>0?[30,40,30]:12);
+    if(made===1){playSound(sndSingle);}
+    else if(made>=2){playSound(sndDouble);}
+    if(gameOverNow()){endGame();return true;}
+    if(S.linesLeft<=0){setTimeout(nextTurn,420);}
+    return true;
+  }
+  function onDotTap(i){
+    if(S.phase!=="drawing"||isAiTurn()) return;
+    if(S.online && S.current!==S.myPlayer) return;
+    clearRubber();
+    if(S.selected===null){S.selected=i;drawBoard();return;}
+    if(S.selected===i){S.selected=null;drawBoard();return;}
+    var a=S.selected;
+    if(!commitLine(a,i)){
+      S.selected=a;
+      flashRejectedLine(S.dots[a], S.dots[i]);
+      drawBoard();
+    }
+  }
+
+  // ---------- drag to draw ----------
+  var board=$("board"), dragStart=-1, dragMoved=false;
+  function clientToSvg(x,y){
+    var ctm=board.getScreenCTM(); if(!ctm) return null;
+    var pt=board.createSVGPoint(); pt.x=x; pt.y=y;
+    var p=pt.matrixTransform(ctm.inverse()); return {x:p.x,y:p.y};
+  }
+  function dotAt(p){
+    var best=-1,bestd=0,lim=S.hitR*S.hitR*2.5;
+    for(var i=0;i<S.dots.length;i++){var dx=S.dots[i].x-p.x,dy=S.dots[i].y-p.y,d2=dx*dx+dy*dy;if(d2<lim&&(best<0||d2<bestd)){best=i;bestd=d2;}}
+    return best;
+  }
+  function flashRejectedLine(a,b){
+    var g=$("g-drag"); g.innerHTML="";
+    var line=svgEl("line",{x1:a.x,y1:a.y,x2:b.x,y2:b.y,stroke:"#ff5470","stroke-width":"5","stroke-linecap":"round",opacity:"0.9"});
+    g.appendChild(line);
+    setTimeout(function(){
+      line.style.transition="opacity .35s"; line.style.opacity="0";
+      setTimeout(function(){ try{ g.innerHTML=""; }catch(e){} }, 380);
+    }, 380);
+  }
+  var SNAP_RADIUS=48;
+  function snapTarget(startIdx, p){
+    if(startIdx<0 || !S.dots[startIdx]) return -1;
+    var best=-1, bestd=SNAP_RADIUS*SNAP_RADIUS;
+    for(var i=0;i<S.dots.length;i++){
+      if(i===startIdx) continue;
+      if(hasEdge(startIdx,i)) continue;
+      if(passesThroughDot(startIdx,i)) continue;
+      if(crossesEdge(startIdx,i)) continue;
+      var dx=S.dots[i].x-p.x, dy=S.dots[i].y-p.y, d2=dx*dx+dy*dy;
+      if(d2<bestd){ best=i; bestd=d2; }
+    }
+    return best;
+  }
+  function drawRubber(startIdx,p){
+    var g=$("g-drag"); g.innerHTML="";
+    if(startIdx<0 || !S.dots[startIdx]) return;
+    var a=S.dots[startIdx];
+    g.appendChild(svgEl("line",{x1:a.x,y1:a.y,x2:p.x,y2:p.y,
+      stroke:ACCENT,"stroke-width":"5","stroke-dasharray":"10 8","stroke-linecap":"round",opacity:"0.95"}));
+  }
+  function clearRubber(){$("g-drag").innerHTML="";}
+  function setHoverDot(idx){
+    var dots=$("g-dot").querySelectorAll(".dot");
+    for(var k=0;k<dots.length;k++) dots[k].setAttribute("r", S.dotR);
+    if(idx>=0 && dots[idx]) dots[idx].setAttribute("r", S.dotR*1.6);
+  }
+  function canDrawNow(){
+    if(S.phase!=="drawing") return false;
+    if(isAiTurn()) return false;
+    if(S.online && S.current!==S.myPlayer) return false;
+    return true;
+  }
+  function startDrag(i){
+    if(S.phase!=="drawing"||isAiTurn()) return;
+    if(S.online && S.current!==S.myPlayer) return;
+    dragStart=i; dragMoved=false;
+    window.addEventListener("pointermove",onPointerMove);
+    window.addEventListener("pointerup",onPointerUp);
+  }
+  function onPointerDown(e){
+    if(S.phase!=="drawing"||isAiTurn()) return;
+    if(S.online && S.current!==S.myPlayer) return;
+    var p=clientToSvg(e.clientX,e.clientY); if(!p) return;
+    var i=dotAt(p); if(i<0) return;
+    startDrag(i);
+  }
+  function onPointerMove(e){
+    if(dragStart<0) return;
+    var p=clientToSvg(e.clientX,e.clientY); if(!p) return;
+    var dx=p.x-S.dots[dragStart].x, dy=p.y-S.dots[dragStart].y;
+    if(dx*dx+dy*dy>S.dotR*S.dotR) dragMoved=true;
+    if(dragMoved){ drawRubber(dragStart,p); setHoverDot(snapTarget(dragStart,p)); }
+  }
+  function onPointerUp(e){
+    window.removeEventListener("pointermove",onPointerMove);
+    window.removeEventListener("pointerup",onPointerUp);
+    setHoverDot(-1);
+    var start=dragStart; dragStart=-1;
+    if(start<0||!dragMoved){ clearRubber(); return; }
+    var p=clientToSvg(e.clientX,e.clientY); if(!p){ clearRubber(); return; }
+    var target=snapTarget(start,p);
+    if(target>=0){
+      S.selected=null;
+      if(commitLine(start,target)){ clearRubber(); }
+      else { flashRejectedLine(S.dots[start], S.dots[target]); }
+      return;
+    }
+    var nearest=dotAt(p);
+    if(nearest>=0 && nearest!==start){
+      var why="Release on a valid dot";
+      if(hasEdge(start,nearest)) why="Line already drawn";
+      else if(passesThroughDot(start,nearest)) why="There's a dot in the way";
+      else if(crossesEdge(start,nearest)) why="Lines can't cross";
+      flashRejectedLine(S.dots[start], S.dots[nearest]);
+      toast(why);
+    } else { clearRubber(); }
+    S.selected=null;
+  }
+  board.addEventListener("pointerdown",onPointerDown);
+  board.addEventListener("pointermove",function(e){
+    if(dragStart>=0) return;
+    if(S.selected===null) return;
+    if(!canDrawNow()) return;
+    var p=clientToSvg(e.clientX,e.clientY); if(!p) return;
+    drawRubber(S.selected, p);
+  });
+  board.addEventListener("pointerleave",function(){ if(dragStart<0 && S.selected!==null) clearRubber(); });
+
+  function checkTriangles(a,b){
+    var made=0;
+    for(var c=0;c<S.dots.length;c++){
+      if(c===a||c===b) continue;
+      if(hasEdge(a,c)&&hasEdge(b,c)){
+        var key=[a,b,c].sort(function(x,y){return x-y;}).join(",");
+        if(!S.scoredTri[key]){S.scoredTri[key]=true;S.triangles.push({a:a,b:b,c:c,player:S.current});S.scores[S.current]++;made++;}
+      }
+    }
+    return made;
+  }
+  // Campaign plays on until no legal line remains, so every possible
+  // triangle gets formed. Other modes end once all dots are connected.
+  function gameOverNow(){
+    if(S.campaign) return legalMoves().length===0;
+    return allConnected();
+  }
+  function allConnected(){
+    var deg={};
+    for(var key in S.edges){var ij=key.split("-");deg[ij[0]]=1;deg[ij[1]]=1;}
+    for(var i=0;i<S.dots.length;i++){if(!deg[i])return false;}
+    return true;
+  }
+
+  // ---------- flying +1 badges (mirrors iOS FlyingPointView) ----------
+  var displayedScores=[0,0];
+
+  function spawnBadge(player, triDots){
+    var cx=(triDots[0].x+triDots[1].x+triDots[2].x)/3;
+    var cy=(triDots[0].y+triDots[1].y+triDots[2].y)/3;
+    var brd=$("board"), ctm=brd.getScreenCTM();
+    var pt=brd.createSVGPoint(); pt.x=cx; pt.y=cy;
+    var sc=pt.matrixTransform(ctm);
+    var cardRect=$("sc"+player).getBoundingClientRect();
+    var tx=cardRect.left+cardRect.width/2, ty=cardRect.top+cardRect.height/2;
+    var color=player===0?P1:P2;
+    var badge=document.createElement("div");
+    badge.className="flying-badge";
+    badge.textContent="+1";
+    badge.style.cssText="color:"+color+";left:"+sc.x+"px;top:"+sc.y+"px;transform:translate(-50%,-50%) scale(0.2);opacity:0;";
+    document.body.appendChild(badge);
+    // pop in — spring feel
+    requestAnimationFrame(function(){
+      badge.style.transition="transform .22s cubic-bezier(.34,1.56,.64,1),opacity .18s ease";
+      badge.style.transform="translate(-50%,-50%) scale(1.2)";
+      badge.style.opacity="1";
+    });
+    // fly to score card
+    var popTime=260, flyTime=460;
+    setTimeout(function(){
+      badge.style.transition="left "+flyTime+"ms ease-in,top "+flyTime+"ms ease-in,transform "+flyTime+"ms ease-in";
+      badge.style.left=tx+"px"; badge.style.top=ty+"px";
+      badge.style.transform="translate(-50%,-50%) scale(0.5)";
+      setTimeout(function(){
+        badge.style.transition+= ",opacity "+(flyTime*.6)+"ms ease-in";
+        badge.style.opacity="0";
+      }, flyTime*.45);
+    }, popTime);
+    // land → tick score + bump card
+    setTimeout(function(){
+      if(displayedScores[player]<S.scores[player]){
+        displayedScores[player]++;
+        $("sc"+player+"-val").textContent=displayedScores[player];
+      }
+      bumpScore(player);
+      if(badge.parentNode) badge.parentNode.removeChild(badge);
+    }, popTime+flyTime);
+  }
+
+  function spawnBadgesForNewTriangles(prevCount){
+    for(var i=prevCount;i<S.triangles.length;i++){
+      var t=S.triangles[i];
+      spawnBadge(t.player,[S.dots[t.a],S.dots[t.b],S.dots[t.c]]);
+    }
+  }
+
+  // ---------- HUD ----------
+  function bumpScore(i){
+    var card=$("sc"+i); card.classList.add("bump");
+    setTimeout(function(){card.classList.remove("bump");},300);
+  }
+  function turnText(){
+    var ai=S.vsComputer && S.current===S.aiPlayer;
+    if(S.phase==="end") return "Game over";
+    if(S.phase==="rolloff") return "Roll-off";
+    if(S.phase==="turn"){
+      if(ai) return pname(S.aiPlayer)+" is thinking…";
+      if(S.online) return S.current===S.myPlayer ? "Your turn" : pname(S.current)+"'s turn";
+      if(S.mode==="pass") return pname(S.current)+"'s turn";
+      return "Your turn";
+    }
+    if(S.phase==="drawing"){
+      if(ai) return pname(S.aiPlayer)+" is thinking…";
+      var mine = !S.online || S.current===S.myPlayer;
+      if(S.mode==="pass") mine=true;
+      if(mine) return "Your turn";
+      return pname(S.current)+"'s turn";
+    }
+    return "";
+  }
+  // is the active turn controlled by the local human player?
+  function isMyTurn(){
+    if(isAiTurn()) return false;
+    if(S.mode==="pass") return true;
+    return !S.online || S.current===S.myPlayer;
+  }
+  function updateHUD(){
+    var pill=$("turnpill");
+    if(pill){
+      // The pill now only announces the OTHER player's turn — the local
+      // player's turn is shown on the roll/end-turn button instead.
+      var oppTurn = (S.phase==="turn"||S.phase==="drawing") && !isMyTurn();
+      pill.textContent = oppTurn ? turnText() : "";
+      pill.style.background = pcolor(S.current);
+      pill.style.display = oppTurn ? "" : "none";
+      pill.classList.remove("mine");
+    }
+    [0,1].forEach(function(i){
+      var card=$("sc"+i);
+      $("sc"+i+"-nm").textContent=pname(i).toUpperCase();
+      $("sc"+i+"-val").textContent=displayedScores[i];
+      var active=(S.current===i && S.phase!=="end" && S.phase!=="setup");
+      card.classList.toggle("active",active);
+    });
+    renderLinesLeft();
+    var act=$("hud-action");
+    var canAct = !isAiTurn() && (!S.online || S.current===S.myPlayer);
+    if(S.phase==="turn" && canAct){
+      act.style.display=""; act.className="pill roll"; act.textContent="Your turn · Tap to roll"; act.onclick=doTurnRoll;
+    } else if(S.phase==="drawing" && canAct){
+      act.style.display=""; act.className="pill end"; act.textContent="End turn"; act.onclick=nextTurn;
+    } else {
+      act.style.display="none"; act.className="pill"; act.onclick=null;
+    }
+    updatePowerButton();
+  }
+
+  // ---------- lines-left counter ----------
+  var _llShown=-1;
+  // Park the counter midway between the ACTIVE player's card and the dice
+  // (left side for Player 1, right side for Player 2).
+  function positionLinesLeft(){
+    var box=$("linesleft"), die=$("game-die");
+    var card=$(S.current===1 ? "sc1" : "sc0");
+    if(!box||!card||!die || box.style.display==="none") return;
+    var c=card.getBoundingClientRect(), d=die.getBoundingClientRect();
+    var cardC=c.left+c.width/2, dieC=d.left+d.width/2;
+    box.style.left=((cardC+dieC)/2)+"px";
+    box.style.top=(d.top+d.height/2)+"px";
+  }
+  window.addEventListener("resize", positionLinesLeft);
+  function renderLinesLeft(){
+    var box=$("linesleft"), num=$("ll-num"), stage=$("ll-stage");
+    if(!box||!num||!stage) return;
+    // Show only on a human drawing turn — never while the computer plays.
+    var show = S.phase==="drawing" && !isAiTurn() && (S.lineTotal>0 || S.linesLeft>0);
+    if(!show){
+      box.style.display="none";
+      _llShown=-1; S.lineTotal=0;
+      return;
+    }
+    if(S.lineTotal < S.linesLeft) S.lineTotal = S.linesLeft;
+    box.style.display="flex";
+    positionLinesLeft();
+    var n=S.linesLeft;
+    if(n===_llShown){ num.textContent=n; return; }
+    // count went DOWN → fly the old number away, pop the new one in
+    if(_llShown>n && _llShown>0){
+      var ghost=document.createElement("span");
+      ghost.className="ll-num ll-ghost";
+      ghost.textContent=_llShown;
+      stage.appendChild(ghost);
+      setTimeout(function(){ if(ghost.parentNode) ghost.parentNode.removeChild(ghost); },520);
+    }
+    num.textContent=n;
+    num.classList.remove("bump");
+    void num.offsetWidth;        // restart the animation
+    num.classList.add("bump");
+    _llShown=n;
+  }
+
+  // ---------- turn countdown timer ----------
+  var TURN_SECONDS=20, _turnTimer=null, _turnTimerLeft=0;
+  var TIMER_CIRC=226; // perimeter of 64×64 rounded-rect (rx=15)
+
+  function startTurnTimer(){
+    clearTurnTimer();
+    _turnTimerLeft=TURN_SECONDS;
+    _updateTimerUI();
+    _turnTimer=setInterval(function(){
+      _turnTimerLeft--;
+      _updateTimerUI();
+      if(_turnTimerLeft<=0){
+        clearTurnTimer();
+        // Only the active player ends the turn
+        var isMine=!S.online || S.current===S.myPlayer;
+        if(!isAiTurn() && isMine) nextTurn();
+      }
+    },1000);
+  }
+
+  function clearTurnTimer(){
+    if(_turnTimer){clearInterval(_turnTimer);_turnTimer=null;}
+    _turnTimerLeft=0;
+    _updateTimerUI();
+  }
+
+  function _updateTimerUI(){
+    var timer=$("turn-timer"),arc=$("timer-arc"),num=$("timer-num");
+    if(!timer) return;
+    if(_turnTimer && S.phase==="drawing"){
+      timer.style.display="";
+      var pct=_turnTimerLeft/TURN_SECONDS;
+      arc.style.strokeDashoffset=TIMER_CIRC*(1-pct);
+      var urgent=_turnTimerLeft<=3;
+      arc.classList.toggle("urgent",urgent);
+      num.textContent=_turnTimerLeft;
+      num.classList.toggle("urgent",urgent);
+    } else {
+      timer.style.display="none";
+    }
+  }
+
+  // ---------- roll-off ----------
+  function updateRolloffUI(){
+    $("ro-nm0").textContent=pname(0); $("ro-nm0").style.color=P1;
+    $("ro-nm1").textContent=pname(1); $("ro-nm1").style.color=P2;
+    var btn=$("ro-roll");
+    // Hide button in online mode — rolls are automatic
+    if(S.online){ btn.style.display="none"; }
+    else {
+      var bothRolled = S.roMatrix[0]!=null && S.roMatrix[1]!=null;
+      var canAct = !S.rolling && S.roMatrix[0]==null;
+      if(bothRolled){ btn.style.display="none"; }
+      else { btn.style.display=""; btn.disabled=!canAct; btn.style.opacity=canAct?"1":"0.4"; }
+    }
+    var st=$("ro-status"), parts=[];
+    [0,1].forEach(function(i){ if(S.roMatrix[i]!=null) parts.push(pname(i)+" rolled "+S.roMatrix[i]); });
+    if(parts.length) st.textContent=parts.join("  ·  ");
+    else st.textContent = S.online ? "Rolling…" : "Tap to roll — both dice go at once!";
+  }
+  function roTurn(){
+    updateRolloffUI();
+    armRoll(doRolloffRoll);
+  }
+  function startRolloff(){
+    S.phase="rolloff";S.roMatrix=[null,null];S.roWho=0;S.rolling=false;
+    renderDie($("ro-die0"),1);renderDie($("ro-die1"),1);
+    showGame(); updateHUD();
+    showOverlay("ov-rolloff");
+    updateRolloffUI();
+    if(!S.online) roTurn();
+  }
+  function doRolloffRoll(){
+    // Online: server is sequential — only send roll when roWho===myPlayer
+    if(S.online){
+      if(S.roWho!==S.myPlayer) return;
+      if(S.roMatrix[S.myPlayer]!=null) return; // already rolled
+      S.roMatrix[S.myPlayer]=-1; // mark as pending to prevent double-send
+      NET.send({type:"roll"});
+      return;
+    }
+    if(S.rolling||S.phase!=="rolloff"||S.roMatrix[0]!=null) return;
+    S.rolling=true;disarmRoll();
+    var done0=false, done1=false, val0, val1;
+    function onBothDone(){
+      if(!done0||!done1) return;
+      buzz(20);S.rolling=false;
+      S.roMatrix[0]=val0;S.roMatrix[1]=val1;
+      updateRolloffUI();
+      setTimeout(rolloffNext,1100);
+    }
+    animateDie($("ro-die0"),function(n){ val0=n; done0=true; onBothDone(); });
+    animateDie($("ro-die1"),function(n){ val1=n; done1=true; onBothDone(); });
+  }
+  function rolloffNext(){
+    if(S.roMatrix[0]===S.roMatrix[1]){
+      toast("Tie! Roll again");S.roMatrix=[null,null];S.roWho=0;
+      renderDie($("ro-die0"),1);renderDie($("ro-die1"),1);updateRolloffUI();roTurn();return;
+    }
+    S.current=S.roMatrix[0]>S.roMatrix[1]?0:1;
+    hideOverlay("ov-rolloff");
+    startTurn();
+  }
+
+  // ---------- turns ----------
+  function startTurn(){
+    clearTurnTimer();
+    if(gameOverNow()){endGame();return;}
+    S.phase="turn";S.selected=null;S.rolling=false;S.powerUsedTurn=false;S.lineTotal=0;
+    renderDie($("game-die"),1);
+    drawBoard();updateHUD();
+    if(isAiTurn()){ disarmRoll(); setTimeout(doTurnRoll,850); }
+    else { armRoll(doTurnRoll); }
+  }
+  function doTurnRoll(){
+    if(S.rolling||S.phase!=="turn") return;
+    if(S.online){ if(S.current!==S.myPlayer) return; NET.send({type:"roll"}); return; }
+    S.rolling=true;disarmRoll();
+    var roll=1+Math.floor(Math.random()*6);
+    if(S.campaign && S.diceCap>0) roll=Math.min(roll,S.diceCap);
+    animateDie($("game-die"),function(n){
+      buzz(20);
+      S.linesLeft=n;S.lineTotal=n;S.phase="drawing";S.rolling=false;
+      updateHUD();
+      if(S.vsComputer && S.current===S.aiPlayer){ setTimeout(aiDrawStep,750); }
+      else { startTurnTimer(); }
+    }, roll);
+  }
+  function nextTurn(){
+    clearTurnTimer();
+    if(S.online){ if(S.current!==S.myPlayer) return; NET.send({type:"end_turn"}); return; }
+    if(gameOverNow()){endGame();return;}
+    S.current=1-S.current;
+    startTurn();
+  }
+
+  // ---------- AI ----------
+  function isAiTurn(){ return S.vsComputer && S.current===S.aiPlayer; }
+  function legalMoves(){
+    var L=[];
+    for(var i=0;i<S.dots.length;i++) for(var j=i+1;j<S.dots.length;j++){
+      if(hasEdge(i,j)) continue;
+      if(crossesExisting(i,j)) continue;
+      L.push([i,j]);
+    }
+    return L;
+  }
+  function newTriCount(a,b){
+    var c=0; for(var k=0;k<S.dots.length;k++){ if(k===a||k===b) continue; if(hasEdge(a,k)&&hasEdge(b,k)) c++; } return c;
+  }
+  function aiPickMove(){
+    var L=legalMoves(); if(!L.length) return null;
+    if(S.aiLevel==="easy"){ return L[(Math.random()*L.length)|0]; }
+    var bestTri=0, claim=[];
+    for(var i=0;i<L.length;i++){ var t=newTriCount(L[i][0],L[i][1]);
+      if(t>bestTri){bestTri=t;claim=[L[i]];} else if(t===bestTri && t>0){claim.push(L[i]);} }
+    if(bestTri>0) return claim[(Math.random()*claim.length)|0];
+    if(S.aiLevel==="medium"){ return L[(Math.random()*L.length)|0]; }
+    var legalSet={}; L.forEach(function(m){legalSet[m[0]+"-"+m[1]]=1;});
+    function legalPair(u,v){ return legalSet[(u<v?u+"-"+v:v+"-"+u)]?true:false; }
+    function danger(a,b){
+      var d=0;
+      for(var k=0;k<S.dots.length;k++){
+        if(k===a||k===b) continue;
+        var ac=hasEdge(a,k), bc=hasEdge(b,k);
+        if(ac!==bc){ var u=ac?b:a; if(legalPair(u,k)) d++; }
+      }
+      return d;
+    }
+    var bd=Infinity, safe=[];
+    for(var x=0;x<L.length;x++){ var dg=danger(L[x][0],L[x][1]);
+      if(dg<bd){bd=dg;safe=[L[x]];} else if(dg===bd){safe.push(L[x]);} }
+    return safe[(Math.random()*safe.length)|0];
+  }
+  function aiDrawStep(){
+    if(S.phase!=="drawing"||!isAiTurn()) return;
+    var m=aiPickMove();
+    if(!m){ nextTurn(); return; }
+    if(!commitLine(m[0],m[1])){ nextTurn(); return; }
+    if(S.phase==="drawing" && isAiTurn() && S.linesLeft>0){ setTimeout(aiDrawStep,650); }
+  }
+
+  // ---------- end ----------
+  function confettiBurst(){
+    var c=$("confetti"); c.innerHTML=""; c.classList.add("show");
+    var cols=[P1,P2,ACCENT];
+    for(var i=0;i<70;i++){
+      var el=document.createElement("div"); el.className="conf";
+      el.style.left=(Math.random()*100)+"%";
+      el.style.background=cols[i%3];
+      var dur=1.8+Math.random()*1.4, delay=Math.random()*0.8;
+      el.style.transition="transform "+dur+"s linear "+delay+"s, opacity "+dur+"s linear "+delay+"s";
+      c.appendChild(el);
+      (function(e){requestAnimationFrame(function(){requestAnimationFrame(function(){
+        e.style.transform="translateY("+(window.innerHeight+60)+"px) rotate("+(360+Math.random()*360)+"deg)";
+        e.style.opacity="0";
+      });});})(el);
+    }
+    setTimeout(function(){c.classList.remove("show");c.innerHTML="";},3600);
+  }
+  function showGameOver(winnerIdx, iWin){
+    $("go-nm0").textContent=pname(0).toUpperCase();
+    $("go-nm1").textContent=pname(1).toUpperCase();
+    $("go-sc0").textContent=S.scores[0];
+    $("go-sc1").textContent=S.scores[1];
+    var head;
+    if(winnerIdx===null||winnerIdx===undefined) head="It's a tie!";
+    else if(S.vsComputer) head = (winnerIdx===S.aiPlayer) ? "Computer wins" : "You win!";
+    else head = pname(winnerIdx)+" wins!";
+    $("go-head").textContent=head;
+    // Online: show Rematch button; offline: show Play again
+    $("go-again").style.display = S.online ? "none" : "";
+    $("go-rematch").style.display = S.online ? "" : "none";
+    $("go-rematch").textContent = "Rematch";
+    $("go-rematch").disabled = false;
+    $("gameover").classList.add("show");
+    if(iWin) confettiBurst();
+  }
+  function endGame(){
+    clearTurnTimer();
+    S.phase="end";disarmRoll();S.rolling=false;updateHUD();
+    var a=S.scores[0],b=S.scores[1];
+    var winnerIdx = a===b ? null : (a>b?0:1);
+    var iWin = winnerIdx!=null && (!S.vsComputer || winnerIdx!==S.aiPlayer);
+    if(winnerIdx!=null){ buzz([40,60,40,60,80]); playEndSound(iWin); }
+    if(S.campaign){ campaignResult(a,b,iWin); return; }
+    showGameOver(winnerIdx, iWin);
+  }
+
+  // ---------- start / new board ----------
+  function newBoard(){
+    S.scores=[0,0];displayedScores=[0,0];S.edges={};S.triangles=[];S.scoredTri={};S.selected=null;
+    $("gameover").classList.remove("show");
+    genDots();drawBoard();updateHUD();
+  }
+
+  /* ====================================================================
+     CAMPAIGN MODE — 20 escalating duels vs the CPU, each with a twist.
+     Progress (unlocked level + stars) auto-saves to the device.
+  ==================================================================== */
+  // dots = board size · ai = cpu skill · cap = max lines per roll (0=none)
+  // timer = seconds per draw turn (0=default 20) · hcap = CPU head-start points
+  // first = who starts ("you"|"cpu"|"roll") · s2/s3 = win-margin for 2nd/3rd star
+  var CAMPAIGN=[
+    {name:"First Steps",   twist:"Learn the ropes on a small board.",          dots:10, ai:"easy",   cap:0, timer:0,  hcap:0, first:"you",  s2:2, s3:4},
+    {name:"Warm Up",       twist:"A few more dots to connect.",                dots:12, ai:"easy",   cap:0, timer:0,  hcap:0, first:"roll", s2:2, s3:4},
+    {name:"Quick Hands",   twist:"Only 15 seconds per turn — keep moving.",    dots:12, ai:"easy",   cap:0, timer:15, hcap:0, first:"roll", s2:2, s3:4},
+    {name:"Sharper Rival", twist:"The AI bot starts playing to win.",          dots:14, ai:"medium", cap:0, timer:0,  hcap:0, first:"roll", s2:2, s3:4},
+    {name:"Capped",        twist:"Your roll is capped at 3 lines a turn.",     dots:14, ai:"medium", cap:3, timer:0,  hcap:0, first:"roll", s2:2, s3:3},
+    {name:"Head Start",    twist:"AI bot begins one triangle ahead.",          dots:16, ai:"medium", cap:0, timer:0,  hcap:1, first:"you",  s2:2, s3:3},
+    {name:"Tick Tock",     twist:"12 seconds per turn. No dawdling.",          dots:16, ai:"medium", cap:0, timer:12, hcap:0, first:"roll", s2:2, s3:3},
+    {name:"Tight Quarters",twist:"A denser, trickier board.",                  dots:18, ai:"medium", cap:0, timer:0,  hcap:0, first:"roll", s2:2, s3:4},
+    {name:"One-Two",       twist:"Maximum 2 lines per turn.",                  dots:18, ai:"medium", cap:2, timer:0,  hcap:0, first:"roll", s2:1, s3:3},
+    {name:"Halfway",       twist:"The hard AI wakes up. Good luck.",           dots:20, ai:"hard",   cap:0, timer:0,  hcap:0, first:"roll", s2:2, s3:4},
+    {name:"Pressure",      twist:"Hard AI and a 12-second clock.",             dots:20, ai:"hard",   cap:0, timer:12, hcap:0, first:"roll", s2:2, s3:3},
+    {name:"Spotted",       twist:"AI bot starts two triangles ahead.",         dots:20, ai:"hard",   cap:0, timer:0,  hcap:2, first:"you",  s2:2, s3:3},
+    {name:"Wide Open",     twist:"A bigger arena to fight over.",              dots:24, ai:"hard",   cap:0, timer:0,  hcap:0, first:"roll", s2:3, s3:5},
+    {name:"Rapid Fire",    twist:"10s per turn and a 3-line cap.",             dots:24, ai:"hard",   cap:3, timer:10, hcap:0, first:"roll", s2:2, s3:3},
+    {name:"Underdog",      twist:"Two behind and on a 12s clock.",             dots:26, ai:"hard",   cap:0, timer:12, hcap:2, first:"you",  s2:2, s3:3},
+    {name:"Sprawl",        twist:"30 dots. Think big.",                        dots:30, ai:"hard",   cap:0, timer:0,  hcap:0, first:"roll", s2:3, s3:5},
+    {name:"Blitz",         twist:"9 seconds. Trust your instincts.",           dots:28, ai:"hard",   cap:0, timer:9,  hcap:0, first:"roll", s2:2, s3:4},
+    {name:"Chokehold",     twist:"Max 2 lines, AI bot starts +2.",            dots:30, ai:"hard",   cap:2, timer:0,  hcap:2, first:"you",  s2:2, s3:3},
+    {name:"The Gauntlet",  twist:"36 dots, 10s clock, AI bot +3.",            dots:36, ai:"hard",   cap:0, timer:10, hcap:3, first:"you",  s2:2, s3:4},
+    {name:"Grandmaster",   twist:"The final duel. 40 dots, 9s, AI bot +3.",   dots:40, ai:"hard",   cap:0, timer:9,  hcap:3, first:"roll", s2:2, s3:4}
+  ];
+
+  var CAMP_KEY="dotriangle_campaign_v1";
+  var _campIntro=0; // level index currently shown in the intro overlay
+
+  function loadCampaign(){
+    var d={unlocked:1, stars:{}};
+    try{
+      var raw=localStorage.getItem(CAMP_KEY);
+      if(raw){ var p=JSON.parse(raw); if(p&&typeof p.unlocked==="number"){ d.unlocked=p.unlocked; d.stars=p.stars||{}; } }
+    }catch(e){}
+    if(d.unlocked<1) d.unlocked=1;
+    if(d.unlocked>CAMPAIGN.length) d.unlocked=CAMPAIGN.length;
+    return d;
+  }
+  function saveCampaign(d){ try{ localStorage.setItem(CAMP_KEY, JSON.stringify(d)); }catch(e){} }
+
+  // ---- star economy: spend banked stars on an extra dice roll ----
+  // Cost is one "perfect level" of stars per use. Tunable via this constant.
+  var EXTRA_ROLL_COST=5;
+  function totalStarsEarned(prog){
+    var t=0; for(var k in prog.stars){ t+=prog.stars[k]||0; } return t;
+  }
+  // Spendable balance = lifetime stars earned (best per level) minus stars spent.
+  // This is farm-proof: replaying a cleared level only adds stars if you beat your best.
+  function starBalance(){
+    var prog=loadCampaign();
+    return Math.max(0, totalStarsEarned(prog)-(prog.spent||0));
+  }
+  function spendStars(n){
+    var prog=loadCampaign();
+    prog.spent=(prog.spent||0)+n;
+    saveCampaign(prog);
+  }
+  // Shows the ⚡ button only on the player's drawing turn in campaign mode.
+  function updatePowerButton(){
+    var btn=$("power-extra"); if(!btn) return;
+    var mine = S.campaign && !isAiTurn() && S.current===0;
+    var show = mine && (S.phase==="turn" || S.phase==="drawing");
+    if(!show){ btn.style.display="none"; btn.onclick=null; return; }
+    var bal=starBalance();
+    var canUse = !S.powerUsedTurn && S.phase==="drawing" && S.linesLeft>=1 && bal>=EXTRA_ROLL_COST;
+    btn.style.display="flex";
+    btn.disabled=!canUse;
+    btn.classList.toggle("ready", canUse);
+    btn.classList.toggle("dim", !canUse);
+    var cap=btn.querySelector(".ps-cap");
+    if(cap){
+      cap.textContent = S.powerUsedTurn ? "Used"
+        : (bal>=EXTRA_ROLL_COST ? "Roll · "+EXTRA_ROLL_COST+"★" : (EXTRA_ROLL_COST-bal)+"★ to go");
+    }
+    btn.onclick = canUse ? useExtraRoll : null;
+  }
+  // celebratory star burst from the power orb
+  function starBurst(){
+    var orb=document.querySelector("#power-extra .ps-orb"); if(!orb) return;
+    var r=orb.getBoundingClientRect(), cx=r.left+r.width/2, cy=r.top+r.height/2;
+    for(var i=0;i<9;i++){
+      var s=document.createElement("div");
+      s.className="ps-spark"; s.textContent="★";
+      s.style.left=cx+"px"; s.style.top=cy+"px";
+      s.style.fontSize=(9+Math.random()*9)+"px"; s.style.opacity="1";
+      document.body.appendChild(s);
+      (function(el,ang){
+        var dist=34+Math.random()*32, dx=Math.cos(ang)*dist, dy=Math.sin(ang)*dist-18;
+        requestAnimationFrame(function(){requestAnimationFrame(function(){
+          el.style.transform="translate(calc(-50% + "+dx+"px), calc(-50% + "+dy+"px)) scale(.3) rotate("+(Math.random()*160-80)+"deg)";
+          el.style.opacity="0";
+        });});
+        setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); },820);
+      })(s,(i/9)*Math.PI*2+Math.random());
+    }
+  }
+  // Spend stars to add one more dice roll's worth of lines to the current turn.
+  function useExtraRoll(){
+    if(!S.campaign||S.phase!=="drawing"||isAiTurn()||S.current!==0) return;
+    if(S.powerUsedTurn||S.linesLeft<1) return;
+    if(starBalance()<EXTRA_ROLL_COST){ toast("Need "+EXTRA_ROLL_COST+"★ — clear more levels"); updatePowerButton(); return; }
+    spendStars(EXTRA_ROLL_COST);
+    S.powerUsedTurn=true; buzz([20,30]);
+    starBurst();                  // celebratory stars from the orb
+    var roll=1+Math.floor(Math.random()*6);
+    if(S.diceCap>0) roll=Math.min(roll,S.diceCap);
+    S.linesLeft+=roll;S.lineTotal+=roll; // apply immediately — race-free vs. auto end-turn
+    startTurnTimer();             // refresh the clock for the bonus lines
+    updateHUD();
+    toast("★ +"+roll+" extra line"+(roll===1?"":"s")+"!");
+    animateDie($("game-die"),null,roll); // visual flourish on the die
+  }
+
+  var LOCK_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+  var CHECK_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+  var CHEV_SVG='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>';
+
+  function starsRow(n){
+    var s='';
+    for(var i=0;i<3;i++) s+='<span class="s'+(i<n?" on":"")+'">★</span>';
+    return s;
+  }
+  function renderCampaignMap(){
+    var prog=loadCampaign();
+    var list=$("camp-list"); list.innerHTML="";
+    var dots=$("camp-dots"); if(dots) dots.innerHTML="";
+    var cleared=0, totalStars=0, currentIdx=0;
+    CAMPAIGN.forEach(function(L,idx){
+      var num=idx+1;
+      var unlocked = num<=prog.unlocked;
+      var stars = prog.stars[num]||0;
+      var isCleared = stars>0 || num<prog.unlocked;
+      if(isCleared) cleared++;
+      totalStars += stars;
+      var current = unlocked && !isCleared;
+      if(current && !currentIdx) currentIdx=idx;
+      var card=document.createElement("button");
+      card.className="lvl-card"+(unlocked?"":" locked")+(isCleared?" cleared":"")+(current?" current":"");
+      var numInner = unlocked ? (isCleared?CHECK_SVG:String(num)) : LOCK_SVG;
+      var cta = !unlocked
+        ? '<span class="lvl-cta locked">'+LOCK_SVG.replace("width=\"2.2\"","width=\"2\"")+' Locked</span>'
+        : (isCleared
+            ? '<span class="lvl-cta">Replay '+CHEV_SVG+'</span>'
+            : '<span class="lvl-cta">Play '+CHEV_SVG+'</span>');
+      card.innerHTML=
+        '<span class="lvl-num">'+numInner+'</span>'+
+        '<span class="lvl-meta">'+
+          '<span class="lvl-name">'+num+'. '+L.name+'</span>'+
+          '<span class="lvl-twist">'+(unlocked?L.twist:"Clear the previous duel to unlock.")+'</span>'+
+        '</span>'+
+        (unlocked ? '<span class="lvl-stars">'+starsRow(stars)+'</span>' : '')+
+        cta;
+      if(unlocked){ card.addEventListener("click",function(){ openLevelIntro(idx); }); }
+      list.appendChild(card);
+      if(dots){
+        var d=document.createElement("span");
+        d.className="cd"+(isCleared?" cleared":"");
+        dots.appendChild(d);
+      }
+    });
+    var pct=Math.round(cleared/CAMPAIGN.length*100);
+    $("camp-progress-fill").style.width=pct+"%";
+    $("camp-stars-total").textContent=Math.max(0, totalStars-(prog.spent||0));
+    $("camp-levels-done").textContent=cleared;
+    // wire up the carousel + remember which card to center the level on
+    _campCurrentIdx=currentIdx;
+    list.onscroll=function(){ if(!_carouselRaf){ _carouselRaf=requestAnimationFrame(function(){ _carouselRaf=0; updateCarousel(); }); } };
+  }
+  var _carouselRaf=0, _campCurrentIdx=0;
+  function centerCampCard(idx){
+    var list=$("camp-list"); if(!list||!list.children[idx]) return;
+    var c=list.children[idx];
+    list.scrollLeft = c.offsetLeft + c.offsetWidth/2 - list.clientWidth/2;
+  }
+  // Coverflow: side cards rotate and tuck BEHIND the centred one (album browsing).
+  function updateCarousel(){
+    var list=$("camp-list"), dots=$("camp-dots");
+    if(!list||!list.children.length) return;
+    var cards=list.children;
+    var cw=cards[0].offsetWidth||1;
+    var center=list.scrollLeft + list.clientWidth/2;
+    var best=0, bestD=Infinity;
+    for(var i=0;i<cards.length;i++){
+      var card=cards[i];
+      var dist=(card.offsetLeft + card.offsetWidth/2 - center)/cw;  // 0 at centre
+      var ad=Math.abs(dist);
+      if(ad<bestD){ bestD=ad; best=i; }
+      var cl=Math.max(-2.4,Math.min(2.4,dist));
+      var tx=-cl*cw*0.40;                       // pull neighbours toward (behind) centre
+      var ry=Math.max(-44,Math.min(44,-cl*34)); // rotate like an album cover
+      var tz=-Math.min(ad,2.4)*130;             // push back in 3D
+      var sc=Math.max(0.70,1-0.16*ad);
+      card.style.transform="translateX("+tx+"px) translateZ("+tz+"px) rotateY("+ry+"deg) scale("+sc+")";
+      card.style.zIndex=String(100-Math.round(ad*10));
+      card.style.opacity=String(Math.max(0.4,1-0.30*ad));
+    }
+    for(var j=0;j<cards.length;j++) cards[j].classList.toggle("in-view", j===best);
+    if(dots){ for(var k=0;k<dots.children.length;k++) dots.children[k].classList.toggle("on", k===best); }
+  }
+  function openCampaign(){
+    S.campaign=false; // not in a level yet
+    renderCampaignMap();
+    showView("v-campaign");
+    // the view is hidden during render (no dimensions) — center once it's visible
+    setTimeout(function(){ centerCampCard(_campCurrentIdx); updateCarousel(); },40);
+  }
+
+  function levelChips(L){
+    var c=[];
+    c.push(L.dots+" dots");
+    c.push({easy:"Easy AI",medium:"Medium AI",hard:"Hard AI"}[L.ai]);
+    if(L.timer>0) c.push("⏱ "+L.timer+"s/turn");
+    if(L.cap>0)   c.push("Max "+L.cap+" line"+(L.cap===1?"":"s")+"/turn");
+    if(L.hcap>0)  c.push("AI bot +"+L.hcap+" start");
+    if(L.first==="you") c.push("You start");
+    return c.map(function(t){return '<span class="li-chip">'+t+'</span>';}).join("");
+  }
+  function openLevelIntro(idx){
+    _campIntro=idx;
+    var L=CAMPAIGN[idx];
+    $("li-badge").textContent="Level "+(idx+1)+" of "+CAMPAIGN.length;
+    $("li-title").textContent=L.name;
+    $("li-twist").textContent=L.twist;
+    $("li-specs").innerHTML=levelChips(L);
+    var bal=starBalance();
+    var walletMsg = bal>=EXTRA_ROLL_COST
+      ? '<span class="li-w-amt">'+bal+'★</span> banked — spend <span class="li-w-amt">'+EXTRA_ROLL_COST+'★</span> in a duel for an extra roll'
+      : '<span class="li-w-amt">'+bal+'★</span> banked — earn <span class="li-w-amt">'+EXTRA_ROLL_COST+'★</span> to unlock the extra-roll power';
+    $("li-wallet").innerHTML='<span class="li-w-ico">⚡</span><span>'+walletMsg+'</span>';
+    showOverlay("ov-levelintro");
+  }
+
+  function startCampaignLevel(idx){
+    if(idx<0||idx>=CAMPAIGN.length) return;
+    var L=CAMPAIGN[idx];
+    // 3-star bonus from the previous level: player gets the first move here.
+    var prog=loadCampaign();
+    var bonusFirst=(prog.startFirst===idx+1);
+    if(bonusFirst){ delete prog.startFirst; saveCampaign(prog); }
+    enableMotion(); primeAudio();
+    hideOverlay("ov-levelintro");
+    $("campresult").classList.remove("show");
+    S.campaign=true; S.campLevel=idx;
+    S.mode="cpu"; S.online=false; S.myPlayer=-1;
+    S.vsComputer=true; S.aiPlayer=1; S.aiLevel=L.ai;
+    S.numDots=L.dots; S.names=["You","AI Bot"];
+    S.diceCap=L.cap||0; S.handicap=L.hcap||0; S.forcedFirst=-1;
+    TURN_SECONDS=L.timer>0?L.timer:20;
+    setTimeout(function(){ playMusic(sndMain1); },80);
+    newBoard();
+    if(S.handicap>0){
+      S.scores=[0,S.handicap]; displayedScores=[0,S.handicap]; updateHUD();
+    }
+    showGame();
+    var first=bonusFirst?"you":L.first;
+    if(bonusFirst) toast("3★ bonus — you make the first move!");
+    if(first==="you"||first==="cpu"){
+      S.current=(first==="you")?0:1;
+      startTurn();
+    } else {
+      startRolloff();
+    }
+  }
+
+  function campaignResult(youScore, cpuScore, iWin){
+    stopMusic(true);
+    var idx=S.campLevel, num=idx+1, L=CAMPAIGN[idx];
+    var prog=loadCampaign();
+    var stars=0;
+    if(iWin){
+      var margin=youScore-cpuScore;
+      stars=1;
+      if(margin>=L.s2) stars=2;
+      if(margin>=L.s3) stars=3;
+      // save best stars + unlock next
+      if((prog.stars[num]||0)<stars) prog.stars[num]=stars;
+      if(prog.unlocked<num+1 && num<CAMPAIGN.length) prog.unlocked=num+1;
+      // 3-star reward: claim the first move in the next level
+      if(stars===3 && num<CAMPAIGN.length) prog.startFirst=num+1;
+      saveCampaign(prog);
+    }
+    // populate overlay
+    var isLast=(num===CAMPAIGN.length);
+    $("cr-head").textContent = iWin ? (isLast?"Campaign complete!":"Level cleared!") : "Duel lost";
+    $("cr-score").textContent = "You "+youScore+" – "+cpuScore+" AI Bot";
+    var msg;
+    if(!iWin){
+      msg = (youScore===cpuScore) ? "A tie isn't enough — you need to win outright. Try again." : "So close. Adjust and run it back.";
+    } else if(stars===3){ msg = isLast?"Flawless finish. You're a doTriangle Grandmaster.":"Three stars! Reward: you make the first move next level."; }
+    else if(stars===2){ msg = "Two stars. Win by "+(L.s3-(youScore-cpuScore))+" more for the third."; }
+    else { msg = isLast?"You conquered the campaign!":"Win by "+(L.s2-(youScore-cpuScore))+" more for two stars."; }
+    $("cr-msg").textContent=msg;
+    // buttons
+    $("cr-next").style.display = (iWin && !isLast) ? "" : "none";
+    $("cr-retry").textContent = iWin ? "Replay" : "Retry";
+    // stars animation
+    [0,1,2].forEach(function(i){
+      var el=$("cr-star"+i);
+      el.className="cr-star"+(i<stars?" on":"");
+    });
+    $("campresult").classList.add("show");
+    if(iWin) confettiBurst();
+    [0,1,2].forEach(function(i){
+      setTimeout(function(){ $("cr-star"+i).classList.add("pop"); }, 260+i*220);
+    });
+  }
+
+  // ===================== screen flow / wiring =====================
+  var howtoReturn="v-home";
+
+  $("home-play").addEventListener("click",function(){ primeAudio(); setTimeout(function(){ playMusic(sndMain1); },80); startSetup("cpu"); });
+  $("home-campaign").addEventListener("click",function(){ primeAudio(); setTimeout(function(){ playMusic(sndMain3); },80); openCampaign(); });
+  $("home-friend").addEventListener("click",function(){ primeAudio(); setTimeout(function(){ playMusic(sndMain2); },80); showView("v-friend"); });
+  $("home-howto").addEventListener("click",function(){ howtoReturn="v-home"; showView("v-howto"); });
+
+  $("fc-online").addEventListener("click",function(){ openOnline(); });
+  $("fc-pass").addEventListener("click",function(){ startSetup("pass"); });
+
+  Array.prototype.forEach.call(document.querySelectorAll(".backlink[data-back]"),function(b){
+    b.addEventListener("click",function(){ showView(b.getAttribute("data-back")); });
+  });
+  $("setup-back").addEventListener("click",function(){
+    showView(S.mode==="pass" ? "v-friend" : "v-home");
+  });
+
+  function returnFromHowto(){
+    if(howtoReturn==="resume"){ showGame(); }
+    else showView(howtoReturn||"v-home");
+  }
+  $("howto-back").addEventListener("click",returnFromHowto);
+  $("howto-got").addEventListener("click",returnFromHowto);
+
+  // ---------- Setup ----------
+  var setupN=DEFAULT_DOTS;
+  function startSetup(mode){
+    S.mode=mode;
+    S.vsComputer=(mode==="cpu"); S.online=false; S.myPlayer=-1;
+    setupN=DEFAULT_DOTS;
+    buildBoardCards("setup-boards",function(){return setupN;},function(n){setupN=n;});
+    $("setup-skill-wrap").style.display = (mode==="cpu") ? "" : "none";
+    $("setup-names-wrap").style.display = (mode==="pass") ? "" : "none";
+    showView("v-setup");
+  }
+  Array.prototype.forEach.call($("setup-skill").querySelectorAll("button"),function(b){
+    b.addEventListener("click",function(){
+      S.aiLevel=b.dataset.ai;
+      Array.prototype.forEach.call($("setup-skill").children,function(c){c.classList.remove("sel");});
+      b.classList.add("sel");
+    });
+  });
+  // ---------- onboarding (interactive tutorial) ----------
+  var OB_VW=220, OB_VH=178;
+  var OB_DOTS=[{x:110,y:25},{x:182,y:148},{x:38,y:148}];
+  var OB_HIT=34;
+  var obPhase="idle"; // tap1 | tap1sel | drag | done
+  var obDragActive=false, obDragCaptureId=-1;
+  var _pendingGameStart=null;
+
+  function obSvgPt(clientX,clientY){
+    var svg=$("ob-svg"),rect=svg.getBoundingClientRect();
+    return{x:(clientX-rect.left)*(OB_VW/rect.width),y:(clientY-rect.top)*(OB_VH/rect.height)};
+  }
+  function obNearDot(pt,excl){
+    for(var i=0;i<OB_DOTS.length;i++){
+      if(i===excl) continue;
+      var d=OB_DOTS[i],dx=d.x-pt.x,dy=d.y-pt.y;
+      if(dx*dx+dy*dy<OB_HIT*OB_HIT) return i;
+    }
+    return -1;
+  }
+  function obSetRing(idx,cls){
+    [0,1,2].forEach(function(i){var r=$("ob-ring-"+i);r.className.baseVal="";r.setAttribute("opacity","0");});
+    if(idx<0) return;
+    var r=$("ob-ring-"+idx); r.setAttribute("opacity","1");
+    if(cls) r.setAttribute("class",cls);
+  }
+  function obSetSelRing(idx){
+    var sr=$("ob-sel-ring");
+    if(idx<0){sr.setAttribute("opacity","0");return;}
+    var d=OB_DOTS[idx];
+    sr.setAttribute("cx",d.x);sr.setAttribute("cy",d.y);sr.setAttribute("opacity","1");
+  }
+  function obSetDotFill(idx,col){$("ob-d"+idx).setAttribute("fill",col||"#fff");}
+  function obAnimLine(id){
+    var ln=$(id);
+    ln.setAttribute("opacity","1");
+    ln.style.animation="none";
+    void ln.getBoundingClientRect(); // reflow
+    ln.setAttribute("stroke-dashoffset","200");
+    ln.style.animation="ob-line-draw .45s ease-out forwards";
+  }
+  function obSetStatus(txt,cls){
+    var el=$("ob-status");el.textContent=txt;el.className="ob-status "+(cls||"");
+  }
+  // ---- guiding hand ----
+  var _obHandRaf=0;
+  function obHandStop(){ if(_obHandRaf){cancelAnimationFrame(_obHandRaf);_obHandRaf=0;} }
+  function obHandHide(){ obHandStop(); var h=$("ob-hand"); if(h){h.setAttribute("opacity","0");h.setAttribute("class","ob-hand");} }
+  function obHandTap(idx){           // bob over a dot to show where to tap
+    obHandStop();
+    var h=$("ob-hand"),d=OB_DOTS[idx]; if(!h) return;
+    h.setAttribute("transform","translate("+(d.x-8)+","+(d.y+3)+")");
+    h.setAttribute("opacity","1"); h.setAttribute("class","ob-hand tap");
+  }
+  function obHandSwipe(){            // slide back and forth to show the drag
+    obHandStop();
+    var h=$("ob-hand"); if(!h) return;
+    h.setAttribute("class","ob-hand"); h.setAttribute("opacity","1");
+    var a=OB_DOTS[1],b=OB_DOTS[2],y=a.y+3,t0=performance.now();
+    (function frame(now){
+      var t=((now-t0)/1300)%2, p=t<1?t:2-t;
+      p=p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2;
+      h.setAttribute("transform","translate("+((a.x+(b.x-a.x)*p)-8)+","+y+")");
+      _obHandRaf=requestAnimationFrame(frame);
+    })(performance.now());
+  }
+  function obSetHeader(badge,title,hint){
+    $("ob-badge").textContent=badge;
+    $("ob-title").textContent=title;
+    $("ob-hint").textContent=hint;
+  }
+  function obSetPips(step){
+    $("ob-pip1").className="ob-pip"+(step>=1?" active":"")+(step>1?" done":"");
+    $("ob-pip2").className="ob-pip"+(step===2?" active":"")+(step>2?" done":"");
+  }
+
+  // ---- phase transitions ----
+  function obPhaseStart(){
+    obPhase="tap1";
+    obSetPips(1);
+    obSetHeader("Step 1 of 2","Tap two dots","Tap the glowing dot to select it");
+    obSetRing(0,"ob-anim-tap");
+    obSetSelRing(-1);
+    obSetStatus("","");
+    $("ob-drag-ln").setAttribute("opacity","0");
+    obHandTap(0);
+  }
+  function obPhaseDrag(){
+    obPhase="drag";
+    obSetPips(2);
+    obSetHeader("Step 2 of 2","Now try dragging","Press and hold the glowing dot, then drag to another");
+    obSetRing(1,"ob-anim-drag");
+    obSetSelRing(-1);
+    obSetStatus("","");
+    obDragActive=false;
+    obHandSwipe();
+  }
+  function obPhaseDone(){
+    obPhase="done";
+    obSetPips(3);
+    obSetHeader("Done!","You made a triangle!","Three connected lines score a point — now you know!");
+    obSetRing(-1);
+    obHandHide();
+    obAnimLine("ob-ln-ca");
+    setTimeout(function(){
+      var tri=$("ob-tri");
+      tri.style.animation="none";
+      void tri.getBoundingClientRect();
+      tri.setAttribute("fill-opacity","0");
+      tri.style.animation="ob-tri-fade .55s ease-out forwards";
+    },430);
+    setTimeout(function(){
+      obSetStatus("","");
+      $("ob-got").style.display="";
+      $("ob-skip").style.display="none";
+    },950);
+  }
+
+  // ---- tap handler ----
+  function obOnTap(dotIdx){
+    if(obPhase==="tap1"){
+      if(dotIdx!==0) return;
+      obPhase="tap1sel";
+      obSetSelRing(0);
+      obSetDotFill(0,"#B69BFF");
+      // ring moves to dot 1
+      $("ob-ring-1").setAttribute("stroke","#B69BFF");
+      obSetRing(1,"ob-anim-tap");
+      obSetHeader("Step 1 of 2","Tap two dots","Now tap another dot to draw a line");
+      obHandTap(1);
+    } else if(obPhase==="tap1sel"){
+      if(dotIdx===0){
+        // deselect
+        obPhase="tap1";
+        obSetSelRing(-1);
+        obSetDotFill(0,"#fff");
+        $("ob-ring-1").setAttribute("stroke","#B69BFF");
+        obSetRing(0,"ob-anim-tap");
+        obSetHeader("Step 1 of 2","Tap two dots","Tap the glowing dot to select it");
+        obHandTap(0);
+        return;
+      }
+      // any other dot completes step 1
+      obPhase="tap1done";
+      obHandHide();
+      obSetRing(-1);
+      obSetSelRing(-1);
+      obSetDotFill(0,"#fff");
+      var lineId=(dotIdx===1)?"ob-ln-ab":"ob-ln-ca";
+      if(dotIdx===2){
+        // drew C-A instead, relabel for next step
+        $("ob-ln-ca").setAttribute("x1",OB_DOTS[0].x);$("ob-ln-ca").setAttribute("y1",OB_DOTS[0].y);
+        $("ob-ln-ca").setAttribute("x2",OB_DOTS[2].x);$("ob-ln-ca").setAttribute("y2",OB_DOTS[2].y);
+        $("ob-ln-ca").setAttribute("stroke","#36E0E6");
+      }
+      obAnimLine(lineId);
+      obSetStatus("✓ Line drawn!","ok");
+      setTimeout(obPhaseDrag,1100);
+    }
+  }
+
+  // ---- drag handlers ----
+  var obSvg=$("ob-svg");
+  obSvg.addEventListener("pointerdown",function(e){
+    if(obPhase!=="drag") return;
+    var pt=obSvgPt(e.clientX,e.clientY);
+    if(obNearDot(pt,-1)!==1) return; // must start from dot 1
+    obDragActive=true;
+    obHandHide();
+    try{obSvg.setPointerCapture(e.pointerId);}catch(ex){}
+    obDragCaptureId=e.pointerId;
+    var sd=OB_DOTS[1];
+    var dl=$("ob-drag-ln");
+    dl.setAttribute("x1",sd.x);dl.setAttribute("y1",sd.y);
+    dl.setAttribute("x2",pt.x);dl.setAttribute("y2",pt.y);
+    dl.setAttribute("opacity","0.75");
+    obSetRing(-1);
+  });
+  obSvg.addEventListener("pointermove",function(e){
+    if(!obDragActive) return;
+    var pt=obSvgPt(e.clientX,e.clientY);
+    var dl=$("ob-drag-ln");
+    dl.setAttribute("x2",pt.x);dl.setAttribute("y2",pt.y);
+    // highlight dot 2 if nearby
+    obSetDotFill(2, obNearDot(pt,1)===2 ? "#36E0E6" : "#fff");
+  });
+  function obEndDrag(e){
+    if(!obDragActive) return;
+    obDragActive=false;
+    $("ob-drag-ln").setAttribute("opacity","0");
+    obSetDotFill(2,"#fff");
+    var pt=obSvgPt(e.clientX,e.clientY);
+    if(obNearDot(pt,1)===2){
+      obPhase="dragdone";
+      obAnimLine("ob-ln-bc");
+      obSetStatus("✓ Line drawn!","ok");
+      setTimeout(obPhaseDone,1100);
+    } else {
+      // missed — ring comes back
+      obSetRing(1,"ob-anim-drag");
+      obSetStatus("Almost! Drag all the way to another dot","retry");
+      obHandSwipe();
+    }
+  }
+  obSvg.addEventListener("pointerup",obEndDrag);
+  obSvg.addEventListener("pointercancel",function(e){
+    obDragActive=false;
+    $("ob-drag-ln").setAttribute("opacity","0");
+    obSetDotFill(2,"#fff");
+    if(obPhase==="drag"){ obSetRing(1,"ob-anim-drag"); obHandSwipe(); }
+  });
+
+  // wire tap hit-areas
+  [0,1,2].forEach(function(i){
+    $("ob-hit-"+i).addEventListener("click",function(){ obOnTap(i); });
+  });
+
+  function showOnboarding(proceed){
+    _pendingGameStart=proceed;
+    // full reset
+    ["ob-ln-ab","ob-ln-bc","ob-ln-ca"].forEach(function(id){
+      var el=$(id);
+      el.setAttribute("stroke-dashoffset","200");el.setAttribute("opacity","0");
+      el.style.animation="";
+    });
+    // restore default line coords/colors
+    var D=OB_DOTS;
+    var ab=$("ob-ln-ab"),bc=$("ob-ln-bc"),ca=$("ob-ln-ca");
+    ab.setAttribute("x1",D[0].x);ab.setAttribute("y1",D[0].y);
+    ab.setAttribute("x2",D[1].x);ab.setAttribute("y2",D[1].y);ab.setAttribute("stroke","#36E0E6");
+    bc.setAttribute("x1",D[1].x);bc.setAttribute("y1",D[1].y);
+    bc.setAttribute("x2",D[2].x);bc.setAttribute("y2",D[2].y);bc.setAttribute("stroke","#36E0E6");
+    ca.setAttribute("x1",D[2].x);ca.setAttribute("y1",D[2].y);
+    ca.setAttribute("x2",D[0].x);ca.setAttribute("y2",D[0].y);ca.setAttribute("stroke","#B69BFF");
+    $("ob-ring-1").setAttribute("stroke","#B69BFF");
+    var tri=$("ob-tri");tri.setAttribute("fill-opacity","0");tri.style.animation="";
+    $("ob-drag-ln").setAttribute("opacity","0");
+    [0,1,2].forEach(function(i){obSetDotFill(i,"#fff");});
+    $("ob-got").style.display="none";
+    $("ob-skip").style.display="";
+    obSetStatus("","");
+    obPhaseStart();
+    $("onboarding").classList.add("show");
+  }
+  function dismissOnboarding(){
+    obHandHide();
+    $("onboarding").classList.remove("show");
+    if(_pendingGameStart){_pendingGameStart();_pendingGameStart=null;}
+  }
+  $("ob-got").addEventListener("click",function(){
+    try{localStorage.setItem("ob_seen","1");}catch(e){}
+    dismissOnboarding();
+  });
+  $("ob-skip").addEventListener("click",function(){
+    try{localStorage.setItem("ob_seen","1");}catch(e){}
+    dismissOnboarding();
+  });
+
+  $("setup-start").addEventListener("click",function(){
+    enableMotion(); primeAudio();
+    S.campaign=false; S.diceCap=0; S.handicap=0; TURN_SECONDS=20;
+    S.numDots=setupN;
+    if(S.mode==="cpu"){
+      S.vsComputer=true; S.aiPlayer=1;
+      S.names=["You","Computer"];
+    } else {
+      S.vsComputer=false;
+      var n1=($("name1").value||"").trim().slice(0,14)||"Player 1";
+      var n2=($("name2").value||"").trim().slice(0,14)||"Player 2";
+      if(n1.toLowerCase()===n2.toLowerCase()){toast("Players need different names");return;}
+      S.names=[n1,n2];
+    }
+    newBoard();
+    var seen=false;try{seen=!!localStorage.getItem("ob_seen");}catch(e){}
+    if(!seen){ showOnboarding(startRolloff); }
+    else { startRolloff(); }
+  });
+
+  // ---------- Online lobby ----------
+  var createN=DEFAULT_DOTS;
+  function openOnline(){
+    S.online=false; S.vsComputer=false; S.myPlayer=-1;
+    S.campaign=false; S.diceCap=0; S.handicap=0; TURN_SECONDS=20;
+    showOnlineStep("choose");
+    showView("v-online");
+  }
+  function showOnlineStep(step){
+    $("online-choose").style.display = step==="choose" ? "" : "none";
+    $("online-create").style.display = step==="create" ? "" : "none";
+    $("online-join").style.display   = step==="join"   ? "" : "none";
+    if(step==="create"){
+      createN=DEFAULT_DOTS;
+      buildBoardCards("create-boards",function(){return createN;},function(n){createN=n;});
+      $("create-code-box").style.display="none";
+      $("create-form").style.display="";
+      $("create-go").style.display="";
+    }
+    $("online-back")._step=step;
+  }
+  $("online-back").addEventListener("click",function(){
+    var step=this._step||"choose";
+    if(step==="choose"){ NET.disconnect(); showView("v-friend"); }
+    else { NET.disconnect(); showOnlineStep("choose"); }
+  });
+  $("ol-create").addEventListener("click",function(){ showOnlineStep("create"); });
+  $("ol-join").addEventListener("click",function(){ showOnlineStep("join"); });
+
+  $("create-go").addEventListener("click",function(){
+    enableMotion(); primeAudio();
+    var name=($("create-name").value||"").trim().slice(0,14);
+    if(!name){toast("Enter your name first");return;}
+    S.online=true; S.vsComputer=false; S.myPlayer=-1;
+    S.numDots=createN; S.names=[name,"Friend"];
+    var code=genRoomCode();
+    $("create-code").textContent=code;
+    $("create-status").textContent="Waiting for friend to join…";
+    $("create-form").style.display="none";
+    $("create-go").style.display="none";
+    $("create-code-box").style.display="";
+    connectToRoom(code,{type:"hello",intent:"create",name:name,logo:"",numDots:createN});
+  });
+  $("create-copy").addEventListener("click",function(){
+    var code=$("create-code").textContent;
+    if(navigator.clipboard) navigator.clipboard.writeText(code).then(function(){toast("Code copied!");}).catch(function(){toast("Code: "+code);});
+    else toast("Code: "+code);
+  });
+  $("create-copy-link").addEventListener("click",function(){
+    var code=$("create-code").textContent;
+    var link=location.origin+location.pathname+"?join="+code;
+    if(navigator.share){
+      navigator.share({title:"Join my doTriangle game",url:link}).catch(function(){});
+    } else if(navigator.clipboard){
+      navigator.clipboard.writeText(link).then(function(){toast("Link copied!");}).catch(function(){toast(link);});
+    } else { toast(link); }
+  });
+  $("join-go").addEventListener("click",function(){
+    enableMotion(); primeAudio();
+    var code=($("join-code").value||"").trim().toUpperCase().slice(0,6);
+    var name=($("join-name").value||"").trim().slice(0,14);
+    if(code.length<4){ $("join-status").textContent="Enter a valid code"; return; }
+    if(!name){ $("join-status").textContent="Enter your name first"; return; }
+    S.online=true; S.vsComputer=false; S.myPlayer=-1;
+    S.names=["Friend",name];
+    $("join-status").textContent="Connecting…";
+    connectToRoom(code,{type:"hello",intent:"join",name:name,logo:""});
+  });
+
+  // ---------- click sound on setup buttons ----------
+  function playClick(){ playSound(sndClick); }
+  ["home-play","home-campaign","home-friend","home-howto",
+   "fc-online","fc-pass",
+   "setup-back","setup-start",
+   "ol-create","ol-join","online-back",
+   "create-go","create-copy","create-copy-link","join-go",
+   "howto-got",
+   "m-resume","m-restart","m-howto","m-quit",
+   "go-again","go-rematch","go-home",
+   "li-start","li-cancel","cr-next","cr-retry","cr-map","power-extra",
+   "ob-got","ob-skip"
+  ].forEach(function(id){
+    var el=$(id); if(el) el.addEventListener("click",playClick,true);
+  });
+  // also card-btn options in setup (board size, skill) — delegated
+  ["v-setup","v-friend","v-home","v-howto","v-online","v-campaign"].forEach(function(id){
+    var view=$(id);
+    if(!view) return;
+    view.addEventListener("click",function(e){
+      var t=e.target.closest(".card-btn,.seg-btn");
+      if(t) playClick();
+    },true);
+  });
+
+  // ---------- game top bar / sheet ----------
+  $("btn-mute").addEventListener("click",toggleMute);
+  $("btn-menu").addEventListener("click",function(){ $("sheet").classList.add("show"); });
+  $("sheet-scrim").addEventListener("click",function(){ $("sheet").classList.remove("show"); });
+  $("m-resume").addEventListener("click",function(){ $("sheet").classList.remove("show"); });
+  $("m-restart").addEventListener("click",function(){
+    $("sheet").classList.remove("show");
+    if(S.online) return;
+    if(S.campaign){ startCampaignLevel(S.campLevel); return; }
+    newBoard(); startRolloff();
+  });
+  $("m-howto").addEventListener("click",function(){ $("sheet").classList.remove("show"); howtoReturn="resume"; showView("v-howto"); });
+  $("m-quit").addEventListener("click",function(){ $("sheet").classList.remove("show"); quitToHome(); });
+
+  function quitToHome(){
+    if(S.online) NET.disconnect();
+    S.phase="setup"; disarmRoll(); clearTurnTimer();
+    S.campaign=false; S.diceCap=0; S.handicap=0; TURN_SECONDS=20;
+    $("gameover").classList.remove("show");
+    $("campresult").classList.remove("show");
+    stopMusic(false);
+    showView("v-home");
+  }
+
+  $("go-rematch").addEventListener("click",function(){
+    $("go-rematch").textContent="Waiting…";
+    $("go-rematch").disabled=true;
+    NET.send({type:"rematch"});
+  });
+  $("go-again").addEventListener("click",function(){
+    $("gameover").classList.remove("show");
+    newBoard(); startRolloff();
+  });
+  $("go-home").addEventListener("click",quitToHome);
+
+  // ---------- campaign buttons ----------
+  $("li-start").addEventListener("click",function(){ startCampaignLevel(_campIntro); });
+  $("li-cancel").addEventListener("click",function(){ hideOverlay("ov-levelintro"); });
+  $("cr-next").addEventListener("click",function(){
+    $("campresult").classList.remove("show");
+    startCampaignLevel(S.campLevel+1);
+  });
+  $("cr-retry").addEventListener("click",function(){
+    $("campresult").classList.remove("show");
+    startCampaignLevel(S.campLevel);
+  });
+  $("cr-map").addEventListener("click",function(){
+    $("campresult").classList.remove("show");
+    S.campaign=false; S.phase="setup"; disarmRoll(); clearTurnTimer();
+    openCampaign();
+  });
+
+  // ---------- keyboard: space rolls ----------
+  document.addEventListener("keydown",function(e){
+    if(e.code==="Space"||e.key===" "||e.keyCode===32){
+      if(e.repeat) return;
+      var t=e.target;
+      if(t&&(t.tagName==="INPUT"||t.tagName==="TEXTAREA")) return;
+      if(rollArmed&&onRollFn){e.preventDefault();onRollFn();}
+    }
+  });
+
+  // ---------- online (PartyKit) ----------
+  var NET = { ws:null, code:null };
+  function connectToRoom(code, helloMsg){
+    var isLocal = /^(localhost|127\.0\.0\.1)/.test(PARTYKIT_HOST);
+    var url = (isLocal?"ws://":"wss://") + PARTYKIT_HOST + "/parties/main/" + code;
+    try { NET.ws = new WebSocket(url); NET.code = code; }
+    catch(e){ toast("Couldn't connect"); return; }
+    NET.ws.onopen = function(){ NET.ws.send(JSON.stringify(helloMsg)); };
+    NET.ws.onmessage = function(ev){
+      var msg; try { msg = JSON.parse(ev.data); } catch(e){ return; }
+      if(msg.type==="you"){ S.myPlayer = msg.playerIdx; }
+      else if(msg.type==="update"){ applyServerUpdate(msg.state, msg.events||[]); }
+      else if(msg.type==="error"){
+        toast(msg.message||"Connection error");
+        $("join-status").textContent = msg.message||"";
+      }
+    };
+    NET.ws.onclose = function(){
+      if(S.online && S.phase!=="end" && S.phase!=="setup"){ toast("Connection lost"); onlineEndGame(1-S.myPlayer); }
+    };
+    NET.ws.onerror = function(){ toast("Network error"); };
+  }
+  NET.send = function(obj){ if(NET.ws && NET.ws.readyState===1) NET.ws.send(JSON.stringify(obj)); };
+  NET.disconnect = function(){ try{ if(NET.ws) NET.ws.close(); }catch(e){} NET.ws=null; NET.code=null; };
+
+  function genRoomCode(){
+    var chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789", s="";
+    for(var i=0;i<6;i++) s+=chars[Math.floor(Math.random()*chars.length)];
+    return s;
+  }
+
+  function applyServerUpdate(state, events){
+    var firstUpdate = (S.phase==="setup"||S.phase==="lobby");
+    S.numDots = state.numDots; S.dots = state.dots;
+    S.edges = state.edges; S.triangles = state.triangles; S.scoredTri = state.scoredTri;
+    S.scores = state.scores;
+    if(firstUpdate){ displayedScores=[S.scores[0],S.scores[1]]; }
+    S.current = state.current; S.roMatrix = state.roMatrix; S.roWho = state.roWho; S.linesLeft = state.linesLeft;
+    S.names = [state.players[0].name||"Player 1", state.players[1].name||"Friend"];
+    S.phase = (state.phase==="lobby")?"setup":state.phase;
+    var n=Math.max(1,S.numDots), uW=VB.w-2*VB.margin, uH=VB.h-2*VB.margin;
+    var minDist=Math.max(34, Math.sqrt((uW*uH)/n)*0.62);
+    S.dotR=Math.max(7,Math.min(11,minDist*0.17));
+    S.hitR=Math.max(18,Math.min(34,minDist*0.55));
+
+    for(var i=0;i<events.length;i++){
+      var e=events[i];
+      if(e.type==="opponent_joined"){ toast((state.players[e.idx].name||"Friend")+" joined!"); }
+      else if(e.type==="opponent_left"){ toast((state.players[e.idx].name||"Friend")+" left"); }
+      else if(e.type==="dice_rolled"){
+        var die = (S.phase==="rolloff") ? $("ro-die"+e.playerIdx) : $("game-die");
+        animateDie(die, null, e.value);
+        if(e.for==="rolloff"){
+          S.roMatrix[e.playerIdx]=e.value;
+          updateRolloffUI();
+        }
+        if(e.for==="turn"){
+          // Start timer for the drawing phase (both players see it; only active player acts on expire)
+          setTimeout(startTurnTimer, 400);
+        }
+      }
+      else if(e.type==="line_drawn"){
+        buzz(e.triangles.length>0?[30,40,30]:12);
+        if(e.triangles.length===1){ playSound(sndSingle); }
+        else if(e.triangles.length>=2){ playSound(sndDouble); }
+        if(e.triangles.length>0){
+          // sync displayed scores down if a reset happened, up via badges
+          displayedScores[0]=Math.min(displayedScores[0],S.scores[0]);
+          displayedScores[1]=Math.min(displayedScores[1],S.scores[1]);
+          e.triangles.forEach(function(t){
+            spawnBadge(t.player,[S.dots[t.a],S.dots[t.b],S.dots[t.c]]);
+          });
+        }
+      }
+      else if(e.type==="turn_changed"){ clearTurnTimer(); toast("▶ "+pname(state.current)+"'s turn"); }
+      else if(e.type==="rolloff_starter"){ hideOverlay("ov-rolloff"); toast(pname(state.current)+" goes first!"); }
+      else if(e.type==="game_over"){ onlineEndGame(e.winnerIdx); }
+      else if(e.type==="rematch_requested"){
+        // Opponent wants rematch — update button to show they're ready
+        if(e.idx!==S.myPlayer){
+          $("go-rematch").textContent="Rematch ✓ (waiting for you)";
+          $("go-rematch").disabled=false;
+        }
+      }
+      else if(e.type==="rematch_start"){
+        // Both agreed — reset and start new game in same room
+        $("gameover").classList.remove("show");
+        S.scores=[0,0]; displayedScores=[0,0];
+        S.edges={}; S.triangles=[]; S.scoredTri={}; S.selected=null;
+        S.roMatrix=[null,null]; S.roWho=0;
+      }
+    }
+
+    if(firstUpdate && state.phase==="rolloff"){
+      S.phase="rolloff";
+      renderDie($("ro-die0"),1);renderDie($("ro-die1"),1);
+      showGame();
+      showOverlay("ov-rolloff");
+    }
+    // Auto-roll whenever it becomes this player's turn in the rolloff
+    if(S.phase==="rolloff" && S.online && S.roWho===S.myPlayer && S.roMatrix[S.myPlayer]==null){
+      setTimeout(doRolloffRoll, 600);
+    }
+    drawBoard(); updateHUD();
+    if(S.phase==="rolloff" && !$("ov-rolloff").classList.contains("hidden")) updateRolloffUI();
+    if(S.phase==="turn" && S.current===S.myPlayer) armRoll(doTurnRoll); else if(S.phase!=="rolloff") disarmRoll();
+  }
+
+  function onlineEndGame(winnerIdx){
+    clearTurnTimer();
+    S.phase="end"; updateHUD();
+    var iWin = (winnerIdx!=null) && (S.myPlayer===-1 || winnerIdx===S.myPlayer);
+    if(winnerIdx!=null){ buzz([40,60,40,60,80]); playEndSound(iWin); }
+    showGameOver(winnerIdx, iWin);
+  }
+
+  $("ro-roll").addEventListener("click",doRolloffRoll);
+  $("game-die").addEventListener("click",function(){ if(onRollFn) onRollFn(); });
+
+  // ---------- init ----------
+  renderDie($("game-die"),1);
+  renderDie($("ro-die0"),1); renderDie($("ro-die1"),1);
+  updateHUD();
+
+  // Auto-join if URL contains ?join=CODE (from a shared link)
+  (function(){
+    var params=new URLSearchParams(window.location.search);
+    var joinCode=params.get("join");
+    if(joinCode){
+      joinCode=joinCode.trim().toUpperCase().slice(0,6);
+      showView("v-friend");
+      showOnlineStep("join");
+      $("join-code").value=joinCode;
+      // Clean the URL so refreshing doesn't re-trigger
+      history.replaceState(null,"",location.pathname);
+    } else {
+      showView("v-home");
+    }
+  })();
+})();
+</script>
+</body>
+</html>
