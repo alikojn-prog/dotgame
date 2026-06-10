@@ -487,7 +487,14 @@
   .vj-stars{display:flex;gap:2px;font-size:14px;line-height:1;margin-top:2px;}
   .vj-stars .s{color:rgba(160,140,255,.30);}
   .vj-stars .s.on{color:var(--vj-gold);text-shadow:0 0 8px rgba(255,197,61,.4);}
-  .vj-play{position:relative;overflow:hidden;margin-top:7px;border:none;cursor:pointer;
+  /* Play sits in the spacer column, opposite the label; clear of the 100px ring */
+  .vj-actioncol{display:flex;align-items:center;}
+  .vj-row.side-left .vj-actioncol{justify-content:flex-start;padding-left:18px;}
+  .vj-row.side-right .vj-actioncol{justify-content:flex-end;padding-right:18px;}
+  /* keep the current row's text clear of the enclosing ring */
+  .vj-row.current.side-left .vj-label{padding-right:16px;}
+  .vj-row.current.side-right .vj-label{padding-left:16px;}
+  .vj-play{position:relative;overflow:hidden;border:none;cursor:pointer;
     font-family:'Poppins',var(--body);
     font-size:14px;font-weight:800;color:var(--vj-ink);background:var(--vj-grad);
     border-radius:999px;padding:10px 20px;display:inline-flex;align-items:center;gap:4px;
@@ -2161,8 +2168,11 @@
             ? '<div class="vj-twist">Locked</div>'
             : '<div class="vj-twist">'+L.twist+'</div>')+
           (status==="cleared" ? '<div class="vj-stars">'+starsRow(stars)+'</div>' : '')+
-          (status==="current" ? '<button class="vj-play" id="vj-play-btn">Play&nbsp;<span class="chev">›</span></button>' : '')+
         '</div>';
+      // the Play button lives on the side OPPOSITE the details, so neither crowds the node
+      var spacer = status==="current"
+        ? '<div class="vj-spacer vj-actioncol"><button class="vj-play" id="vj-play-btn">Play&nbsp;<span class="chev">›</span></button></div>'
+        : '<div class="vj-spacer"></div>';
       var nodeGlyph = status==="cleared" ? CHECK_SVG
         : (status==="current" ? String(num) : LOCK_SVG);
       var nodecol =
@@ -2171,7 +2181,7 @@
           (status==="current" ? '<span class="vj-spine bot"></span><span class="vj-ring"></span>' : '')+
           '<button class="vj-node" aria-label="Duel '+num+': '+L.name+'">'+nodeGlyph+'</button>'+
         '</div>';
-      row.innerHTML = label + nodecol + '<div class="vj-spacer"></div>';
+      row.innerHTML = label + nodecol + spacer;
 
       // taps: current + cleared open the duel intro; locked nodes nudge instead
       var open=function(){ openLevelIntro(idx); };
