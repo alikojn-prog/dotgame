@@ -3047,6 +3047,12 @@
         S.scores=[0,0]; displayedScores=[0,0];
         S.edges={}; S.triangles=[]; S.scoredTri={}; S.selected=null;
         S.roMatrix=[null,null]; S.roWho=0;
+        // bring the roll-off overlay back so the opening dice duel is visible
+        // (the firstUpdate branch below only fires on the very first game)
+        renderDie($("ro-die0"),1); renderDie($("ro-die1"),1);
+        showGame();
+        showOverlay("ov-rolloff");
+        updateRolloffUI();
       }
     }
 
