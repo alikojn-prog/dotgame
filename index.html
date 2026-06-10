@@ -662,7 +662,7 @@
           <div class="gap10" id="setup-boards"></div>
         </div>
         <div id="setup-skill-wrap">
-          <div class="seclabel">Computer skill</div>
+          <div class="seclabel">AI Bot skill</div>
           <div class="seg" id="setup-skill">
             <button data-ai="easy">Easy</button>
             <button data-ai="medium" class="sel">Medium</button>
@@ -987,7 +987,7 @@
           </div>
         </div>
       </div>
-      <div class="scard p2" id="sc1"><div class="nm" id="sc1-nm">Computer</div><div class="sc" id="sc1-val">0</div></div>
+      <div class="scard p2" id="sc1"><div class="nm" id="sc1-nm">AI Bot</div><div class="sc" id="sc1-val">0</div></div>
     </div>
     <!-- lines-left counter: JS positions it midway between the P1 card and the dice -->
     <div id="linesleft" style="display:none"><div id="ll-stage"><span class="ll-num" id="ll-num">0</span></div><span id="ll-cap">lines left</span></div>
@@ -1026,7 +1026,7 @@
     <div class="go-row">
       <div class="go-col p1"><div class="nm" id="go-nm0">You</div><div class="sc" id="go-sc0">0</div></div>
       <div class="go-dash">–</div>
-      <div class="go-col p2"><div class="nm" id="go-nm1">Computer</div><div class="sc" id="go-sc1">0</div></div>
+      <div class="go-col p2"><div class="nm" id="go-nm1">AI Bot</div><div class="sc" id="go-sc1">0</div></div>
       <div class="go-div"></div>
       <div class="go-btns">
         <button class="btn btn-primary" id="go-again">Play again</button>
@@ -2674,7 +2674,7 @@
     S.numDots=setupN;
     if(S.mode==="cpu"){
       S.vsComputer=true; S.aiPlayer=1;
-      S.names=["You","Computer"];
+      S.names=["You","AI Bot"];
     } else {
       S.vsComputer=false;
       var n1=($("name1").value||"").trim().slice(0,14)||"Player 1";
