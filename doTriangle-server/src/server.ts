@@ -48,6 +48,17 @@ type ServerEvent =
   | { type: "rematch_requested"; idx: number }
   | { type: "rematch_start" };
 
+// ---------- quick match ----------
+// One well-known room acts as the matchmaking lobby: players send "find",
+// and the first two waiting get paired into a fresh game room.
+const QM_LOBBY_ID = "qmlobby";
+const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+function genMatchCode(): string {
+  let s = "QM";
+  for (let i = 0; i < 4; i++) s += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
+  return s;
+}
+
 // ---------- timing ----------
 const ROLL_TIMEOUT_MS = 30_000;    // time to tap the dice before we auto-roll
 const DRAW_TIMEOUT_MS = 22_000;    // time to draw lines before the turn passes
@@ -186,6 +197,7 @@ export default class Server implements Party.Server {
   state: State = emptyState();
   hostInitialized = false;
   rematchVotes: Set<number> = new Set();
+  qmQueue: { connId: string; name: string }[] = []; // only used by the lobby room
   phaseTimer: ReturnType<typeof setTimeout> | null = null;
   graceTimers: [ReturnType<typeof setTimeout> | null, ReturnType<typeof setTimeout> | null] = [null, null];
 
@@ -198,6 +210,7 @@ export default class Server implements Party.Server {
   async onMessage(raw: string, sender: Party.Connection) {
     let m: any;
     try { m = JSON.parse(raw); } catch { return; }
+    if (this.room.id === QM_LOBBY_ID) return this.onLobbyMessage(m, sender);
     if (m.type === "hello") return this.onHello(m, sender);
     if (m.type === "roll") return this.onRoll(sender);
     if (m.type === "draw_line") return this.onDrawLine(m.a | 0, m.b | 0, sender);
@@ -205,7 +218,33 @@ export default class Server implements Party.Server {
     if (m.type === "rematch") return this.onRematch(sender);
   }
 
+  // Pair waiting players; whoever was queued first hosts the game room.
+  private onLobbyMessage(m: any, sender: Party.Connection) {
+    if (m.type !== "find") return;
+    const name = String(m.name || "Player").slice(0, 14);
+    // prune our own duplicates and anyone who has since disconnected
+    this.qmQueue = this.qmQueue.filter(
+      (q) => q.connId !== sender.id && this.room.getConnection(q.connId) !== undefined
+    );
+    const partner = this.qmQueue.shift();
+    if (partner) {
+      const pc = this.room.getConnection(partner.connId);
+      if (pc) {
+        const code = genMatchCode();
+        this.send(pc, { type: "matched", code, role: "create", opponent: name });
+        this.send(sender, { type: "matched", code, role: "join", opponent: partner.name });
+        return;
+      }
+    }
+    this.qmQueue.push({ connId: sender.id, name });
+    this.send(sender, { type: "queued" });
+  }
+
   onClose(conn: Party.Connection) {
+    if (this.room.id === QM_LOBBY_ID) {
+      this.qmQueue = this.qmQueue.filter((q) => q.connId !== conn.id);
+      return;
+    }
     for (let i = 0; i < 2; i++) {
       if (this.state.players[i].connId === conn.id) {
         this.state.players[i].connected = false;
