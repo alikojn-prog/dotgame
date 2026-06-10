@@ -537,6 +537,7 @@
   .vj-row.current .vj-node{width:72px;height:72px;font-size:27px;font-weight:800;color:var(--vj-ink);
     background:linear-gradient(135deg,#5BE0E6 0%,#A78BFA 50%,#F472B6 100%);
     box-shadow:0 0 36px rgba(167,139,250,.6),0 10px 30px rgba(0,0,0,.4);}
+  .vj-row.current .vj-node{cursor:default;}
   .vj-row.locked .vj-node{width:50px;height:50px;cursor:default;
     border:1.5px solid var(--vj-border);color:var(--vj-faint);}
   .vj-row.locked .vj-node svg{width:18px;height:18px;}
@@ -2188,10 +2189,12 @@
       var node=row.querySelector(".vj-node");
       if(status==="locked"){
         node.addEventListener("click",function(){ toast("Beat duel "+(num-1)+" to unlock"); });
-      }else{
-        node.addEventListener("click",open);
+      }else if(status==="current"){
+        // only the Play button starts the current duel — the number node is inert
         var play=row.querySelector(".vj-play");
         if(play) play.addEventListener("click",open);
+      }else{
+        node.addEventListener("click",open);
       }
       path.appendChild(row);
     });
