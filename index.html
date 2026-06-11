@@ -65,8 +65,9 @@
     display:none;z-index:10;padding:calc(env(safe-area-inset-top) + 18px) 0 40px;}
   .view.show{display:block;}
   .view-inner{max-width:430px;margin:0 auto;padding:0 22px;}
-  /* center the "Play with a Friend" view vertically */
-  #v-friend.show{display:flex;flex-direction:column;justify-content:center;}
+  /* center the friend-flow views vertically (margin:auto keeps tall content scrollable) */
+  #v-friend.show,#v-setup.show,#v-online.show{display:flex;flex-direction:column;}
+  #v-friend .view-inner,#v-setup .view-inner,#v-online .view-inner{margin:auto;width:100%;}
   .backlink{font-size:16px;font-weight:600;color:var(--dim);background:none;border:none;
     cursor:pointer;font-family:var(--body);padding:6px 0 10px;}
   .backlink:active{color:var(--text);}
@@ -141,7 +142,7 @@
   .step-t{font-size:17px;font-weight:700;margin-bottom:3px;}
   .step-d{font-size:14px;color:var(--dim);line-height:1.4;}
 
-  /* ----- animated hand gesture demo (tap then swipe) ----- */
+  /* ----- animated hand gesture demo (press, hold & drag — three lines) ----- */
   .gesture-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
     padding:16px 14px 12px;display:flex;flex-direction:column;align-items:center;}
   .gesture-demo{position:relative;width:280px;height:190px;max-width:100%;}
@@ -150,8 +151,8 @@
   .gd-line{fill:none;stroke-width:5;stroke-linecap:round;stroke-dasharray:230;stroke-dashoffset:230;opacity:0;}
   .gd-ab{stroke:#36E0E6;animation:gd-ab 7s linear infinite;}
   .gd-bc{stroke:#36E0E6;animation:gd-bc 7s linear infinite;}
-  .gd-ca{stroke:#B69BFF;animation:gd-ca 7s linear infinite;}
-  .gd-fill{fill:#B69BFF;fill-opacity:0;stroke:none;animation:gd-fill 7s linear infinite;}
+  .gd-ca{stroke:#36E0E6;animation:gd-ca 7s linear infinite;}
+  .gd-fill{fill:#36E0E6;fill-opacity:0;stroke:none;animation:gd-fill 7s linear infinite;}
   .gd-hand{position:absolute;left:0;top:0;width:34px;height:34px;line-height:1;pointer-events:none;
     filter:drop-shadow(0 3px 5px rgba(0,0,0,.5));transform:translate(125px,40px);opacity:0;
     animation:gd-hand 7s ease-in-out infinite;}
@@ -161,48 +162,52 @@
     border:2px solid #fff;pointer-events:none;opacity:0;transform:translate(0,0) scale(.4);
     animation:gd-ripple 7s ease-out infinite;}
   .gd-cap{font-size:13.5px;color:var(--dim);font-weight:600;text-align:center;margin-top:6px;line-height:1.4;}
+  /* hand presses a dot (scale .78 = held down), drags to the next dot, releases — ×3 */
   @keyframes gd-hand{
     0%{transform:translate(127px,36px) scale(.9);opacity:0;}
-    4%{transform:translate(127px,36px) scale(1);opacity:1;}
-    8%{transform:translate(127px,36px) scale(.78);}
-    12%{transform:translate(127px,36px) scale(1);}
+    3%{transform:translate(127px,36px) scale(1);opacity:1;}
+    5%{transform:translate(127px,36px) scale(.78);}
+    16%{transform:translate(225px,158px) scale(.78);}
     18%{transform:translate(225px,158px) scale(1);}
-    22%{transform:translate(225px,158px) scale(.78);}
-    26%{transform:translate(225px,158px) scale(1);}
-    31%{transform:translate(225px,158px) scale(.85);}
-    45%{transform:translate(29px,158px) scale(.85);}
-    49%{transform:translate(29px,158px) scale(1);}
-    72%{transform:translate(29px,158px) scale(1);opacity:1;}
-    80%{transform:translate(29px,158px) scale(1);opacity:0;}
+    21%{transform:translate(225px,158px) scale(.78);}
+    32%{transform:translate(29px,158px) scale(.78);}
+    34%{transform:translate(29px,158px) scale(1);}
+    37%{transform:translate(29px,158px) scale(.78);}
+    48%{transform:translate(127px,36px) scale(.78);}
+    50%{transform:translate(127px,36px) scale(1);opacity:1;}
+    58%{transform:translate(127px,36px) scale(1);opacity:0;}
     100%{transform:translate(127px,36px) scale(.9);opacity:0;}
   }
-  /* tap ripples at the two tapped dots */
+  /* press ripples where each hold starts */
   @keyframes gd-ripple{
-    0%,7%{opacity:0;transform:translate(127px,21px) scale(.4);}
-    8%{opacity:.9;transform:translate(127px,21px) scale(.5);}
-    13%{opacity:0;transform:translate(127px,21px) scale(1.3);}
-    13.001%,21%{opacity:0;transform:translate(225px,143px) scale(.4);}
-    22%{opacity:.9;transform:translate(225px,143px) scale(.5);}
-    27%{opacity:0;transform:translate(225px,143px) scale(1.3);}
-    27.001%,100%{opacity:0;}
+    0%,4%{opacity:0;transform:translate(127px,21px) scale(.4);}
+    5%{opacity:.9;transform:translate(127px,21px) scale(.5);}
+    10%{opacity:0;transform:translate(127px,21px) scale(1.3);}
+    10.001%,20%{opacity:0;transform:translate(225px,143px) scale(.4);}
+    21%{opacity:.9;transform:translate(225px,143px) scale(.5);}
+    26%{opacity:0;transform:translate(225px,143px) scale(1.3);}
+    26.001%,36%{opacity:0;transform:translate(29px,143px) scale(.4);}
+    37%{opacity:.9;transform:translate(29px,143px) scale(.5);}
+    42%{opacity:0;transform:translate(29px,143px) scale(1.3);}
+    42.001%,100%{opacity:0;}
   }
   @keyframes gd-ab{
-    0%,22%{stroke-dashoffset:230;opacity:0;}
-    23%{opacity:1;}28%{stroke-dashoffset:0;opacity:1;}
-    74%{stroke-dashoffset:0;opacity:1;}75%,100%{opacity:0;stroke-dashoffset:230;}
+    0%,4%{stroke-dashoffset:230;opacity:0;}
+    5%{opacity:1;}16%{stroke-dashoffset:0;opacity:1;}
+    84%{stroke-dashoffset:0;opacity:1;}85%,100%{opacity:0;stroke-dashoffset:230;}
   }
   @keyframes gd-bc{
-    0%,46%{stroke-dashoffset:230;opacity:0;}
-    47%{opacity:1;}53%{stroke-dashoffset:0;opacity:1;}
-    74%{stroke-dashoffset:0;opacity:1;}75%,100%{opacity:0;stroke-dashoffset:230;}
+    0%,20%{stroke-dashoffset:230;opacity:0;}
+    21%{opacity:1;}32%{stroke-dashoffset:0;opacity:1;}
+    84%{stroke-dashoffset:0;opacity:1;}85%,100%{opacity:0;stroke-dashoffset:230;}
   }
   @keyframes gd-ca{
-    0%,54%{stroke-dashoffset:230;opacity:0;}
-    55%{opacity:1;}61%{stroke-dashoffset:0;opacity:1;}
-    74%{stroke-dashoffset:0;opacity:1;}75%,100%{opacity:0;stroke-dashoffset:230;}
+    0%,36%{stroke-dashoffset:230;opacity:0;}
+    37%{opacity:1;}48%{stroke-dashoffset:0;opacity:1;}
+    84%{stroke-dashoffset:0;opacity:1;}85%,100%{opacity:0;stroke-dashoffset:230;}
   }
   @keyframes gd-fill{
-    0%,61%{fill-opacity:0;}67%{fill-opacity:.45;}74%{fill-opacity:.45;}75%,100%{fill-opacity:0;}
+    0%,48%{fill-opacity:0;}55%{fill-opacity:.45;}84%{fill-opacity:.45;}85%,100%{fill-opacity:0;}
   }
 
   /* room code display */
@@ -244,7 +249,9 @@
   @keyframes llGhost{0%{transform:translate(-50%,-50%) scale(1);opacity:.9;}
     100%{transform:translate(-50%,28px) scale(.5);opacity:0;}}
   #ll-cap{font-size:9px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--dim);
-    margin-top:1px;text-align:center;line-height:1.3;}
+    margin-bottom:10px;text-align:center;line-height:1.3;}
+  /* online pre-roll: countdown runs but there's no line count yet */
+  #linesleft.timer-only .ll-num,#linesleft.timer-only #ll-cap{visibility:hidden;}
 
   /* bottom HUD */
   #hud{position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 10px);
@@ -308,13 +315,14 @@
     box-shadow:0 6px 14px rgba(0,0,0,.4);}
   .die.tappable{cursor:pointer;transition:transform .12s,box-shadow .12s;}
   .die.tappable:active{transform:scale(.92);box-shadow:0 2px 6px rgba(0,0,0,.4);}
-  /* turn timer */
-  #turn-timer{position:absolute;inset:-4px;pointer-events:none;}
+  /* turn timer — rings the lines-left counter */
+  #turn-timer{position:absolute;left:50%;top:50%;width:58px;height:58px;
+    transform:translate(-50%,-50%);pointer-events:none;}
   #timer-ring{position:absolute;inset:0;width:100%;height:100%;}
   #timer-track{stroke:rgba(255,255,255,.1);}
   #timer-arc{stroke:var(--accent);transition:stroke-dashoffset .9s linear,stroke .3s;}
   #timer-arc.urgent{stroke:#ff4d6d;}
-  #timer-num{position:absolute;bottom:-22px;left:50%;transform:translateX(-50%);
+  #timer-num{position:absolute;bottom:-16px;left:50%;transform:translateX(-50%);
     font-family:var(--display);font-weight:700;font-size:13px;color:var(--accent);
     transition:color .3s;white-space:nowrap;}
   #timer-num.urgent{color:#ff4d6d;}
@@ -322,6 +330,22 @@
   .die.rolling{animation:shake .25s linear infinite;}
   @keyframes shake{0%{transform:rotate(0) scale(1);}25%{transform:rotate(-8deg) scale(1.06);}
     50%{transform:rotate(7deg) scale(1.06);}75%{transform:rotate(-5deg) scale(1.04);}100%{transform:rotate(0) scale(1);}}
+  /* dice glows in the active player's color so it's obvious whose roll it is */
+  .die.glow-p0{box-shadow:0 0 0 3px var(--p1),0 0 24px rgba(54,224,230,.75),0 6px 14px rgba(0,0,0,.4);}
+  .die.glow-p1{box-shadow:0 0 0 3px var(--p2),0 0 24px rgba(255,95,176,.75),0 6px 14px rgba(0,0,0,.4);}
+
+  /* ===================== turn banner + roll pop ===================== */
+  #turnbanner{position:fixed;left:0;right:0;top:38%;z-index:32;pointer-events:none;display:none;}
+  #turnbanner.show{display:block;}
+  #tb-inner{display:flex;align-items:center;justify-content:center;height:62px;
+    font-family:var(--display);font-weight:700;font-size:26px;letter-spacing:1.5px;
+    color:#0B0820;text-transform:uppercase;white-space:nowrap;
+    animation:tb-sweep 1.35s cubic-bezier(.25,.9,.3,1) both;}
+  @keyframes tb-sweep{
+    0%{transform:translateX(-110%);opacity:0;}
+    16%{transform:translateX(0);opacity:1;}
+    76%{transform:translateX(0);opacity:1;}
+    100%{transform:translateX(110%);opacity:0;}}
 
   /* ===================== overlays ===================== */
   .overlay{position:fixed;inset:0;background:rgba(6,4,20,.6);backdrop-filter:blur(4px);
@@ -786,7 +810,7 @@
       <div class="stack">
         <div>
           <div class="left-title">How to play</div>
-          <div class="sub" style="margin-top:6px">Four steps. You'll have it after one round.</div>
+          <div class="sub" style="margin-top:6px">Five quick steps. You'll have it after one round.</div>
         </div>
         <div class="gesture-card">
           <div class="gesture-demo" aria-hidden="true">
@@ -809,13 +833,14 @@
               </svg>
             </div>
           </div>
-          <div class="gd-cap">Tap a dot, then another — or press &amp; drag between them</div>
+          <div class="gd-cap">Press &amp; hold a dot, drag to another, release — three lines make a triangle</div>
         </div>
         <div class="steps-card">
           <div class="step"><span class="step-n">1</span><div><div class="step-t">Roll the dice</div><div class="step-d">On your turn, tap the dice. The number you roll is how many lines you can draw.</div></div></div>
-          <div class="step"><span class="step-n">2</span><div><div class="step-t">Connect two dots</div><div class="step-d">Tap one dot then another — or drag between them. Lines can't cross or clip another dot.</div></div></div>
-          <div class="step"><span class="step-n">3</span><div><div class="step-t">Close a triangle</div><div class="step-d">Three dots joined by three lines becomes your triangle. It fills with your colour and scores a point.</div></div></div>
-          <div class="step"><span class="step-n">4</span><div><div class="step-t">Most triangles wins</div><div class="step-d">The round ends when no more lines can be drawn. Whoever claimed the most triangles wins.</div></div></div>
+          <div class="step"><span class="step-n">2</span><div><div class="step-t">Connect two dots</div><div class="step-d">Press &amp; hold a dot, drag to another dot, then release to draw the line. Lines can't cross or clip another dot.</div></div></div>
+          <div class="step"><span class="step-n">3</span><div><div class="step-t">Changed your mind?</div><div class="step-d">While holding, release on empty space instead of a dot — the move is cancelled and nothing is drawn.</div></div></div>
+          <div class="step"><span class="step-n">4</span><div><div class="step-t">Shape a triangle</div><div class="step-d">Connect dot 1 to dot 2, dot 2 to dot 3, then close it back to dot 1. The triangle fills with your colour and scores a point.</div></div></div>
+          <div class="step"><span class="step-n">5</span><div><div class="step-t">Most triangles wins</div><div class="step-d">The round ends when no more lines can be drawn. Whoever claimed the most triangles wins.</div></div></div>
         </div>
         <button class="btn btn-primary" id="howto-got">Got it</button>
       </div>
@@ -891,18 +916,20 @@
       <div class="ob-steps">
         <div class="ob-pip active" id="ob-pip1"></div>
         <div class="ob-pip" id="ob-pip2"></div>
+        <div class="ob-pip" id="ob-pip3"></div>
+        <div class="ob-pip" id="ob-pip4"></div>
       </div>
       <div class="ob-header">
-        <div class="ob-badge" id="ob-badge">Step 1 of 2</div>
-        <div class="ob-title" id="ob-title">Tap two dots</div>
-        <div class="ob-hint" id="ob-hint">Tap the glowing dot to select it</div>
+        <div class="ob-badge" id="ob-badge">Step 1 of 4</div>
+        <div class="ob-title" id="ob-title">Draw your first line</div>
+        <div class="ob-hint" id="ob-hint">Press &amp; hold the glowing dot, drag to the other ring, then release</div>
       </div>
       <div class="ob-board-wrap">
         <!-- viewBox: 220 wide × 178 tall; dots: A(110,25) B(182,148) C(38,148) -->
         <svg id="ob-svg" viewBox="0 0 220 178" xmlns="http://www.w3.org/2000/svg">
           <!-- triangle fill – revealed last -->
           <polygon id="ob-tri" points="110,25 182,148 38,148"
-            fill="#B69BFF" fill-opacity="0" stroke="none"/>
+            fill="#36E0E6" fill-opacity="0" stroke="none"/>
           <!-- drawn lines -->
           <line id="ob-ln-ab" x1="110" y1="25" x2="182" y2="148"
             stroke="#36E0E6" stroke-width="4.5" stroke-linecap="round"
@@ -911,7 +938,7 @@
             stroke="#36E0E6" stroke-width="4.5" stroke-linecap="round"
             stroke-dasharray="200" stroke-dashoffset="200" opacity="0"/>
           <line id="ob-ln-ca" x1="38" y1="148" x2="110" y2="25"
-            stroke="#B69BFF" stroke-width="4.5" stroke-linecap="round"
+            stroke="#36E0E6" stroke-width="4.5" stroke-linecap="round"
             stroke-dasharray="200" stroke-dashoffset="200" opacity="0"/>
           <!-- live drag preview line -->
           <line id="ob-drag-ln" x1="0" y1="0" x2="0" y2="0"
@@ -974,24 +1001,20 @@
       <div id="dicecluster">
         <div id="turnpill">Your turn</div>
         <button class="pill" id="hud-action" style="display:none"></button>
-        <div style="position:relative;display:inline-block">
-          <div class="die" id="game-die"></div>
-          <div id="turn-timer" style="display:none">
-            <svg id="timer-ring" viewBox="0 0 68 68" xmlns="http://www.w3.org/2000/svg">
-              <rect id="timer-track" x="2" y="2" width="64" height="64" rx="15" ry="15"
-                fill="none" stroke-width="3.5"/>
-              <rect id="timer-arc"  x="2" y="2" width="64" height="64" rx="15" ry="15"
-                fill="none" stroke-width="3.5" stroke-linecap="round"
-                stroke-dasharray="226" stroke-dashoffset="0"/>
-            </svg>
-            <span id="timer-num">10</span>
-          </div>
-        </div>
+        <div class="die" id="game-die"></div>
       </div>
       <div class="scard p2" id="sc1"><div class="nm" id="sc1-nm">AI Bot</div><div class="sc" id="sc1-val">0</div></div>
     </div>
     <!-- lines-left counter: JS positions it midway between the P1 card and the dice -->
-    <div id="linesleft" style="display:none"><div id="ll-stage"><span class="ll-num" id="ll-num">0</span></div><span id="ll-cap">lines left</span></div>
+    <div id="linesleft" style="display:none"><span id="ll-cap">lines left</span><div id="ll-stage"><div id="turn-timer" style="display:none">
+      <svg id="timer-ring" viewBox="0 0 58 58" xmlns="http://www.w3.org/2000/svg">
+        <circle id="timer-track" cx="29" cy="29" r="26" fill="none" stroke-width="3.5"/>
+        <circle id="timer-arc" cx="29" cy="29" r="26" fill="none" stroke-width="3.5"
+          stroke-linecap="round" stroke-dasharray="163.4" stroke-dashoffset="0"
+          transform="rotate(-90 29 29)"/>
+      </svg>
+      <span id="timer-num">10</span>
+    </div><span class="ll-num" id="ll-num">0</span></div>
   </div>
 
   <!-- roll-off overlay -->
@@ -1037,6 +1060,7 @@
     </div>
   </div>
 
+  <div id="turnbanner"><div id="tb-inner">Your turn</div></div>
   <div id="confetti"></div>
   <div id="toast" class="toast"></div>
 
@@ -1099,6 +1123,7 @@
   function showGame(){
     VIEWS.forEach(function(v){$(v).classList.remove("show");});
     $("stage").classList.add("show");
+    _bannerShown=false; // new game → the opening turn banner may show once
   }
 
   // ---------- logo mark (two sub-triangles, dots at vertices) ----------
@@ -1633,6 +1658,30 @@
     if(S.mode==="pass") return true;
     return !S.online || S.current===S.myPlayer;
   }
+
+  // ---------- turn banner + roll pop ----------
+  function actorName(i){
+    if(S.mode==="pass") return pname(i);
+    if(S.online) return i===S.myPlayer ? "You" : pname(i);
+    if(S.vsComputer && i===S.aiPlayer) return pname(i);
+    return "You";
+  }
+  function pRGBA(i,a){return i===0?"rgba(54,224,230,"+a+")":"rgba(255,95,176,"+a+")";}
+  var _tbT=null, _bannerShown=false;
+  // Sweeps a colored banner across the board announcing whose turn it is.
+  // Shows only ONCE per game (the opening turn) — the dice glow and score-card
+  // highlight carry turn info for the rest of the match.
+  function showTurnBanner(i,text){
+    if(_bannerShown) return;
+    _bannerShown=true;
+    var b=$("turnbanner"), inner=$("tb-inner");
+    if(!b||!inner) return;
+    inner.textContent = text || (actorName(i)==="You" ? "Your turn" : actorName(i)+"'s turn");
+    inner.style.background="linear-gradient(90deg,rgba(0,0,0,0),"+pRGBA(i,.95)+" 16%,"+pRGBA(i,.95)+" 84%,rgba(0,0,0,0))";
+    b.classList.remove("show"); void inner.offsetWidth; b.classList.add("show");
+    clearTimeout(_tbT);
+    _tbT=setTimeout(function(){ b.classList.remove("show"); },1400);
+  }
   function updateHUD(){
     var pill=$("turnpill");
     if(pill){
@@ -1652,6 +1701,13 @@
       card.classList.toggle("active",active);
     });
     renderLinesLeft();
+    // dice carries the active player's color while a turn is live
+    var dieEl=$("game-die");
+    if(dieEl){
+      var glowOn=(S.phase==="turn"||S.phase==="drawing");
+      dieEl.classList.toggle("glow-p0",glowOn&&S.current===0);
+      dieEl.classList.toggle("glow-p1",glowOn&&S.current===1);
+    }
     var act=$("hud-action");
     var canAct = !isAiTurn() && (!S.online || S.current===S.myPlayer);
     if(S.phase==="turn" && canAct){
@@ -1679,7 +1735,8 @@
     var hi = c.right<d.left ? d.left  : c.left;
     var gap = Math.max(0, hi-lo);
     box.style.left=(lo+gap/2)+"px";
-    box.style.top=(d.top+d.height/2)+"px";
+    // -20px keeps the ring at die height now that the caption sits on top
+    box.style.top=(d.top+d.height/2-20)+"px";
     box.style.width=Math.max(40, gap-4)+"px";
     var s=Math.max(.5, Math.min(1, gap/72));
     box.style.transform="translate(-50%,-50%) scale("+s+")";
@@ -1690,11 +1747,15 @@
     if(!box||!num||!stage) return;
     // Show only on a human drawing turn — never while the computer plays.
     var show = S.phase==="drawing" && !isAiTurn() && (S.lineTotal>0 || S.linesLeft>0);
+    var timerOn = !!_turnTimer && (S.phase==="drawing" || (S.online && S.phase==="turn"));
     if(!show){
-      box.style.display="none";
+      // keep the box up (ring only) while a countdown runs, e.g. online pre-roll
+      if(timerOn){ box.style.display="flex"; box.classList.add("timer-only"); positionLinesLeft(); }
+      else { box.style.display="none"; box.classList.remove("timer-only"); }
       _llShown=-1; S.lineTotal=0;
       return;
     }
+    box.classList.remove("timer-only");
     if(S.lineTotal < S.linesLeft) S.lineTotal = S.linesLeft;
     box.style.display="flex";
     positionLinesLeft();
@@ -1717,7 +1778,7 @@
 
   // ---------- turn countdown timer ----------
   var TURN_SECONDS=20, _turnTimer=null, _turnTimerLeft=0, _turnTimerTotal=20;
-  var TIMER_CIRC=226; // perimeter of 64×64 rounded-rect (rx=15)
+  var TIMER_CIRC=163.4; // circumference of the r=26 timer circle
 
   function startTurnTimer(){ _startCountdown(TURN_SECONDS); }
   // Online: countdown driven by the server's authoritative deadline.
@@ -1728,7 +1789,6 @@
   function _startCountdown(secs){
     clearTurnTimer();
     _turnTimerLeft=secs; _turnTimerTotal=secs;
-    _updateTimerUI();
     _turnTimer=setInterval(function(){
       _turnTimerLeft--;
       _updateTimerUI();
@@ -1738,6 +1798,7 @@
         if(!isAiTurn() && S.phase==="drawing"){ toast("⏱ Time's up!"); nextTurn(); }
       }
     },1000);
+    _updateTimerUI();
   }
 
   function clearTurnTimer(){
@@ -1761,6 +1822,7 @@
     } else {
       timer.style.display="none";
     }
+    renderLinesLeft(); // the counter box hosts the ring — keep its visibility in sync
   }
 
   // ---------- roll-off ----------
@@ -1832,7 +1894,9 @@
     S.phase="turn";S.selected=null;S.rolling=false;S.powerUsedTurn=false;S.lineTotal=0;
     renderDie($("game-die"),1);
     drawBoard();updateHUD();
-    if(isAiTurn()){ disarmRoll(); setTimeout(doTurnRoll,850); }
+    var hadBanner=!_bannerShown;
+    showTurnBanner(S.current);
+    if(isAiTurn()){ disarmRoll(); setTimeout(doTurnRoll, hadBanner?1550:900); } // wait for the opening banner
     else { armRoll(doTurnRoll); }
   }
   function doTurnRoll(){
@@ -1845,7 +1909,8 @@
       buzz(20);
       S.linesLeft=n;S.lineTotal=n;S.phase="drawing";S.rolling=false;
       updateHUD();
-      if(S.vsComputer && S.current===S.aiPlayer){ setTimeout(aiDrawStep,750); }
+      // pause after the AI's roll so the number can be read before lines appear
+      if(S.vsComputer && S.current===S.aiPlayer){ setTimeout(aiDrawStep,1250); }
       else { startTurnTimer(); }
     }, roll);
   }
@@ -2382,6 +2447,8 @@
     setupN=DEFAULT_DOTS;
     buildBoardCards("setup-boards",function(){return setupN;},function(n){setupN=n;});
     $("setup-skill-wrap").style.display = (mode==="cpu") ? "" : "none";
+    $("setup-match-wrap").style.display = (mode==="cpu") ? "none" : "";
+    if(mode==="cpu"){ setupMB=1; resetMatchSeg("setup-match"); }
     $("setup-names-wrap").style.display = (mode==="pass") ? "" : "none";
     showView("v-setup");
   }
@@ -2413,12 +2480,40 @@
   wireMatchSeg("setup-match",function(v){setupMB=v;});
   wireMatchSeg("create-match",function(v){createMB=v;});
   // ---------- onboarding (interactive tutorial) ----------
+  // The player draws ALL three lines of the triangle themselves with
+  // press-hold-drag, and learns the release-to-cancel gesture on the way.
   var OB_VW=220, OB_VH=178;
   var OB_DOTS=[{x:110,y:25},{x:182,y:148},{x:38,y:148}];
   var OB_HIT=34;
-  var obPhase="idle"; // tap1 | tap1sel | drag | done
-  var obDragActive=false, obDragCaptureId=-1;
+  var OB_EMPTY={x:110,y:92}; // empty centre — drag target for the cancel lesson
+  // hint = shown first; hold = once the dot is pressed; release = when over the goal
+  var OB_FLOW=[
+    {key:"line1",step:1,start:0,target:1,line:"ob-ln-ab",
+     badge:"Step 1 of 4",title:"Draw your first line",
+     hint:"Press & hold the glowing dot",
+     hold:"Hold… now drag to the purple ring",
+     release:"Release to draw the line!"},
+    {key:"cancel",step:2,start:1,target:-1,line:null,
+     badge:"Step 2 of 4",title:"Cancel a move",
+     hint:"Press & hold the dot again",
+     hold:"Hold… now drag onto empty space",
+     release:"Release to cancel the move!"},
+    {key:"line2",step:3,start:1,target:2,line:"ob-ln-bc",
+     badge:"Step 3 of 4",title:"Add a second line",
+     hint:"Press & hold the glowing dot",
+     hold:"Hold… now drag to the next ring",
+     release:"Release to draw the line!"},
+    {key:"line3",step:4,start:2,target:0,line:"ob-ln-ca",
+     badge:"Step 4 of 4",title:"Close the triangle",
+     hint:"Press & hold the glowing dot",
+     hold:"Hold… now drag up to the top dot",
+     release:"Release to close your triangle!"}
+  ];
+  var obStep=0;          // index into OB_FLOW; past the end = done
+  var obDone=false;
+  var obDragActive=false, obMoved=false;
   var _pendingGameStart=null;
+  function obCfg(){ return OB_FLOW[obStep]; }
 
   function obSvgPt(clientX,clientY){
     var svg=$("ob-svg"),rect=svg.getBoundingClientRect();
@@ -2432,11 +2527,14 @@
     }
     return -1;
   }
-  function obSetRing(idx,cls){
-    [0,1,2].forEach(function(i){var r=$("ob-ring-"+i);r.className.baseVal="";r.setAttribute("opacity","0");});
-    if(idx<0) return;
-    var r=$("ob-ring-"+idx); r.setAttribute("opacity","1");
-    if(cls) r.setAttribute("class",cls);
+  function obClearRings(){
+    [0,1,2].forEach(function(i){var r=$("ob-ring-"+i);r.setAttribute("class","");r.setAttribute("opacity","0");});
+  }
+  function obShowRing(idx,cls,color){
+    var r=$("ob-ring-"+idx);
+    if(color) r.setAttribute("stroke",color);
+    r.setAttribute("opacity","1");
+    r.setAttribute("class",cls||"");
   }
   function obSetSelRing(idx){
     var sr=$("ob-sel-ring");
@@ -2466,15 +2564,15 @@
     h.setAttribute("transform","translate("+(d.x-8)+","+(d.y+3)+")");
     h.setAttribute("opacity","1"); h.setAttribute("class","ob-hand tap");
   }
-  function obHandSwipe(){            // slide back and forth to show the drag
+  function obHandSwipe(a,b){         // slide back and forth between two points to show the drag
     obHandStop();
     var h=$("ob-hand"); if(!h) return;
     h.setAttribute("class","ob-hand"); h.setAttribute("opacity","1");
-    var a=OB_DOTS[1],b=OB_DOTS[2],y=a.y+3,t0=performance.now();
+    var t0=performance.now();
     (function frame(now){
       var t=((now-t0)/1300)%2, p=t<1?t:2-t;
       p=p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2;
-      h.setAttribute("transform","translate("+((a.x+(b.x-a.x)*p)-8)+","+y+")");
+      h.setAttribute("transform","translate("+((a.x+(b.x-a.x)*p)-8)+","+((a.y+(b.y-a.y)*p)+3)+")");
       _obHandRaf=requestAnimationFrame(frame);
     })(performance.now());
   }
@@ -2483,39 +2581,40 @@
     $("ob-title").textContent=title;
     $("ob-hint").textContent=hint;
   }
-  function obSetPips(step){
-    $("ob-pip1").className="ob-pip"+(step>=1?" active":"")+(step>1?" done":"");
-    $("ob-pip2").className="ob-pip"+(step===2?" active":"")+(step>2?" done":"");
+  function obSetPips(step){ // step = current 1-based step; 5 = all done
+    for(var i=1;i<=4;i++){
+      $("ob-pip"+i).className="ob-pip"+(step===i?" active":"")+(step>i?" done":"");
+    }
   }
 
-  // ---- phase transitions ----
-  function obPhaseStart(){
-    obPhase="tap1";
-    obSetPips(1);
-    obSetHeader("Step 1 of 2","Tap two dots","Tap the glowing dot to select it");
-    obSetRing(0,"ob-anim-tap");
-    obSetSelRing(-1);
+  // ---- step transitions ----
+  function obShowGuides(){ // glowing rings + guiding hand for the current step
+    var c=obCfg(); if(!c) return;
+    obClearRings();
+    if(c.key==="cancel"){
+      obShowRing(c.start,"ob-anim-drag","#B69BFF");
+      obHandSwipe(OB_DOTS[c.start],OB_EMPTY); // drag toward empty space
+    } else {
+      obShowRing(c.start,"ob-anim-drag","#36E0E6");
+      obShowRing(c.target,"ob-anim-tap","#B69BFF");
+      obHandSwipe(OB_DOTS[c.start],OB_DOTS[c.target]);
+    }
+  }
+  function obEnterStep(){
+    var c=obCfg(); if(!c) return;
+    obSetPips(c.step);
+    obSetHeader(c.badge,c.title,c.hint);
     obSetStatus("","");
+    obSetSelRing(-1);
     $("ob-drag-ln").setAttribute("opacity","0");
-    obHandTap(0);
+    obShowGuides();
   }
-  function obPhaseDrag(){
-    obPhase="drag";
-    obSetPips(2);
-    obSetHeader("Step 2 of 2","Now try dragging","Press and hold the glowing dot, then drag to another");
-    obSetRing(1,"ob-anim-drag");
-    obSetSelRing(-1);
-    obSetStatus("","");
-    obDragActive=false;
-    obHandSwipe();
-  }
-  function obPhaseDone(){
-    obPhase="done";
-    obSetPips(3);
-    obSetHeader("Done!","You made a triangle!","Three connected lines score a point — now you know!");
-    obSetRing(-1);
+  function obFinish(){
+    obDone=true;
+    obSetPips(5);
+    obSetHeader("Nice!","You made a triangle!","Three dots joined by three lines — it fills with your colour and scores a point");
+    obClearRings();
     obHandHide();
-    obAnimLine("ob-ln-ca");
     setTimeout(function(){
       var tri=$("ob-tri");
       tri.style.animation="none";
@@ -2524,109 +2623,102 @@
       tri.style.animation="ob-tri-fade .55s ease-out forwards";
     },430);
     setTimeout(function(){
-      obSetStatus("","");
+      obSetStatus("✓ Triangle scored!","ok");
       $("ob-got").style.display="";
       $("ob-skip").style.display="none";
     },950);
   }
 
-  // ---- tap handler ----
-  function obOnTap(dotIdx){
-    if(obPhase==="tap1"){
-      if(dotIdx!==0) return;
-      obPhase="tap1sel";
-      obSetSelRing(0);
-      obSetDotFill(0,"#B69BFF");
-      // ring moves to dot 1
-      $("ob-ring-1").setAttribute("stroke","#B69BFF");
-      obSetRing(1,"ob-anim-tap");
-      obSetHeader("Step 1 of 2","Tap two dots","Now tap another dot to draw a line");
-      obHandTap(1);
-    } else if(obPhase==="tap1sel"){
-      if(dotIdx===0){
-        // deselect
-        obPhase="tap1";
-        obSetSelRing(-1);
-        obSetDotFill(0,"#fff");
-        $("ob-ring-1").setAttribute("stroke","#B69BFF");
-        obSetRing(0,"ob-anim-tap");
-        obSetHeader("Step 1 of 2","Tap two dots","Tap the glowing dot to select it");
-        obHandTap(0);
-        return;
-      }
-      // any other dot completes step 1
-      obPhase="tap1done";
-      obHandHide();
-      obSetRing(-1);
-      obSetSelRing(-1);
-      obSetDotFill(0,"#fff");
-      var lineId=(dotIdx===1)?"ob-ln-ab":"ob-ln-ca";
-      if(dotIdx===2){
-        // drew C-A instead, relabel for next step
-        $("ob-ln-ca").setAttribute("x1",OB_DOTS[0].x);$("ob-ln-ca").setAttribute("y1",OB_DOTS[0].y);
-        $("ob-ln-ca").setAttribute("x2",OB_DOTS[2].x);$("ob-ln-ca").setAttribute("y2",OB_DOTS[2].y);
-        $("ob-ln-ca").setAttribute("stroke","#36E0E6");
-      }
-      obAnimLine(lineId);
-      obSetStatus("✓ Line drawn!","ok");
-      setTimeout(obPhaseDrag,1100);
-    }
-  }
-
-  // ---- drag handlers ----
+  // ---- drag handlers (press & hold → drag → release) ----
   var obSvg=$("ob-svg");
+  function obResetDragVisuals(){
+    obDragActive=false;
+    $("ob-drag-ln").setAttribute("opacity","0");
+    obSetSelRing(-1);
+    [0,1,2].forEach(function(i){obSetDotFill(i,"#fff");});
+  }
   obSvg.addEventListener("pointerdown",function(e){
-    if(obPhase!=="drag") return;
+    if(obDone) return;
+    var c=obCfg(); if(!c) return;
     var pt=obSvgPt(e.clientX,e.clientY);
-    if(obNearDot(pt,-1)!==1) return; // must start from dot 1
-    obDragActive=true;
+    var hit=obNearDot(pt,-1);
+    if(hit<0) return;
+    if(hit!==c.start){ obSetStatus("Start from the glowing dot","retry"); return; }
+    obDragActive=true; obMoved=false;
     obHandHide();
+    obClearRings();
+    obSetStatus(c.hold,"");   // picked up — now guide the drag
     try{obSvg.setPointerCapture(e.pointerId);}catch(ex){}
-    obDragCaptureId=e.pointerId;
-    var sd=OB_DOTS[1];
+    var sd=OB_DOTS[c.start];
+    obSetSelRing(c.start);
+    obSetDotFill(c.start,"#36E0E6");
     var dl=$("ob-drag-ln");
     dl.setAttribute("x1",sd.x);dl.setAttribute("y1",sd.y);
     dl.setAttribute("x2",pt.x);dl.setAttribute("y2",pt.y);
     dl.setAttribute("opacity","0.75");
-    obSetRing(-1);
   });
   obSvg.addEventListener("pointermove",function(e){
     if(!obDragActive) return;
+    var c=obCfg(); if(!c) return;
     var pt=obSvgPt(e.clientX,e.clientY);
     var dl=$("ob-drag-ln");
     dl.setAttribute("x2",pt.x);dl.setAttribute("y2",pt.y);
-    // highlight dot 2 if nearby
-    obSetDotFill(2, obNearDot(pt,1)===2 ? "#36E0E6" : "#fff");
+    var sd=OB_DOTS[c.start],dx=pt.x-sd.x,dy=pt.y-sd.y;
+    if(dx*dx+dy*dy>144) obMoved=true; // dragged clear of the start dot
+    var near=obNearDot(pt,c.start);
+    if(c.target>=0){
+      // line steps: highlight target + prompt the release when over it
+      obSetDotFill(c.target, near===c.target ? "#36E0E6" : "#fff");
+      obSetStatus(near===c.target ? c.release : c.hold, near===c.target ? "ok" : "");
+    } else {
+      // cancel step: prompt the release once they're on empty space
+      obSetStatus(obMoved&&near<0 ? c.release : c.hold, obMoved&&near<0 ? "ok" : "");
+    }
   });
   function obEndDrag(e){
     if(!obDragActive) return;
-    obDragActive=false;
-    $("ob-drag-ln").setAttribute("opacity","0");
-    obSetDotFill(2,"#fff");
+    var c=obCfg();
+    obResetDragVisuals();
+    if(!c) return;
     var pt=obSvgPt(e.clientX,e.clientY);
-    if(obNearDot(pt,1)===2){
-      obPhase="dragdone";
-      obAnimLine("ob-ln-bc");
-      obSetStatus("✓ Line drawn!","ok");
-      setTimeout(obPhaseDone,1100);
+    var hit=obNearDot(pt,c.start); // dot released on (start excluded)
+    if(c.key==="cancel"){
+      if(hit<0){
+        obSetStatus("✓ Move cancelled — nothing drawn!","ok");
+        obStep++;
+        setTimeout(obEnterStep,1100);
+      } else {
+        obSetStatus("That would draw a line — release on empty space","retry");
+        obShowGuides();
+      }
+      return;
+    }
+    if(hit===c.target){
+      obAnimLine(c.line);
+      obStep++;
+      if(obStep>=OB_FLOW.length){
+        obSetStatus("✓ Line drawn!","ok");
+        setTimeout(obFinish,500);
+      } else {
+        obSetStatus("✓ Line drawn!","ok");
+        setTimeout(obEnterStep,1100);
+      }
+    } else if(hit>=0){
+      obSetStatus("Follow the glow — drag to the highlighted ring","retry");
+      obShowGuides();
     } else {
-      // missed — ring comes back
-      obSetRing(1,"ob-anim-drag");
-      obSetStatus("Almost! Drag all the way to another dot","retry");
-      obHandSwipe();
+      // released on empty space = the move was cancelled
+      obSetStatus(c.key==="line1"
+        ? "Letting go on empty space cancels the move — try again!"
+        : "Move cancelled. Drag all the way to the glowing ring","retry");
+      obShowGuides();
     }
   }
   obSvg.addEventListener("pointerup",obEndDrag);
-  obSvg.addEventListener("pointercancel",function(e){
-    obDragActive=false;
-    $("ob-drag-ln").setAttribute("opacity","0");
-    obSetDotFill(2,"#fff");
-    if(obPhase==="drag"){ obSetRing(1,"ob-anim-drag"); obHandSwipe(); }
-  });
-
-  // wire tap hit-areas
-  [0,1,2].forEach(function(i){
-    $("ob-hit-"+i).addEventListener("click",function(){ obOnTap(i); });
+  obSvg.addEventListener("pointercancel",function(){
+    if(!obDragActive) return;
+    obResetDragVisuals();
+    if(!obDone) obShowGuides();
   });
 
   function showOnboarding(proceed){
@@ -2635,25 +2727,17 @@
     ["ob-ln-ab","ob-ln-bc","ob-ln-ca"].forEach(function(id){
       var el=$(id);
       el.setAttribute("stroke-dashoffset","200");el.setAttribute("opacity","0");
+      el.setAttribute("stroke","#36E0E6");
       el.style.animation="";
     });
-    // restore default line coords/colors
-    var D=OB_DOTS;
-    var ab=$("ob-ln-ab"),bc=$("ob-ln-bc"),ca=$("ob-ln-ca");
-    ab.setAttribute("x1",D[0].x);ab.setAttribute("y1",D[0].y);
-    ab.setAttribute("x2",D[1].x);ab.setAttribute("y2",D[1].y);ab.setAttribute("stroke","#36E0E6");
-    bc.setAttribute("x1",D[1].x);bc.setAttribute("y1",D[1].y);
-    bc.setAttribute("x2",D[2].x);bc.setAttribute("y2",D[2].y);bc.setAttribute("stroke","#36E0E6");
-    ca.setAttribute("x1",D[2].x);ca.setAttribute("y1",D[2].y);
-    ca.setAttribute("x2",D[0].x);ca.setAttribute("y2",D[0].y);ca.setAttribute("stroke","#B69BFF");
-    $("ob-ring-1").setAttribute("stroke","#B69BFF");
     var tri=$("ob-tri");tri.setAttribute("fill-opacity","0");tri.style.animation="";
     $("ob-drag-ln").setAttribute("opacity","0");
     [0,1,2].forEach(function(i){obSetDotFill(i,"#fff");});
     $("ob-got").style.display="none";
     $("ob-skip").style.display="";
     obSetStatus("","");
-    obPhaseStart();
+    obStep=0; obDone=false; obDragActive=false;
+    obEnterStep();
     $("onboarding").classList.add("show");
   }
   function dismissOnboarding(){
@@ -2673,7 +2757,8 @@
   $("setup-start").addEventListener("click",function(){
     enableMotion(); primeAudio();
     S.campaign=false; S.diceCap=0; S.handicap=0; TURN_SECONDS=20;
-    S.matchBest=setupMB; S.matchWins=[0,0]; S.matchOver=(setupMB<=1);
+    var mb=(S.mode==="cpu")?1:setupMB;
+    S.matchBest=mb; S.matchWins=[0,0]; S.matchOver=(mb<=1);
     S.numDots=setupN;
     if(S.mode==="cpu"){
       S.vsComputer=true; S.aiPlayer=1;
@@ -3034,8 +3119,8 @@
           });
         }
       }
-      else if(e.type==="turn_changed"){ clearTurnTimer(); toast("▶ "+pname(state.current)+"'s turn"); }
-      else if(e.type==="rolloff_starter"){ hideOverlay("ov-rolloff"); toast(pname(state.current)+" goes first!"); }
+      else if(e.type==="turn_changed"){ clearTurnTimer(); showTurnBanner(state.current); }
+      else if(e.type==="rolloff_starter"){ hideOverlay("ov-rolloff"); showTurnBanner(state.current, actorName(state.current)+" goes first!"); }
       else if(e.type==="game_over"){ onlineEndGame(e.winnerIdx); }
       else if(e.type==="rematch_requested"){
         // Opponent wants to keep playing — update button to show they're ready
