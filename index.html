@@ -43,6 +43,14 @@
     background-attachment:fixed;
   }
 
+  /* ===================== starfield ===================== */
+  #starfield{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;}
+  .star{position:absolute;border-radius:50%;background:#fff;opacity:var(--o1,.6);
+    animation:twinkle 4s ease-in-out infinite;}
+  .star.glow{box-shadow:0 0 12px 4px rgba(190,200,255,.35);}
+  @keyframes twinkle{0%,100%{opacity:var(--o1,.6);}50%{opacity:var(--o2,.15);}}
+  @media (prefers-reduced-motion: reduce){ .star{animation:none;} }
+
   /* ===================== shared text / buttons ===================== */
   h1,h2,h3{font-family:var(--display);font-weight:700;margin:0;}
   .display{font-family:var(--display);font-weight:700;}
@@ -625,9 +633,24 @@
   .cr-msg{font-size:13.5px;color:var(--dim);line-height:1.4;min-height:18px;margin-bottom:14px;}
   .cr-btns{display:flex;flex-direction:row;flex-wrap:wrap;gap:8px;}
   .cr-btns .btn{flex:1;min-width:96px;font-size:14px;padding:12px 10px;}
+/* ---- magnetic snap (line gets "sucked" into the target dot) ---- */
+@keyframes rubberFlow{ to{ stroke-dashoffset:-54; } }
+.rubber-line.snap{ animation: rubberFlow .45s linear infinite; }
+@keyframes suckPulse{
+  0%{ transform:scale(2); opacity:0; }
+  30%{ opacity:.7; }
+  100%{ transform:scale(.5); opacity:0; }
+}
+.suck-ring{
+  transform-box:fill-box; transform-origin:center;
+  animation:suckPulse 1.3s ease-in-out infinite;
+  pointer-events:none;
+}
 </style>
 </head>
 <body>
+
+  <div id="starfield" aria-hidden="true"></div>
 
   <!-- ===================== HOME ===================== -->
   <div class="view show" id="v-home">
@@ -1139,6 +1162,27 @@
   }
   $("home-logo").innerHTML=logoSVG(88);
 
+  // ---------- starfield (seeded — same sky every launch) ----------
+  (function(){
+    var field=$("starfield"); if(!field) return;
+    var seed=7;
+    function rnd(){ seed=(seed*1664525+1013904223)>>>0; return seed/4294967296; }
+    for(var i=0;i<90;i++){
+      var s=document.createElement("div");
+      s.className="star"+(i%9===0?" glow":"");
+      var size=(1.2+rnd()*3.2).toFixed(1);
+      s.style.width=size+"px"; s.style.height=size+"px";
+      s.style.left=(rnd()*100).toFixed(2)+"%";
+      s.style.top=(rnd()*100).toFixed(2)+"%";
+      var o=0.18+rnd()*0.7;
+      s.style.setProperty("--o1",o.toFixed(2));
+      s.style.setProperty("--o2",Math.max(0.05,o-0.45).toFixed(2));
+      s.style.animationDuration=(2.5+rnd()*5).toFixed(1)+"s";
+      s.style.animationDelay=(-rnd()*6).toFixed(1)+"s";
+      field.appendChild(s);
+    }
+  })();
+
   // ---------- mini board preview (seeded random dots) ----------
   function seeded(seed){var st=(seed*2654435761+1)>>>0;return function(){st=(st*1103515245+12345)>>>0;return st/4294967296;};}
   function miniSVG(count){
@@ -1333,7 +1377,6 @@
       if(sel){grp.appendChild(svgEl("circle",{cx:p.x,cy:p.y,r:S.dotR*1.2+7,fill:"none",stroke:ACCENT,"stroke-width":"3"}));}
       grp.appendChild(svgEl("circle",{cx:p.x,cy:p.y,r:sel?S.dotR*1.2:S.dotR,fill:"#fff",class:"dot"}));
       var hit=svgEl("circle",{cx:p.x,cy:p.y,r:S.hitR,fill:"transparent",style:"cursor:pointer"});
-      hit.addEventListener("click",function(){onDotTap(i);});
       hit.addEventListener("pointerdown",function(){ startDrag(i); });
       hit.addEventListener("pointerenter",function(){ if(canDrawNow()||dragStart>=0) setHoverDot(i); });
       hit.addEventListener("pointerleave",function(){ if(dragStart<0) setHoverDot(-1); });
@@ -1388,13 +1431,13 @@
       if(passesThroughDot(a,b)){toast("There's a dot in the way");return false;}
       if(crossesEdge(a,b)){toast("Lines can't cross");return false;}
       NET.send({type:"draw_line",a:a,b:b});
-      S.selected=null; drawBoard();
+      S.selected=null; clearRubber(); drawBoard();
       return true;
     }
     if(hasEdge(a,b)){toast("Line already drawn");return false;}
     if(passesThroughDot(a,b)){toast("There's a dot in the way");return false;}
     if(crossesEdge(a,b)){toast("Lines can't cross");return false;}
-    S.edges[edgeKey(a,b)]=S.current; S.selected=null;
+    S.edges[edgeKey(a,b)]=S.current; S.selected=null; clearRubber();
     var prevTri=S.triangles.length;
     var made=checkTriangles(a,b);
     S.linesLeft--;
@@ -1462,30 +1505,62 @@
     if(S.vsComputer && S.aiLevel==="hard") return false;
     return true;
   }
+  // Rubber-band elements persist across pointermoves so CSS animations
+  // (dash flow, suction pulse) run smoothly instead of restarting each frame.
+  var rubberLine=null, suckRing=null, ghostG=null, suckTarget=-1;
   function drawRubber(startIdx,p){
-    var g=$("g-drag"); g.innerHTML="";
-    if(startIdx<0 || !S.dots[startIdx]) return;
+    var g=$("g-drag");
+    if(startIdx<0 || !S.dots[startIdx]){ clearRubber(); return; }
+    if(!ghostG || ghostG.parentNode!==g){ ghostG=svgEl("g",{}); g.appendChild(ghostG); }
+    if(!rubberLine || rubberLine.parentNode!==g){
+      rubberLine=svgEl("line",{stroke:ACCENT,"stroke-width":"5","stroke-dasharray":"10 8",
+        "stroke-linecap":"round",opacity:"0.95",class:"rubber-line"});
+      g.appendChild(rubberLine);
+    }
     var a=S.dots[startIdx];
+    var t=snapTarget(startIdx,p);
     // softly ghost the triangles this line would close
-    if(previewEnabled()){
-      var t=snapTarget(startIdx,p);
-      if(t>=0){
-        for(var c=0;c<S.dots.length;c++){
-          if(c===startIdx||c===t) continue;
-          if(!hasEdge(startIdx,c)||!hasEdge(t,c)) continue;
-          var key=[startIdx,t,c].sort(function(x,y){return x-y;}).join(",");
-          if(S.scoredTri[key]) continue;
-          var pts=[S.dots[startIdx],S.dots[t],S.dots[c]];
-          g.appendChild(svgEl("polygon",{points:pts.map(function(q){return q.x+","+q.y;}).join(" "),
-            fill:pcolor(S.current),"fill-opacity":"0.13",stroke:pcolor(S.current),
-            "stroke-opacity":"0.4","stroke-width":"2","stroke-dasharray":"6 5","stroke-linejoin":"round"}));
-        }
+    ghostG.innerHTML="";
+    if(previewEnabled() && t>=0){
+      for(var c=0;c<S.dots.length;c++){
+        if(c===startIdx||c===t) continue;
+        if(!hasEdge(startIdx,c)||!hasEdge(t,c)) continue;
+        var key=[startIdx,t,c].sort(function(x,y){return x-y;}).join(",");
+        if(S.scoredTri[key]) continue;
+        var pts=[S.dots[startIdx],S.dots[t],S.dots[c]];
+        ghostG.appendChild(svgEl("polygon",{points:pts.map(function(q){return q.x+","+q.y;}).join(" "),
+          fill:pcolor(S.current),"fill-opacity":"0.13",stroke:pcolor(S.current),
+          "stroke-opacity":"0.4","stroke-width":"2","stroke-dasharray":"6 5","stroke-linejoin":"round"}));
       }
     }
-    g.appendChild(svgEl("line",{x1:a.x,y1:a.y,x2:p.x,y2:p.y,
-      stroke:ACCENT,"stroke-width":"5","stroke-dasharray":"10 8","stroke-linecap":"round",opacity:"0.95"}));
+    // magnetic pull: the closer the pointer gets, the harder the target dot
+    // sucks the line end toward itself
+    var end=p;
+    if(t>=0){
+      var tp=S.dots[t], d=Math.hypot(tp.x-p.x,tp.y-p.y);
+      var pull=0.55+0.45*Math.max(0,1-d/SNAP_RADIUS);
+      end={x:p.x+(tp.x-p.x)*pull, y:p.y+(tp.y-p.y)*pull};
+    }
+    rubberLine.setAttribute("x1",a.x); rubberLine.setAttribute("y1",a.y);
+    rubberLine.setAttribute("x2",end.x); rubberLine.setAttribute("y2",end.y);
+    rubberLine.classList.toggle("snap", t>=0);
+    // suction pulse ring on the target dot (recreated when the target changes
+    // so the animation restarts from the outside)
+    if(t!==suckTarget || (t>=0 && (!suckRing || suckRing.parentNode!==g))){
+      if(suckRing && suckRing.parentNode) suckRing.parentNode.removeChild(suckRing);
+      suckRing=null; suckTarget=t;
+      if(t>=0){
+        var q=S.dots[t];
+        suckRing=svgEl("circle",{cx:q.x,cy:q.y,r:S.dotR*1.9,fill:"none",
+          stroke:ACCENT,"stroke-width":"3",class:"suck-ring"});
+        g.appendChild(suckRing);
+      }
+    }
   }
-  function clearRubber(){$("g-drag").innerHTML="";}
+  function clearRubber(){
+    $("g-drag").innerHTML="";
+    rubberLine=null; suckRing=null; ghostG=null; suckTarget=-1;
+  }
   function setHoverDot(idx){
     var dots=$("g-dot").querySelectorAll(".dot");
     for(var k=0;k<dots.length;k++) dots[k].setAttribute("r", S.dotR);
@@ -1508,14 +1583,19 @@
     if(S.phase!=="drawing"||isAiTurn()) return;
     if(S.online && S.current!==S.myPlayer) return;
     var p=clientToSvg(e.clientX,e.clientY); if(!p) return;
-    var i=dotAt(p); if(i<0) return;
+    var i=dotAt(p);
+    if(i<0){
+      // Tap on empty space cancels the current selection.
+      if(S.selected!==null){ S.selected=null; clearRubber(); drawBoard(); }
+      return;
+    }
     startDrag(i);
   }
   function onPointerMove(e){
     if(dragStart<0) return;
     var p=clientToSvg(e.clientX,e.clientY); if(!p) return;
     var dx=p.x-S.dots[dragStart].x, dy=p.y-S.dots[dragStart].y;
-    if(dx*dx+dy*dy>S.dotR*S.dotR) dragMoved=true;
+    if(dx*dx+dy*dy>S.hitR*S.hitR) dragMoved=true;
     if(dragMoved){ drawRubber(dragStart,p); setHoverDot(snapTarget(dragStart,p)); }
   }
   function onPointerUp(e){
@@ -1523,8 +1603,12 @@
     window.removeEventListener("pointerup",onPointerUp);
     setHoverDot(-1);
     var start=dragStart; dragStart=-1;
-    if(start<0||!dragMoved){ clearRubber(); return; }
-    var p=clientToSvg(e.clientX,e.clientY); if(!p){ clearRubber(); return; }
+    if(start<0){ clearRubber(); return; }
+    var p=clientToSvg(e.clientX,e.clientY);
+    // Released on (or near) the starting dot, or barely moved → it's a tap.
+    // Handled here because mobile browsers drop the click event after slight movement.
+    if(!dragMoved || (p && dotAt(p)===start)){ clearRubber(); onDotTap(start); return; }
+    if(!p){ clearRubber(); return; }
     var target=snapTarget(start,p);
     if(target>=0){
       S.selected=null;
@@ -1916,6 +2000,7 @@
   }
   function nextTurn(){
     clearTurnTimer();
+    clearRubber();
     if(S.online){ if(S.current!==S.myPlayer) return; NET.send({type:"end_turn"}); return; }
     if(gameOverNow()){endGame();return;}
     S.current=1-S.current;
