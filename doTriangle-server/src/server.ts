@@ -3,7 +3,7 @@ import type * as Party from "partykit/server";
 // ---------- types ----------
 type Phase = "lobby" | "rolloff" | "turn" | "drawing" | "end";
 type Dot = { x: number; y: number };
-type Triangle = { a: number; b: number; c: number; player: number };
+type Triangle = { a: number; b: number; c: number; player: number; pts: number };
 type Player = {
   name: string;
   logo: string;
@@ -17,6 +17,7 @@ type State = {
   players: [Player, Player];
   numDots: number;
   dots: Dot[];
+  goldenDot: number; // index of the x2 dot, -1 = none
   edges: Record<string, number>;
   triangles: Triangle[];
   scoredTri: Record<string, boolean>;
@@ -89,6 +90,11 @@ function genDots(n: number): Dot[] {
   return dots;
 }
 
+// Golden (x2) dot disabled — always -1.
+function pickGoldenDot(_n: number): number {
+  return -1;
+}
+
 function edgeKey(i: number, j: number): string {
   return i < j ? `${i}-${j}` : `${j}-${i}`;
 }
@@ -144,9 +150,11 @@ function checkTriangles(state: State, a: number, b: number, player: number): Tri
       const key = [a, b, c].sort((x, y) => x - y).join(",");
       if (!state.scoredTri[key]) {
         state.scoredTri[key] = true;
-        const t: Triangle = { a, b, c, player };
+        const g = state.goldenDot;
+        const pts = (a === g || b === g || c === g) ? 2 : 1;
+        const t: Triangle = { a, b, c, player, pts };
         state.triangles.push(t);
-        state.scores[player]++;
+        state.scores[player] += pts;
         made.push(t);
       }
     }
@@ -175,6 +183,7 @@ function emptyState(): State {
     ],
     numDots: 10,
     dots: [],
+    goldenDot: -1,
     edges: {},
     triangles: [],
     scoredTri: {},
@@ -320,6 +329,7 @@ export default class Server implements Party.Server {
       this.state.numDots = Math.max(4, Math.min(60, (m.numDots | 0) || 10));
       this.state.bestOf = (m.bestOf | 0) === 3 ? 3 : 1;
       this.state.dots = genDots(this.state.numDots);
+      this.state.goldenDot = pickGoldenDot(this.state.dots.length);
       this.state.players[0] = {
         name: String(m.name || "Player 1").slice(0, 14),
         logo: String(m.logo || "⭐️").slice(0, 8),
@@ -537,6 +547,7 @@ export default class Server implements Party.Server {
     this.state.bestOf = bestOf;
     this.state.matchWins = matchWins;
     this.state.dots = genDots(numDots);
+    this.state.goldenDot = pickGoldenDot(this.state.dots.length);
     this.state.phase = "rolloff";
     this.state.roMatrix = [null, null];
     this.state.roWho = 0;

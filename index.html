@@ -44,10 +44,10 @@
   }
 
   /* ===================== starfield ===================== */
-  #starfield{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;}
+  #starfield{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;opacity:.35;}
   .star{position:absolute;border-radius:50%;background:#fff;opacity:var(--o1,.6);
     animation:twinkle 4s ease-in-out infinite;}
-  .star.glow{box-shadow:0 0 12px 4px rgba(190,200,255,.35);}
+  .star.glow{box-shadow:0 0 12px 4px rgba(190,200,255,.22);}
   @keyframes twinkle{0%,100%{opacity:var(--o1,.6);}50%{opacity:var(--o2,.15);}}
   @media (prefers-reduced-motion: reduce){ .star{animation:none;} }
 
@@ -141,6 +141,21 @@
   .sub{font-size:15px;color:var(--dim);line-height:1.4;}
 
   /* ----- how to play steps ----- */
+  /* compact layout so the whole page fits one screen without scrolling */
+  #v-howto{padding-bottom:16px;}
+  #v-howto.show{overflow:hidden;}
+  #v-howto .stack{gap:12px;}
+  #v-howto .backlink{padding:2px 0 4px;}
+  #v-howto .left-title{font-size:26px;}
+  #v-howto .sub{font-size:13.5px;}
+  #v-howto .gesture-card{padding:8px 10px 6px;}
+  #v-howto .gesture-demo{transform:scale(.72);transform-origin:top center;margin-bottom:-53px;}
+  #v-howto .gd-cap{font-size:12px;margin-top:2px;}
+  #v-howto .steps-card{padding:12px 14px;}
+  #v-howto .step{gap:10px;margin-bottom:9px;}
+  #v-howto .step-n{width:26px;height:26px;font-size:15px;}
+  #v-howto .step-t{font-size:15px;margin-bottom:1px;}
+  #v-howto .step-d{font-size:12.5px;line-height:1.35;}
   .steps-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;}
   .step{display:flex;gap:14px;align-items:flex-start;margin-bottom:14px;}
   .step:last-child{margin-bottom:0;}
@@ -241,13 +256,15 @@
   @keyframes turnPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,0), 0 4px 14px rgba(0,0,0,.28);}
     50%{box-shadow:0 0 0 5px rgba(255,255,255,.18), 0 4px 14px rgba(0,0,0,.28);}}
 
-  /* lines-left counter — absolutely placed midway between P1 card and the dice */
-  #linesleft{position:absolute;z-index:8;display:flex;flex-direction:column;align-items:center;
+  /* lines-left counter — pinned top-center; JS scales it to stay clear of the dots.
+     --turn-col follows whoever's turn it is (P1 cyan / P2 pink). */
+  #linesleft{--turn-col:var(--p1);position:absolute;z-index:8;display:flex;flex-direction:column;align-items:center;
     transform:translate(-50%,-50%);pointer-events:none;}
+  #linesleft.cur-p1{--turn-col:var(--p2);}
   #ll-stage{position:relative;display:flex;align-items:center;justify-content:center;
     width:54px;height:46px;}
   .ll-num{font-family:var(--display);font-weight:700;font-size:38px;line-height:1;
-    color:var(--accent);text-shadow:0 0 14px rgba(54,224,230,.55);}
+    color:var(--turn-col);text-shadow:0 0 14px var(--turn-col);}
   /* the live number that pops when the count drops */
   #ll-num.bump{animation:llBump .42s cubic-bezier(.34,1.56,.64,1);}
   @keyframes llBump{0%{transform:scale(.5);opacity:.2;}55%{transform:scale(1.35);}100%{transform:scale(1);opacity:1;}}
@@ -328,10 +345,10 @@
     transform:translate(-50%,-50%);pointer-events:none;}
   #timer-ring{position:absolute;inset:0;width:100%;height:100%;}
   #timer-track{stroke:rgba(255,255,255,.1);}
-  #timer-arc{stroke:var(--accent);transition:stroke-dashoffset .9s linear,stroke .3s;}
+  #timer-arc{stroke:var(--turn-col);transition:stroke-dashoffset .9s linear,stroke .3s;}
   #timer-arc.urgent{stroke:#ff4d6d;}
   #timer-num{position:absolute;bottom:-16px;left:50%;transform:translateX(-50%);
-    font-family:var(--display);font-weight:700;font-size:13px;color:var(--accent);
+    font-family:var(--display);font-weight:700;font-size:13px;color:var(--turn-col);
     transition:color .3s;white-space:nowrap;}
   #timer-num.urgent{color:#ff4d6d;}
   .die .pip{width:10px;height:10px;border-radius:50%;background:var(--solid);align-self:center;justify-self:center;}
@@ -476,7 +493,7 @@
     --vj-grad:linear-gradient(90deg,#5BE0E6,#A78BFA,#F472B6);
     font-family:'Poppins',var(--body); color:var(--vj-text);
     padding:0 0 60px;
-    background:radial-gradient(130% 100% at 50% -10%, #1d1547 0%, #07061a 100%);
+    /* own gradient removed so the shared nebula + starfield show through */
   }
   /* sticky header — title + dice economy stay pinned while the path scrolls under */
   .vj-header{position:sticky;top:0;z-index:6;
@@ -594,27 +611,62 @@
     background:var(--vj-grad);box-shadow:0 0 40px rgba(167,139,250,.55);}
   .vj-finish-sub{font-size:12.5px;font-weight:600;color:var(--vj-muted);}
 
-  /* level intro overlay */
-  .li-panel{text-align:left;padding:24px 24px 20px;max-width:380px;}
-  .li-badge{align-self:flex-start;display:inline-block;font-size:11px;font-weight:800;letter-spacing:1.4px;
-    text-transform:uppercase;color:var(--accent);background:rgba(182,155,255,.12);
-    border:1px solid rgba(182,155,255,.30);border-radius:999px;padding:5px 11px;}
-  .li-title{font-family:var(--display);font-weight:700;font-size:29px;line-height:1.05;margin:14px 0 6px;}
-  .li-twist{font-size:14.5px;color:var(--dim);line-height:1.45;margin:0 0 16px;}
-  .li-divider{height:1px;background:var(--border);margin:0 0 16px;}
-  .li-seclabel{font-size:11px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;
-    color:var(--dim);margin:0 0 10px;}
-  .li-specs{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-start;margin-bottom:16px;}
-  .li-chip{font-size:12.5px;font-weight:600;color:var(--text);background:var(--surface2);
-    border:1px solid var(--border);border-radius:10px;padding:7px 12px;white-space:nowrap;}
-  .li-wallet{display:flex;align-items:center;gap:10px;text-align:left;
-    background:rgba(255,210,95,.09);border:1px solid rgba(255,210,95,.28);border-radius:14px;
-    padding:11px 12px;margin:0 0 18px;font-size:12.5px;font-weight:600;color:#F4E3B4;line-height:1.35;}
-  .li-w-ico{flex:0 0 auto;width:30px;height:30px;border-radius:9px;display:flex;align-items:center;
-    justify-content:center;background:rgba(255,210,95,.16);font-size:15px;}
-  .li-w-amt{color:#FFD25F;font-weight:800;}
-  .li-cancel{width:100%;text-align:center;margin-top:8px;}
-  #ov-levelintro .panel .btn-primary{margin-top:2px;}
+  /* level intro overlay — "Stakes First" redesign */
+  #ov-levelintro{background:rgba(6,5,18,.72);backdrop-filter:blur(3px);padding:0 22px;}
+  .li-card{width:100%;max-width:380px;border-radius:30px;padding:30px 24px 24px;text-align:center;
+    background:linear-gradient(180deg,#241B52,#141031);
+    border:1px solid rgba(160,140,255,.16);
+    box-shadow:0 40px 100px -20px rgba(0,0,0,.8);
+    font-family:'Poppins',var(--body);color:#F4F1FF;}
+  .li-cluster{display:flex;justify-content:center;gap:12px;}
+  .li-fan{display:block;}
+  .li-fan.l{transform:translateY(8px) rotate(-10deg);}
+  .li-fan.r{transform:translateY(8px) rotate(10deg);}
+  .li-cluster svg{display:block;}
+  .li-stake{font-size:12.5px;font-weight:700;color:#FFC53D;letter-spacing:.5px;margin-top:10px;}
+  .li-pillrow{margin-top:16px;}
+  .li-lvlpill{display:inline-block;white-space:nowrap;padding:6px 14px;border-radius:999px;
+    border:1px solid rgba(167,139,250,.55);background:rgba(167,139,250,.10);
+    font-size:12px;font-weight:800;letter-spacing:2px;color:#C4ABFF;}
+  .li-title{font-family:'Poppins',var(--body);font-weight:800;font-size:36px;letter-spacing:-1px;
+    color:#fff;line-height:1.1;margin:10px 0 0;}
+  .li-twist{font-size:15.5px;font-weight:500;color:rgba(206,199,240,.62);line-height:1.45;margin:4px 0 0;}
+  .li-specs{display:flex;justify-content:center;flex-wrap:wrap;gap:8px;margin-top:18px;}
+  .li-chip{padding:8px 16px;border-radius:999px;background:rgba(255,255,255,.05);
+    border:1px solid rgba(160,140,255,.16);font-size:14px;font-weight:700;color:#fff;white-space:nowrap;}
+  .li-bank{margin-top:18px;padding:14px 16px;border-radius:16px;background:rgba(255,255,255,.03);
+    border:1px solid rgba(160,140,255,.16);display:flex;align-items:center;justify-content:center;gap:10px;}
+  .li-meter{display:flex;gap:6px;}
+  .li-meter svg{display:block;}
+  .li-reward{display:flex;align-items:center;gap:5px;padding:6px 11px;border-radius:999px;
+    background:rgba(255,197,61,.12);border:1px solid rgba(255,197,61,.3);white-space:nowrap;}
+  .li-reward span{font-size:12px;font-weight:800;color:#FFC53D;}
+  .li-cta{display:block;width:100%;border:none;cursor:pointer;margin-top:20px;padding:17px 0;border-radius:999px;
+    font-family:'Poppins',var(--body);font-weight:800;font-size:18px;color:#1A1140;
+    background:linear-gradient(180deg,#CDBBFF,#A78BFA);
+    box-shadow:0 14px 38px -8px rgba(167,139,250,.7),0 0 24px rgba(167,139,250,.35);
+    transition:transform .1s;}
+  .li-cta:active{transform:scale(.97);}
+  .li-cancel{display:block;width:100%;background:none;border:none;cursor:pointer;text-align:center;
+    font-family:'Poppins',var(--body);font-size:15.5px;font-weight:700;color:rgba(206,199,240,.62);
+    padding:16px 0 2px;}
+  /* open: card scales in 0.94→1 with fade; stars pop in 60ms apart after the card lands */
+  @keyframes li-fade{from{opacity:0;}to{opacity:1;}}
+  @keyframes li-pop{from{transform:scale(.94);opacity:0;}to{transform:scale(1);opacity:1;}}
+  @keyframes li-starpop{from{transform:scale(0);opacity:0;}to{transform:scale(1);opacity:1;}}
+  #ov-levelintro:not(.hidden){animation:li-fade .24s ease-out;}
+  @media (prefers-reduced-motion: no-preference){
+    #ov-levelintro:not(.hidden) .li-card{animation:li-pop .24s ease-out;}
+    #ov-levelintro:not(.hidden) .li-spop{animation:li-starpop .3s cubic-bezier(.34,1.56,.64,1) both;}
+    #ov-levelintro:not(.hidden) .li-spop:nth-child(1){animation-delay:.24s;}
+    #ov-levelintro:not(.hidden) .li-spop:nth-child(2){animation-delay:.30s;}
+    #ov-levelintro:not(.hidden) .li-spop:nth-child(3){animation-delay:.36s;}
+  }
+  /* close: reverse, ~180ms */
+  #ov-levelintro.closing{animation:li-fade .18s ease-in reverse forwards;pointer-events:none;}
+  @media (prefers-reduced-motion: no-preference){
+    #ov-levelintro.closing .li-card{animation:li-pop .18s ease-in reverse forwards;}
+  }
 
   /* campaign result — docked to the lower part so the board stays visible */
   #campresult{position:fixed;left:0;right:0;bottom:0;z-index:19;display:none;justify-content:center;
@@ -646,6 +698,26 @@
   animation:suckPulse 1.3s ease-in-out infinite;
   pointer-events:none;
 }
+/* ---- legal-target highlighting (dim what you can't reach) ---- */
+.dot-grp .dot{transition:opacity .18s ease, filter .18s ease;}
+.dot-grp.dim-dot .dot{opacity:.22;}
+.dot-grp.legal-dot .dot{filter:drop-shadow(0 0 7px rgba(182,155,255,.95));}
+/* ---- blocker flash (the thing your line collided with) ---- */
+@keyframes blockerBlink{0%{opacity:0;}15%,40%{opacity:.95;}55%{opacity:.25;}70%,85%{opacity:.95;}100%{opacity:0;}}
+.blocker-flash{animation:blockerBlink .9s ease-out forwards;pointer-events:none;}
+/* ---- golden dot (x2 triangles) ---- */
+@keyframes goldPulse{0%,100%{opacity:.9;transform:scale(1);}50%{opacity:.3;transform:scale(1.5);}}
+.gold-halo{transform-box:fill-box;transform-origin:center;animation:goldPulse 1.6s ease-in-out infinite;pointer-events:none;}
+/* ---- combo callout + screen shake ---- */
+@keyframes comboShake{0%,100%{transform:translate(0,0);}20%{transform:translate(-7px,4px);}40%{transform:translate(6px,-5px);}60%{transform:translate(-4px,-3px);}80%{transform:translate(3px,2px);}}
+#stage.shake-now{animation:comboShake .45s ease;}
+@keyframes comboPop{0%{opacity:0;transform:translate(-50%,-50%) scale(.4);}18%{opacity:1;transform:translate(-50%,-50%) scale(1.18);}32%{transform:translate(-50%,-50%) scale(1);}75%{opacity:1;}100%{opacity:0;transform:translate(-50%,-64%) scale(1);}}
+.combo-pop{position:fixed;left:50%;top:36%;z-index:60;pointer-events:none;
+  font-family:var(--display);font-weight:800;font-size:46px;letter-spacing:2px;
+  color:#FFD25F;text-shadow:0 0 26px rgba(255,210,95,.65),0 3px 12px rgba(0,0,0,.55);
+  opacity:0;transform:translate(-50%,-50%) scale(.4);
+  animation:comboPop 1.05s cubic-bezier(.22,1.4,.4,1) forwards;}
+.combo-pop.mega{font-size:56px;color:#FF5FB0;text-shadow:0 0 30px rgba(255,95,176,.7),0 3px 12px rgba(0,0,0,.55);}
 </style>
 </head>
 <body>
@@ -899,18 +971,18 @@
     <div class="vj-path" id="vj-path"></div>
   </div>
 
-  <!-- ===================== LEVEL INTRO ===================== -->
+  <!-- ===================== LEVEL INTRO — Stakes First ===================== -->
   <div class="overlay hidden" id="ov-levelintro">
-    <div class="panel li-panel">
-      <span class="li-badge" id="li-badge">Level 1 of 20</span>
+    <div class="li-card">
+      <div class="li-cluster" id="li-cluster"></div>
+      <div class="li-stake">3★ up for grabs</div>
+      <div class="li-pillrow"><span class="li-lvlpill" id="li-badge">LEVEL 1 OF 20</span></div>
       <h2 class="li-title" id="li-title">First Steps</h2>
       <p class="li-twist" id="li-twist">Learn the ropes.</p>
-      <div class="li-divider"></div>
-      <div class="li-seclabel">Challenge</div>
       <div class="li-specs" id="li-specs"></div>
-      <div class="li-wallet" id="li-wallet"></div>
-      <button class="btn btn-primary" id="li-start">Start duel</button>
-      <button class="btn-text li-cancel" id="li-cancel">Back to map</button>
+      <div class="li-bank" id="li-bank"></div>
+      <button class="li-cta" id="li-start">Start duel</button>
+      <button class="li-cancel" id="li-cancel">Back to map</button>
     </div>
   </div>
 
@@ -1108,7 +1180,7 @@
     names:["Player 1","Player 2"],
     scores:[0,0],
     current:0,
-    dots:[], edges:{}, triangles:[], scoredTri:{},
+    dots:[], edges:{}, triangles:[], scoredTri:{}, goldenDot:-1,
     linesLeft:0, lineTotal:0, selected:null,
     roMatrix:[null,null], roWho:0,
     rolling:false,
@@ -1142,7 +1214,22 @@
     hideOverlay("ov-rolloff"); hideOverlay("ov-levelintro"); $("gameover").classList.remove("show");
     $("campresult").classList.remove("show");
     $("sheet").classList.remove("show"); $("confetti").classList.remove("show");
+    if(id==="v-howto") fitHowto();
   }
+  // scale the how-to-play content down if it would overflow the viewport (no scrolling)
+  function fitHowto(){
+    var v=$("v-howto"); if(!v.classList.contains("show")) return;
+    var inner=v.querySelector(".view-inner");
+    inner.style.transform="";
+    var cs=getComputedStyle(v);
+    var avail=v.clientHeight-(parseFloat(cs.paddingTop)||0)-(parseFloat(cs.paddingBottom)||0);
+    var need=inner.scrollHeight;
+    if(need>avail){
+      inner.style.transformOrigin="top center";
+      inner.style.transform="scale("+(avail/need)+")";
+    }
+  }
+  window.addEventListener("resize",fitHowto);
   function showGame(){
     VIEWS.forEach(function(v){$(v).classList.remove("show");});
     $("stage").classList.add("show");
@@ -1349,6 +1436,8 @@
     }
     while(d.length<n){d.push({x:VB.margin+Math.random()*uW,y:VB.margin+Math.random()*uH});}
     S.dots=d;
+    // golden dot disabled — all triangles score 1
+    S.goldenDot = -1;
   }
   function drawBoard(){
     var gd=$("g-dot"),ge=$("g-edge"),gt=$("g-tri"),gr=$("g-ring");
@@ -1363,19 +1452,12 @@
       ge.appendChild(svgEl("line",{x1:a.x,y1:a.y,x2:b.x,y2:b.y,stroke:col,"stroke-opacity":"0.35","stroke-width":"9","stroke-linecap":"round"}));
       ge.appendChild(svgEl("line",{x1:a.x,y1:a.y,x2:b.x,y2:b.y,stroke:col,"stroke-width":"5","stroke-linecap":"round"}));
     }
-    if(S.selected!=null && canDrawNow()){
-      for(var c=0;c<S.dots.length;c++){
-        if(c===S.selected) continue;
-        if(hasEdge(S.selected,c)||passesThroughDot(S.selected,c)||crossesEdge(S.selected,c)) continue;
-        var p=S.dots[c];
-        gr.appendChild(svgEl("circle",{cx:p.x,cy:p.y,r:S.dotR*2.6,fill:"none",stroke:ACCENT,"stroke-opacity":"0.35","stroke-width":"2.5"}));
-      }
-    }
     S.dots.forEach(function(p,i){
       var grp=svgEl("g",{class:"dot-grp"});
-      var sel=S.selected===i;
+      var sel=S.selected===i, gold=(i===S.goldenDot);
       if(sel){grp.appendChild(svgEl("circle",{cx:p.x,cy:p.y,r:S.dotR*1.2+7,fill:"none",stroke:ACCENT,"stroke-width":"3"}));}
-      grp.appendChild(svgEl("circle",{cx:p.x,cy:p.y,r:sel?S.dotR*1.2:S.dotR,fill:"#fff",class:"dot"}));
+      if(gold){grp.appendChild(svgEl("circle",{cx:p.x,cy:p.y,r:S.dotR*1.9,fill:"none",stroke:"#FFD25F","stroke-width":"2.5",class:"gold-halo"}));}
+      grp.appendChild(svgEl("circle",{cx:p.x,cy:p.y,r:sel?S.dotR*1.2:S.dotR,fill:gold?"#FFD25F":"#fff",class:"dot"}));
       var hit=svgEl("circle",{cx:p.x,cy:p.y,r:S.hitR,fill:"transparent",style:"cursor:pointer"});
       hit.addEventListener("pointerdown",function(){ startDrag(i); });
       hit.addEventListener("pointerenter",function(){ if(canDrawNow()||dragStart>=0) setHoverDot(i); });
@@ -1383,6 +1465,25 @@
       grp.appendChild(hit);
       gd.appendChild(grp);
     });
+    applyTargetHighlight(S.selected!=null ? S.selected : (dragStart>=0 ? dragStart : null));
+  }
+  // Dim dots you can't legally reach from `from`; softly glow the ones you can.
+  function applyTargetHighlight(from){
+    var gr=$("g-ring"); gr.innerHTML="";
+    var grps=$("g-dot").children, i;
+    for(i=0;i<grps.length;i++) grps[i].classList.remove("dim-dot","legal-dot");
+    if(from==null||from<0||!canDrawNow()) return;
+    for(i=0;i<S.dots.length;i++){
+      if(i===from||!grps[i]) continue;
+      var ok=!hasEdge(from,i)&&!passesThroughDot(from,i)&&!crossesEdge(from,i);
+      if(ok){
+        var p=S.dots[i];
+        gr.appendChild(svgEl("circle",{cx:p.x,cy:p.y,r:S.dotR*2.6,fill:"none",stroke:ACCENT,"stroke-opacity":"0.4","stroke-width":"2.5"}));
+        grps[i].classList.add("legal-dot");
+      } else {
+        grps[i].classList.add("dim-dot");
+      }
+    }
   }
 
   // ---------- drawing / scoring ----------
@@ -1445,7 +1546,7 @@
     if(made>0) spawnBadgesForNewTriangles(prevTri);
     buzz(made>0?[30,40,30]:12);
     if(made===1){playSound(sndSingle);}
-    else if(made>=2){playSound(sndDouble);}
+    else if(made>=2){playSound(sndDouble);comboCallout(made);comboStarBonus(made);}
     if(gameOverNow()){endGame();return true;}
     if(S.linesLeft<=0){setTimeout(nextTurn,420);}
     return true;
@@ -1460,6 +1561,7 @@
     if(!commitLine(a,i)){
       S.selected=a;
       flashRejectedLine(S.dots[a], S.dots[i]);
+      flashBlocker(a,i);
       drawBoard();
     }
   }
@@ -1484,6 +1586,36 @@
       line.style.transition="opacity .35s"; line.style.opacity="0";
       setTimeout(function(){ try{ g.innerHTML=""; }catch(e){} }, 380);
     }, 380);
+  }
+  // What exactly blocks the line a→b? Returns the existing edge or dot at fault.
+  function findBlocker(a,b){
+    if(hasEdge(a,b)) return {type:"edge", key:edgeKey(a,b)};
+    var p1=S.dots[a], p2=S.dots[b], len=Math.hypot(p2.x-p1.x,p2.y-p1.y)||1;
+    for(var c=0;c<S.dots.length;c++){
+      if(c===a||c===b) continue;
+      var pc=S.dots[c];
+      if(Math.abs(orient(p1,p2,pc))/len < S.dotR && onSeg(p1,pc,p2)) return {type:"dot", idx:c};
+    }
+    for(var key in S.edges){
+      var ij=key.split("-"), i=+ij[0], j=+ij[1];
+      if(i===a||i===b||j===a||j===b) continue;
+      if(segCross(p1,p2,S.dots[i],S.dots[j])) return {type:"edge", key:key};
+    }
+    return null;
+  }
+  // Flash the offending edge or dot in red so the player sees *why* it failed.
+  function flashBlocker(a,b){
+    var bl=findBlocker(a,b); if(!bl) return;
+    var g=$("g-drag"), el;
+    if(bl.type==="dot"){
+      var p=S.dots[bl.idx];
+      el=svgEl("circle",{cx:p.x,cy:p.y,r:S.dotR*2.1,fill:"none",stroke:"#ff5470","stroke-width":"4",class:"blocker-flash"});
+    } else {
+      var ij=bl.key.split("-"), pa=S.dots[+ij[0]], pb=S.dots[+ij[1]];
+      el=svgEl("line",{x1:pa.x,y1:pa.y,x2:pb.x,y2:pb.y,stroke:"#ff5470","stroke-width":"8","stroke-linecap":"round",class:"blocker-flash"});
+    }
+    g.appendChild(el);
+    setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, 950);
   }
   var SNAP_RADIUS=48;
   function snapTarget(startIdx, p){
@@ -1576,6 +1708,7 @@
     if(S.phase!=="drawing"||isAiTurn()) return;
     if(S.online && S.current!==S.myPlayer) return;
     dragStart=i; dragMoved=false;
+    applyTargetHighlight(i);
     window.addEventListener("pointermove",onPointerMove);
     window.addEventListener("pointerup",onPointerUp);
   }
@@ -1613,7 +1746,7 @@
     if(target>=0){
       S.selected=null;
       if(commitLine(start,target)){ clearRubber(); }
-      else { flashRejectedLine(S.dots[start], S.dots[target]); }
+      else { flashRejectedLine(S.dots[start], S.dots[target]); flashBlocker(start,target); }
       return;
     }
     var nearest=dotAt(p);
@@ -1623,9 +1756,11 @@
       else if(passesThroughDot(start,nearest)) why="There's a dot in the way";
       else if(crossesEdge(start,nearest)) why="Lines can't cross";
       flashRejectedLine(S.dots[start], S.dots[nearest]);
+      flashBlocker(start,nearest);
       toast(why);
     } else { clearRubber(); }
     S.selected=null;
+    drawBoard();
   }
   board.addEventListener("pointerdown",onPointerDown);
   board.addEventListener("pointermove",function(e){
@@ -1643,7 +1778,11 @@
       if(c===a||c===b) continue;
       if(hasEdge(a,c)&&hasEdge(b,c)){
         var key=[a,b,c].sort(function(x,y){return x-y;}).join(",");
-        if(!S.scoredTri[key]){S.scoredTri[key]=true;S.triangles.push({a:a,b:b,c:c,player:S.current});S.scores[S.current]++;made++;}
+        if(!S.scoredTri[key]){
+          var pts=(a===S.goldenDot||b===S.goldenDot||c===S.goldenDot)?2:1;
+          S.scoredTri[key]=true;S.triangles.push({a:a,b:b,c:c,player:S.current,pts:pts});
+          S.scores[S.current]+=pts;made++;
+        }
       }
     }
     return made;
@@ -1663,7 +1802,8 @@
   // ---------- flying +1 badges (mirrors iOS FlyingPointView) ----------
   var displayedScores=[0,0];
 
-  function spawnBadge(player, triDots){
+  function spawnBadge(player, triDots, pts){
+    pts=pts||1;
     var cx=(triDots[0].x+triDots[1].x+triDots[2].x)/3;
     var cy=(triDots[0].y+triDots[1].y+triDots[2].y)/3;
     var brd=$("board"), ctm=brd.getScreenCTM();
@@ -1671,11 +1811,12 @@
     var sc=pt.matrixTransform(ctm);
     var cardRect=$("sc"+player).getBoundingClientRect();
     var tx=cardRect.left+cardRect.width/2, ty=cardRect.top+cardRect.height/2;
-    var color=player===0?P1:P2;
+    var color=pts>1?"#FFD25F":(player===0?P1:P2);
     var badge=document.createElement("div");
     badge.className="flying-badge";
-    badge.textContent="+1";
-    badge.style.cssText="color:"+color+";left:"+sc.x+"px;top:"+sc.y+"px;transform:translate(-50%,-50%) scale(0.2);opacity:0;";
+    badge.textContent="+"+pts;
+    badge.style.cssText="color:"+color+";left:"+sc.x+"px;top:"+sc.y+"px;transform:translate(-50%,-50%) scale(0.2);opacity:0;"
+      +(pts>1?"text-shadow:0 0 14px rgba(255,210,95,.8);":"");
     document.body.appendChild(badge);
     // pop in — spring feel
     requestAnimationFrame(function(){
@@ -1697,7 +1838,7 @@
     // land → tick score + bump card
     setTimeout(function(){
       if(displayedScores[player]<S.scores[player]){
-        displayedScores[player]++;
+        displayedScores[player]=Math.min(displayedScores[player]+pts,S.scores[player]);
         $("sc"+player+"-val").textContent=displayedScores[player];
       }
       bumpScore(player);
@@ -1708,8 +1849,36 @@
   function spawnBadgesForNewTriangles(prevCount){
     for(var i=prevCount;i<S.triangles.length;i++){
       var t=S.triangles[i];
-      spawnBadge(t.player,[S.dots[t.a],S.dots[t.b],S.dots[t.c]]);
+      spawnBadge(t.player,[S.dots[t.a],S.dots[t.b],S.dots[t.c]],t.pts||1);
     }
+  }
+
+  // ---------- combo callouts (DOUBLE! / TRIPLE!) ----------
+  function comboCallout(n){
+    if(n<2) return;
+    var txt = n===2 ? "DOUBLE!" : (n===3 ? "TRIPLE!" : "MEGA ×"+n+"!");
+    var el=document.createElement("div");
+    el.className="combo-pop"+(n>=3?" mega":"");
+    el.textContent=txt;
+    document.body.appendChild(el);
+    setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); },1100);
+    var st=$("stage");
+    st.classList.remove("shake-now"); void st.offsetWidth; st.classList.add("shake-now");
+    setTimeout(function(){ st.classList.remove("shake-now"); },500);
+    buzz([20,30,20,50]);
+  }
+  // Small star bonus for combos — campaign only, your own line, capped per game.
+  var _comboStarsThisGame=0, COMBO_STAR_CAP=3;
+  function comboStarBonus(n){
+    if(!S.campaign||isAiTurn()||S.current!==0||n<2) return;
+    if(_comboStarsThisGame>=COMBO_STAR_CAP) return;
+    var add=Math.min(n===2?1:2, COMBO_STAR_CAP-_comboStarsThisGame);
+    _comboStarsThisGame+=add;
+    var prog=loadCampaign();
+    prog.bonus=(prog.bonus||0)+add;
+    saveCampaign(prog);
+    toast("Combo bonus +"+add+"★");
+    updatePowerButton();
   }
 
   // ---------- HUD ----------
@@ -1806,29 +1975,38 @@
 
   // ---------- lines-left counter ----------
   var _llShown=-1;
-  // Park the counter midway between the ACTIVE player's card and the dice
-  // (left side for Player 1, right side for Player 2).
+  // Pin the counter to the top-center of the screen, shrinking it so it never
+  // overlaps the topmost dots in the middle column of the board.
+  var LL_H=96; // natural widget height: caption + ring + countdown number
   function positionLinesLeft(){
-    var box=$("linesleft"), die=$("game-die");
-    var card=$(S.current===1 ? "sc1" : "sc0");
-    if(!box||!card||!die || box.style.display==="none") return;
-    var c=card.getBoundingClientRect(), d=die.getBoundingClientRect();
-    // center in the FREE corridor between the card and the die (works on either side),
-    // and shrink to fit so the counter never overlaps them on narrow phones
-    var lo = c.right<d.left ? c.right : d.right;
-    var hi = c.right<d.left ? d.left  : c.left;
-    var gap = Math.max(0, hi-lo);
-    box.style.left=(lo+gap/2)+"px";
-    // -20px keeps the ring at die height now that the caption sits on top
-    box.style.top=(d.top+d.height/2-20)+"px";
-    box.style.width=Math.max(40, gap-4)+"px";
-    var s=Math.max(.5, Math.min(1, gap/72));
+    var box=$("linesleft");
+    if(!box || box.style.display==="none") return;
+    var cx=window.innerWidth/2;
+    var tb=$("topbar");
+    var topEdge = tb ? tb.getBoundingClientRect().top : 14;
+    // find the highest dot near the center column so the counter stays clear of it
+    var limit=window.innerHeight*0.5;
+    var brd=$("board"), ctm=brd ? brd.getScreenCTM() : null;
+    if(ctm && S.dots && S.dots.length){
+      var half=70; // half-width of the corridor we must keep clear
+      for(var i=0;i<S.dots.length;i++){
+        var sx=ctm.a*S.dots[i].x+ctm.e, sy=ctm.d*S.dots[i].y+ctm.f;
+        if(Math.abs(sx-cx)<half && sy-12<limit) limit=sy-12; // 12px = dot radius + breathing room
+      }
+    }
+    var avail=Math.max(40, limit-topEdge);
+    var s=Math.max(.45, Math.min(1, avail/LL_H));
+    box.style.left=cx+"px";
+    box.style.width="auto";
+    box.style.top=(topEdge + (LL_H*s)/2)+"px";
     box.style.transform="translate(-50%,-50%) scale("+s+")";
   }
   window.addEventListener("resize", positionLinesLeft);
   function renderLinesLeft(){
     var box=$("linesleft"), num=$("ll-num"), stage=$("ll-stage");
     if(!box||!num||!stage) return;
+    // tint ring + numbers in the active player's color
+    box.classList.toggle("cur-p1", S.current===1);
     // Show only on a human drawing turn — never while the computer plays.
     var show = S.phase==="drawing" && !isAiTurn() && (S.lineTotal>0 || S.linesLeft>0);
     var timerOn = !!_turnTimer && (S.phase==="drawing" || (S.online && S.phase==="turn"));
@@ -2159,6 +2337,7 @@
   // ---------- start / new board ----------
   function newBoard(){
     S.scores=[0,0];displayedScores=[0,0];S.edges={};S.triangles=[];S.scoredTri={};S.selected=null;
+    _comboStarsThisGame=0;
     $("gameover").classList.remove("show");
     genDots();drawBoard();updateHUD();
   }
@@ -2200,7 +2379,7 @@
     var d={unlocked:1, stars:{}};
     try{
       var raw=localStorage.getItem(CAMP_KEY);
-      if(raw){ var p=JSON.parse(raw); if(p&&typeof p.unlocked==="number"){ d.unlocked=p.unlocked; d.stars=p.stars||{}; d.spent=p.spent||0; if(p.startFirst) d.startFirst=p.startFirst; } }
+      if(raw){ var p=JSON.parse(raw); if(p&&typeof p.unlocked==="number"){ d.unlocked=p.unlocked; d.stars=p.stars||{}; d.spent=p.spent||0; d.bonus=p.bonus||0; if(p.startFirst) d.startFirst=p.startFirst; } }
     }catch(e){}
     if(d.unlocked<1) d.unlocked=1;
     if(d.unlocked>CAMPAIGN.length) d.unlocked=CAMPAIGN.length;
@@ -2218,7 +2397,7 @@
   // This is farm-proof: replaying a cleared level only adds stars if you beat your best.
   function starBalance(){
     var prog=loadCampaign();
-    return Math.max(0, totalStarsEarned(prog)-(prog.spent||0));
+    return Math.max(0, totalStarsEarned(prog)+(prog.bonus||0)-(prog.spent||0));
   }
   function spendStars(n){
     var prog=loadCampaign();
@@ -2400,19 +2579,47 @@
     if(L.first==="you") c.push("You start");
     return c.map(function(t){return '<span class="li-chip">'+t+'</span>';}).join("");
   }
+  // gold star SVG (filled w/ glow) or faint outline — matches the design handoff
+  function liStar(size,on){
+    var d="M12 2.4l2.66 5.62 6.04.86-4.4 4.36 1.06 6.08L12 16.9 6.64 19.32l1.06-6.08-4.4-4.36 6.04-.86L12 2.4z";
+    return '<svg width="'+size+'" height="'+size+'" viewBox="0 0 24 24"'+
+      (on?' style="filter:drop-shadow(0 0 6px #FFC53Daa)"':'')+'>'+
+      '<path d="'+d+'" '+(on?'fill="#FFC53D"'
+        :'fill="none" stroke="rgba(206,199,240,0.32)" stroke-width="1.6" stroke-linejoin="round"')+'/></svg>';
+  }
   function openLevelIntro(idx){
     _campIntro=idx;
     var L=CAMPAIGN[idx];
-    $("li-badge").textContent="Level "+(idx+1)+" of "+CAMPAIGN.length;
+    // the prize: 3-star fan, previously earned stars filled gold
+    var earned=loadCampaign().stars[idx+1]||0;
+    $("li-cluster").innerHTML=
+      '<div class="li-spop"><div class="li-fan l">'+liStar(38,earned>=1)+'</div></div>'+
+      '<div class="li-spop">'+liStar(48,earned>=2)+'</div>'+
+      '<div class="li-spop"><div class="li-fan r">'+liStar(38,earned>=3)+'</div></div>';
+    $("li-badge").textContent="LEVEL "+(idx+1)+" OF "+CAMPAIGN.length;
     $("li-title").textContent=L.name;
     $("li-twist").textContent=L.twist;
     $("li-specs").innerHTML=levelChips(L);
-    var bal=starBalance();
-    var walletMsg = bal>=EXTRA_ROLL_COST
-      ? '<span class="li-w-amt">'+bal+'★</span> banked — spend <span class="li-w-amt">'+EXTRA_ROLL_COST+'★</span> in a duel for an extra roll'
-      : '<span class="li-w-amt">'+bal+'★</span> banked — earn <span class="li-w-amt">'+EXTRA_ROLL_COST+'★</span> to unlock the extra-roll power';
-    $("li-wallet").innerHTML='<span class="li-w-ico">⚡</span><span>'+walletMsg+'</span>';
+    // star economy: 6-slot meter → +1 roll reward chip
+    var fill=starBalance()%EXTRA_ROLL_COST, meter="";
+    for(var i=0;i<EXTRA_ROLL_COST;i++) meter+=liStar(17,i<fill);
+    $("li-bank").innerHTML=
+      '<div class="li-meter">'+meter+'</div>'+
+      '<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="rgba(206,199,240,0.32)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'+
+      '<div class="li-reward"><svg width="15" height="15" viewBox="0 0 24 24" fill="none">'+
+        '<rect x="3" y="3" width="18" height="18" rx="5" stroke="#FFC53D" stroke-width="1.9"/>'+
+        '<circle cx="8.5" cy="8.5" r="1.6" fill="#FFC53D"/><circle cx="15.5" cy="8.5" r="1.6" fill="#FFC53D"/>'+
+        '<circle cx="12" cy="12" r="1.6" fill="#FFC53D"/>'+
+        '<circle cx="8.5" cy="15.5" r="1.6" fill="#FFC53D"/><circle cx="15.5" cy="15.5" r="1.6" fill="#FFC53D"/>'+
+      '</svg><span>+1 roll</span></div>';
     showOverlay("ov-levelintro");
+  }
+  // animated dismiss (reverse of open, ~180ms)
+  function closeLevelIntro(){
+    var ov=$("ov-levelintro");
+    if(ov.classList.contains("hidden")||ov.classList.contains("closing")) return;
+    ov.classList.add("closing");
+    setTimeout(function(){ ov.classList.remove("closing"); hideOverlay("ov-levelintro"); },180);
   }
 
   function startCampaignLevel(idx){
@@ -3052,7 +3259,9 @@
 
   // ---------- campaign buttons ----------
   $("li-start").addEventListener("click",function(){ startCampaignLevel(_campIntro); });
-  $("li-cancel").addEventListener("click",function(){ hideOverlay("ov-levelintro"); });
+  $("li-cancel").addEventListener("click",closeLevelIntro);
+  // tapping the scrim also dismisses the pop-up
+  $("ov-levelintro").addEventListener("click",function(e){ if(e.target===this) closeLevelIntro(); });
   $("cr-next").addEventListener("click",function(){
     $("campresult").classList.remove("show");
     startCampaignLevel(S.campLevel+1);
@@ -3160,6 +3369,7 @@
   function applyServerUpdate(state, events){
     var firstUpdate = (S.phase==="setup"||S.phase==="lobby");
     S.numDots = state.numDots; S.dots = state.dots;
+    S.goldenDot = -1; // golden dot disabled, ignore server value
     S.edges = state.edges; S.triangles = state.triangles; S.scoredTri = state.scoredTri;
     S.scores = state.scores;
     if(firstUpdate){ displayedScores=[S.scores[0],S.scores[1]]; }
@@ -3194,13 +3404,13 @@
       else if(e.type==="line_drawn"){
         buzz(e.triangles.length>0?[30,40,30]:12);
         if(e.triangles.length===1){ playSound(sndSingle); }
-        else if(e.triangles.length>=2){ playSound(sndDouble); }
+        else if(e.triangles.length>=2){ playSound(sndDouble); comboCallout(e.triangles.length); }
         if(e.triangles.length>0){
           // sync displayed scores down if a reset happened, up via badges
           displayedScores[0]=Math.min(displayedScores[0],S.scores[0]);
           displayedScores[1]=Math.min(displayedScores[1],S.scores[1]);
           e.triangles.forEach(function(t){
-            spawnBadge(t.player,[S.dots[t.a],S.dots[t.b],S.dots[t.c]]);
+            spawnBadge(t.player,[S.dots[t.a],S.dots[t.b],S.dots[t.c]],t.pts||1);
           });
         }
       }
