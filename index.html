@@ -85,11 +85,60 @@
   #v-home.show{display:flex;align-items:center;justify-content:center;}
   .home-stack{display:flex;flex-direction:column;align-items:center;text-align:center;
     max-width:330px;padding:0 22px;width:100%;}
+  /* Trix mascots: fixed to the screen edges, pointer-events:none so they never
+     block taps. The right one zips in on load; a second slides in from the left
+     on the "play with a friend" screen. Both are hidden during a live match. */
+  .mascot{position:fixed;bottom:13%;width:138px;z-index:9;
+    pointer-events:none;will-change:right,left,transform;}
+  #home-trix{right:4px;animation:trixZoomIn 1.1s cubic-bezier(.18,.9,.28,1.3) .25s backwards;}
+  #friend-trix{left:4px;display:none;transform:scaleX(-1);}
+  #friend-trix.trix-enter{animation:trixZoomInLeft 1.1s cubic-bezier(.18,.9,.28,1.3) backwards;}
+  @keyframes trixZoomIn{
+    0%{right:-190px;transform:rotate(11deg) scale(.82);opacity:0;}
+    55%{right:-8px;transform:rotate(-5deg) scale(1.07);opacity:1;}
+    72%{right:14px;transform:rotate(3deg) scale(.97);}
+    86%{right:0px;transform:rotate(-1.5deg) scale(1.02);}
+    100%{right:4px;transform:rotate(0) scale(1);opacity:1;}}
+  @keyframes trixZoomInLeft{
+    0%{left:-190px;transform:scaleX(-1) rotate(11deg) scale(.82);opacity:0;}
+    55%{left:-8px;transform:scaleX(-1) rotate(-5deg) scale(1.07);opacity:1;}
+    72%{left:14px;transform:scaleX(-1) rotate(3deg) scale(.97);}
+    86%{left:0px;transform:scaleX(-1) rotate(-1.5deg) scale(1.02);}
+    100%{left:4px;transform:scaleX(-1) rotate(0) scale(1);opacity:1;}}
+  /* lively floaty wobble layered on the component's own float + blink */
+  .mascot .trix{animation:trixDrift 6.5s ease-in-out infinite;transform-origin:50% 85%;}
+  @keyframes trixDrift{
+    0%,100%{transform:translateY(0) rotate(-2.6deg);}
+    20%{transform:translateY(-5px) rotate(1.8deg);}
+    45%{transform:translateY(3px) rotate(3deg);}
+    50%{transform:translateY(3px) rotate(3deg) scale(1.012);}
+    70%{transform:translateY(-4px) rotate(-1deg);}}
+  /* the reactor core breathes a soft glow */
+  .mascot .reactor-soft{animation:trixReactorGlow 2.6s ease-in-out infinite;}
+  @keyframes trixReactorGlow{0%,100%{opacity:.16;}50%{opacity:.52;}}
+  @media (max-width:520px){.mascot{width:108px;bottom:11%;}}
+  @media (prefers-reduced-motion:reduce){
+    #home-trix{animation:none;}
+    #friend-trix.trix-enter{animation:none;}
+    .mascot .trix,.mascot .reactor-soft{animation:none;}}
   .home-stack .logomark{margin-bottom:6px;}
   .wordmark{font-family:var(--display);font-weight:700;font-size:44px;letter-spacing:-.8px;line-height:1;}
   .wordmark .t{color:var(--accent);}
   .home-tag{font-size:16px;color:var(--dim);line-height:1.4;max-width:290px;margin:13px 0 34px;}
   .home-stack .btn{margin-bottom:13px;}
+  /* ----- App Store download ----- */
+  .home-getapp{display:flex;flex-direction:column;align-items:center;gap:10px;
+    margin-top:18px;padding-top:20px;border-top:1px solid var(--border);width:100%;}
+  .home-getapp .getapp-label{font-size:13px;font-weight:700;letter-spacing:.4px;color:var(--dim);}
+  .appstore-badge{display:inline-flex;align-items:center;gap:11px;text-decoration:none;
+    background:#000;color:#fff;border:1px solid rgba(255,255,255,.22);border-radius:12px;
+    padding:9px 18px;transition:transform .1s, filter .12s;}
+  .appstore-badge:active{transform:scale(.97);}
+  .appstore-badge:hover{filter:brightness(1.15);}
+  .appstore-badge svg{width:26px;height:26px;flex:none;}
+  .appstore-badge .ab-text{display:flex;flex-direction:column;line-height:1.05;text-align:left;}
+  .appstore-badge .ab-small{font-size:11px;font-weight:500;opacity:.85;}
+  .appstore-badge .ab-big{font-family:var(--display);font-size:19px;font-weight:600;letter-spacing:-.3px;}
 
   /* ----- card list (board sizes / choices) ----- */
   .card-btn{width:100%;display:flex;align-items:center;gap:14px;text-align:left;cursor:pointer;
@@ -110,6 +159,73 @@
   .radio svg{width:13px;height:13px;display:none;color:var(--accent-ink);}
   .card-btn.sel .radio svg{display:block;}
   .chev{flex:0 0 auto;color:var(--dim);}
+
+  /* ----- redesigned option cards (friend / online screens) ----- */
+  .optcard{width:100%;display:flex;align-items:center;gap:16px;text-align:left;cursor:pointer;
+    background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.08);
+    border-radius:24px;padding:21px;color:var(--text);font-family:var(--body);opacity:1;
+    transition:transform .12s ease, border-color .15s ease, background .15s ease, box-shadow .2s ease;}
+  .optcard:active{transform:scale(.99);}
+  .optcard .oc-ico{flex:0 0 auto;width:62px;height:62px;border-radius:18px;
+    display:flex;align-items:center;justify-content:center;
+    background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);
+    color:var(--accent);transition:background .15s, border-color .15s;}
+  .optcard .oc-ico svg{width:29px;height:29px;}
+  .optcard .oc-meta{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;}
+  .optcard .oc-title{font-family:var(--display);font-size:21px;font-weight:700;color:#fff;letter-spacing:-.3px;}
+  .optcard .oc-sub{font-size:14px;font-weight:500;color:rgba(206,200,235,.62);line-height:1.3;}
+  .optcard .oc-chev{flex:0 0 auto;font-family:var(--display);font-size:24px;font-weight:700;line-height:1;
+    color:rgba(190,184,220,.5);display:flex;align-items:center;transition:transform .25s ease, color .15s;}
+  /* featured (violet) */
+  .optcard.featured{
+    background:linear-gradient(155deg, rgba(183,156,247,.17), rgba(124,90,240,.06));
+    border:1px solid rgba(183,156,247,.4);
+    box-shadow:0 0 40px rgba(124,90,240,.22);}
+  .optcard.featured .oc-ico{background:rgba(183,156,247,.18);border-color:rgba(183,156,247,.34);color:#c9b4ff;}
+  .optcard.featured .oc-chev{color:#c9b4ff;}
+  /* plain accent variants (icon tint) */
+  .optcard.acc-violet .oc-ico{background:rgba(183,156,247,.14);border-color:rgba(183,156,247,.3);color:#c9b4ff;}
+  .optcard.acc-cyan .oc-ico{background:rgba(54,224,230,.14);border-color:rgba(54,224,230,.3);color:#7df0f4;}
+  .optcard.acc-pink .oc-ico{background:rgba(255,95,176,.14);border-color:rgba(255,95,176,.3);color:#ff9ccd;}
+  @media(hover:hover){
+    .optcard:hover{transform:translateY(-2px);}
+    .optcard.featured:hover{box-shadow:0 0 56px rgba(124,90,240,.34);}
+    .optcard.acc-violet:hover{border-color:rgba(183,156,247,.4);background:rgba(183,156,247,.05);}
+    .optcard.acc-cyan:hover{border-color:rgba(54,224,230,.4);background:rgba(54,224,230,.05);}
+    .optcard.acc-pink:hover{border-color:rgba(255,95,176,.4);background:rgba(255,95,176,.05);}
+  }
+  /* join card: wrapper that expands to reveal inline code entry */
+  .optcard-wrap{background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.08);
+    border-radius:24px;transition:border-color .15s ease, background .15s ease;overflow:hidden;}
+  .optcard-wrap .optcard{background:none;border:none;border-radius:0;width:100%;}
+  .optcard-wrap.acc-pink .oc-ico{background:rgba(255,95,176,.14);border:1px solid rgba(255,95,176,.3);color:#ff9ccd;}
+  @media(hover:hover){
+    .optcard-wrap.acc-pink:not(.open):hover{border-color:rgba(255,95,176,.4);background:rgba(255,95,176,.05);}
+  }
+  .optcard-wrap.open{border-color:rgba(255,95,176,.4);background:rgba(255,95,176,.06);}
+  .optcard-wrap.open .oc-chev{transform:rotate(90deg);color:#ff9ccd;}
+  .codeentry{max-height:0;opacity:0;overflow:hidden;
+    display:flex;flex-direction:column;gap:14px;padding:0 21px;
+    transition:max-height .3s ease, opacity .22s ease, padding .3s ease;}
+  .codeentry.open{max-height:360px;opacity:1;padding:4px 21px 21px;}
+  .codefield{position:relative;}
+  .code-hidden{position:absolute;inset:0;width:100%;height:100%;opacity:0;border:0;margin:0;padding:0;
+    background:transparent;color:transparent;caret-color:transparent;cursor:pointer;z-index:2;
+    text-transform:uppercase;font-size:16px;}
+  .codetiles{display:flex;gap:8px;justify-content:space-between;}
+  .codetile{flex:1 1 0;max-width:54px;height:54px;border-radius:13px;
+    display:flex;align-items:center;justify-content:center;
+    font-family:ui-monospace,Menlo,monospace;font-size:24px;font-weight:900;color:#fff;
+    background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);
+    transition:border-color .15s, box-shadow .15s;}
+  .codetile.filled{border-color:rgba(255,255,255,.24);}
+  .codetile.active{border-color:rgba(255,95,176,.55);box-shadow:0 0 0 1px rgba(255,95,176,.3);}
+  .codetile .ph{color:rgba(190,184,220,.3);}
+  .btn[disabled]{opacity:.45;cursor:default;box-shadow:none;}
+  @media(prefers-reduced-motion:reduce){
+    .optcard,.optcard .oc-chev,.codeentry,.codetile{transition:none;}
+    .optcard:hover{transform:none;}
+  }
 
   /* ----- segmented control ----- */
   .seg{display:flex;gap:4px;padding:4px;background:var(--surface);border:1px solid var(--border);
@@ -242,7 +358,12 @@
   /* ===================== GAME stage ===================== */
   #stage{position:fixed;inset:0;display:none;z-index:5;}
   #stage.show{display:block;}
-  #board{position:absolute;inset:0;width:100%;height:100%;touch-action:none;}
+  #board{position:absolute;inset:0;width:100%;height:100%;touch-action:none;
+    transform-origin:50% 0%;transition:transform .34s cubic-bezier(.22,1,.36,1);}
+  /* when a result card is up, shrink the board so all triangles stay visible above it */
+  body:has(#gameover.show) #board,
+  body:has(#campresult.show) #board{transform:scale(var(--go-scale,.62));}
+  @media (prefers-reduced-motion: reduce){#board{transition:none;}}
 
   /* top bar */
   #topbar{position:absolute;top:calc(env(safe-area-inset-top) + 14px);left:0;right:0;
@@ -384,39 +505,136 @@
   .ro-sub{font-size:14px;color:var(--dim);text-align:center;margin:6px 0 18px;}
   .ro-dice{display:flex;justify-content:center;gap:24px;margin-bottom:20px;}
   .ro-col{display:flex;flex-direction:column;align-items:center;gap:6px;}
-  .ro-col .die{width:54px;height:54px;}
+  .ro-col .die{width:54px;height:54px;transition:transform .3s,box-shadow .3s,opacity .3s;}
   .ro-col .die .pip{width:8px;height:8px;}
-  .ro-nm{font-size:12px;font-weight:600;}
+  .ro-col.ro-win .die{transform:scale(1.07);}
+  .ro-col.ro-lose .die{opacity:.36;}
+  .ro-nm{font-size:12px;font-weight:600;transition:opacity .3s;}
+  .ro-col.ro-lose .ro-nm{opacity:.5;}
   .ro-status{text-align:center;font-size:13px;color:var(--dim);margin-top:12px;}
+  /* winner pill (spec: animates in with winPop) */
+  .ro-pill{display:flex;align-items:center;gap:8px;width:fit-content;margin:0 auto 16px;
+    background:rgba(255,255,255,.06);border-radius:999px;padding:8px 16px;
+    font-weight:700;font-size:14px;color:var(--text);animation:winPop .35s ease both;}
+  .ro-pill.hidden{display:none;}
+  .ro-dot{width:10px;height:10px;border-radius:50%;}
+  @keyframes winPop{0%{opacity:0;transform:translateY(8px) scale(.92);}100%{opacity:1;transform:none;}}
+  @media (prefers-reduced-motion:reduce){ .ro-pill{animation:none;} .ro-col .die.rolling{animation:none;} }
 
-  /* menu sheet (centred popup) */
-  #sheet{position:fixed;inset:0;z-index:25;display:none;align-items:center;justify-content:center;}
+  /* menu sheet (bottom sheet) */
+  #sheet{position:fixed;inset:0;z-index:25;display:none;align-items:flex-end;justify-content:center;}
   #sheet.show{display:flex;}
-  #sheet .scrim{position:absolute;inset:0;background:rgba(0,0,0,.55);}
-  #sheet .sheet-body{position:relative;width:min(340px,88vw);background:var(--solid);
-    border-radius:22px;padding:22px 20px 20px;
-    display:flex;flex-direction:column;gap:12px;
-    box-shadow:0 20px 60px rgba(0,0,0,.6);}
-  #sheet .grip{display:none;}
-  #sheet h3{text-align:center;font-size:20px;margin-bottom:2px;}
+  #sheet .scrim{position:absolute;inset:0;background:rgba(7,7,16,.55);
+    -webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);
+    opacity:0;transition:opacity .28s ease;}
+  #sheet.show .scrim{opacity:1;}
+  #sheet .sheet-body{position:relative;width:100%;max-width:460px;
+    background:linear-gradient(180deg,#26204c 0%,#1a1538 100%);
+    border-radius:34px 34px 0 0;
+    border-top:1px solid rgba(160,130,255,.22);
+    padding:14px 22px calc(env(safe-area-inset-bottom) + 40px);
+    display:flex;flex-direction:column;gap:10px;
+    box-shadow:0 -20px 60px rgba(0,0,0,.5), 0 -2px 40px rgba(124,90,240,.18);
+    transform:translateY(100%);transition:transform .34s cubic-bezier(.18,.9,.28,1.1);
+    will-change:transform;touch-action:none;}
+  #sheet.show .sheet-body{transform:translateY(0);}
+  #sheet.closing .scrim{opacity:0;}
+  #sheet.closing .sheet-body{transform:translateY(100%);}
+  #sheet.dragging .sheet-body{transition:none;}
+  #sheet .grip{display:block;width:44px;height:5px;border-radius:999px;
+    background:rgba(170,150,235,.5);margin:6px auto 14px;cursor:grab;}
+  #sheet h3{text-align:center;font-size:24px;font-weight:800;color:#fff;margin-bottom:8px;}
 
-  /* game-over bottom panel */
-  #gameover{position:fixed;left:0;right:0;bottom:0;z-index:18;display:none;
-    background:var(--solid);border-top:1px solid var(--border);
-    padding:10px 18px calc(env(safe-area-inset-bottom) + 10px);
-    box-shadow:0 -10px 30px rgba(0,0,0,.5);}
-  #gameover.show{display:flex;align-items:center;gap:14px;justify-content:center;}
-  .go-head{font-family:var(--display);font-weight:700;font-size:18px;white-space:nowrap;}
-  .go-sub{font-size:11.5px;font-weight:700;color:var(--dim);margin-top:2px;white-space:nowrap;}
-  .go-div{width:1px;align-self:stretch;background:var(--border);margin:0 4px;}
-  .go-row{display:flex;align-items:center;gap:10px;}
-  .go-col{text-align:center;}
-  .go-col .nm{font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--dim);}
-  .go-col .sc{font-family:var(--display);font-weight:700;font-size:30px;line-height:1.1;}
-  .go-col.p1 .sc{color:var(--p1);} .go-col.p2 .sc{color:var(--p2);}
-  .go-dash{font-family:var(--display);font-size:20px;color:var(--dim);}
-  .go-btns{display:flex;flex-direction:column;gap:6px;min-width:120px;}
-  .go-btns .btn{font-size:13px;padding:9px 12px;}
+  /* sheet rows */
+  .m-row{display:flex;align-items:center;gap:14px;width:100%;text-align:left;
+    padding:18px 22px;border-radius:18px;cursor:pointer;font-family:var(--body);
+    font-size:19px;font-weight:800;color:var(--text);border:1px solid transparent;
+    background:rgba(255,255,255,.04);
+    transition:transform .12s ease, background .15s ease, border-color .15s ease, box-shadow .15s ease;}
+  .m-row svg{width:22px;height:22px;flex:none;}
+  .m-row:active{transform:scale(.99);}
+  /* resume — primary */
+  .m-row.m-resume{background:#b79cf7;color:#1c1330;font-weight:900;border-color:transparent;
+    box-shadow:0 0 34px rgba(160,120,250,.5);}
+  .m-row.m-resume:hover{transform:translateY(-2px);box-shadow:0 0 46px rgba(160,120,250,.7);}
+  /* plain rows */
+  .m-row.m-plain{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.09);}
+  .m-row.m-restart:hover{transform:translateY(-2px);border-color:rgba(201,180,255,.55);background:rgba(201,180,255,.06);}
+  .m-row.m-howto:hover{transform:translateY(-2px);border-color:rgba(34,211,238,.55);background:rgba(34,211,238,.06);}
+  .m-row.m-restart svg{color:#c9b4ff;}
+  .m-row.m-howto svg{color:#22d3ee;}
+  /* quit — destructive */
+  .m-row.m-quit{background:rgba(240,82,156,.05);border-color:rgba(240,82,156,.22);color:#f6a7cb;}
+  .m-row.m-quit svg{color:#f0529c;}
+  .m-row.m-quit:hover{transform:translateY(-2px);background:rgba(240,82,156,.1);border-color:rgba(240,82,156,.5);}
+  @media (prefers-reduced-motion: reduce){
+    #sheet .sheet-body{transition:none;}
+    #sheet .scrim{transition:none;}
+  }
+
+  /* ===== redesigned result cards (duel #gameover + campaign #campresult) ===== */
+  #gameover{position:fixed;left:0;right:0;bottom:0;z-index:18;display:none;justify-content:center;pointer-events:none;}
+  #gameover.show{display:flex;}
+  #gameover::before,#campresult::before{content:"";position:fixed;inset:0;background:rgba(12,8,32,.42);pointer-events:none;}
+  .rp-card{position:relative;width:100%;max-width:460px;overflow:hidden;pointer-events:auto;
+    padding:28px 22px calc(env(safe-area-inset-bottom) + 26px);
+    border-radius:32px 32px 0 0;
+    background:linear-gradient(180deg, rgba(33,27,64,.92) 0%, rgba(18,13,40,.97) 100%);
+    -webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);
+    border-top:1px solid rgba(255,255,255,.08);
+    box-shadow:0 -1px 0 rgba(255,255,255,.04) inset, 0 -16px 50px rgba(0,0,0,.5);
+    animation:rpUp .25s ease-out;}
+  @keyframes rpUp{from{transform:translateY(16px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+  @media (prefers-reduced-motion: reduce){.rp-card{animation:none;}}
+  .rp-glow{position:absolute;left:0;right:0;top:-1px;height:130px;pointer-events:none;
+    background:radial-gradient(60% 100% at 50% 0%, rgba(182,155,255,.19) 0%, transparent 72%);}
+  .rp-inner{position:relative;display:flex;flex-direction:column;align-items:center;}
+  .rp-eyebrow{font-size:11px;font-weight:700;letter-spacing:2.5px;color:#7c759e;text-transform:uppercase;}
+  .rp-head{font-family:var(--display);font-size:32px;font-weight:800;letter-spacing:-.5px;
+    margin-top:14px;text-align:center;line-height:1.05;}
+  .rp-sub{font-size:13.5px;font-weight:500;color:#9a93bd;text-align:center;max-width:300px;line-height:1.4;}
+  .rp-scores{display:flex;align-items:stretch;gap:10px;width:100%;margin-top:20px;}
+  .rp-team{flex:1;position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;
+    padding:16px 10px 18px;border-radius:20px;
+    background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);opacity:.6;
+    transition:opacity .25s,box-shadow .25s,background .25s,border-color .25s;}
+  .rp-team.on{opacity:1;}
+  .rp-team.p1.on{background:rgba(54,224,230,.12);border-color:rgba(54,224,230,.4);box-shadow:0 8px 30px -6px rgba(54,224,230,.45);}
+  .rp-team.p2.on{background:rgba(255,95,176,.12);border-color:rgba(255,95,176,.4);box-shadow:0 8px 30px -6px rgba(255,95,176,.45);}
+  .rp-pill{display:none;position:absolute;top:-9px;left:50%;transform:translateX(-50%);
+    font-size:9px;font-weight:700;letter-spacing:1.5px;color:#0c0820;padding:3px 10px;border-radius:20px;
+    text-transform:uppercase;white-space:nowrap;}
+  .rp-team.win .rp-pill{display:block;}
+  .rp-team.p1 .rp-pill{background:var(--p1);}
+  .rp-team.p2 .rp-pill{background:var(--p2);}
+  .rp-label{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;}
+  .rp-team.p1 .rp-label{color:#cfeeed;}
+  .rp-team.p2 .rp-label{color:#f6cfe0;}
+  .rp-dot{width:8px;height:8px;border-radius:50%;flex:none;}
+  .rp-team.p1 .rp-dot{background:var(--p1);box-shadow:0 0 10px var(--p1);}
+  .rp-team.p2 .rp-dot{background:var(--p2);box-shadow:0 0 10px var(--p2);}
+  .rp-num{font-family:var(--display);font-weight:800;line-height:1;font-size:52px;}
+  .rp-team.p1 .rp-num{color:var(--p1);text-shadow:0 0 24px rgba(54,224,230,.35);}
+  .rp-team.p2 .rp-num{color:var(--p2);text-shadow:0 0 24px rgba(255,95,176,.35);}
+  .rp-vs{flex:none;align-self:center;width:34px;height:34px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03);
+    font-size:11px;font-weight:700;letter-spacing:1px;color:#8079a4;}
+  .rp-btns{width:100%;margin-top:22px;display:flex;}
+  .rp-btns-row{display:flex;flex-direction:row;gap:12px;width:100%;}
+  .rp-btns-col{flex-direction:column;gap:12px;}
+  .rp-primary,.rp-ghost{height:56px;border-radius:18px;cursor:pointer;font-family:var(--body);
+    font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;
+    transition:box-shadow .2s,background .2s,transform .05s;}
+  .rp-primary:active,.rp-ghost:active{transform:translateY(1px);}
+  .rp-primary{border:none;background:linear-gradient(180deg,#BBA6FF 0%,#9D86FF 100%);color:#1b1430;
+    box-shadow:0 12px 30px -6px rgba(157,134,255,.55), inset 0 0 0 1px rgba(255,255,255,.18);}
+  .rp-primary:hover{box-shadow:0 16px 38px -6px rgba(157,134,255,.7), inset 0 0 0 1px rgba(255,255,255,.22);}
+  .rp-ghost{background:rgba(255,255,255,.03);color:#e9e6f6;font-weight:600;border:1.5px solid rgba(255,255,255,.16);}
+  .rp-ghost:hover{background:rgba(255,255,255,.08);}
+  /* duel button row: Home (ghost) + Play again/Rematch (primary) at 1 : 1.45 */
+  #gameover .rp-btns-row .rp-ghost{flex:1;}
+  #gameover .rp-btns-row .rp-primary{flex:1.45;}
 
   /* flying +1 badge */
   .flying-badge{position:fixed;pointer-events:none;z-index:40;font-weight:800;font-size:22px;
@@ -668,23 +886,20 @@
     #ov-levelintro.closing .li-card{animation:li-pop .18s ease-in reverse forwards;}
   }
 
-  /* campaign result — docked to the lower part so the board stays visible */
-  #campresult{position:fixed;left:0;right:0;bottom:0;z-index:19;display:none;justify-content:center;
-    padding:0 12px calc(env(safe-area-inset-bottom) + 12px);pointer-events:none;}
+  /* campaign result — redesigned card (reuses the .rp-* styles above) */
+  #campresult{position:fixed;left:0;right:0;bottom:0;z-index:19;display:none;justify-content:center;pointer-events:none;}
   #campresult.show{display:flex;}
-  .cr-panel{width:100%;max-width:430px;background:var(--solid);border:1px solid var(--border);
-    border-radius:var(--radius);padding:16px 18px 16px;text-align:center;pointer-events:auto;
-    box-shadow:0 -14px 50px rgba(0,0,0,.55);}
-  .cr-head{font-family:var(--display);font-weight:700;font-size:21px;}
-  .cr-stars{display:flex;justify-content:center;gap:10px;margin:8px 0 4px;}
-  .cr-star{font-size:34px;line-height:1;color:rgba(150,130,255,.25);transform:scale(.6);opacity:0;
-    transition:transform .35s cubic-bezier(.34,1.56,.64,1),opacity .25s,color .25s;}
-  .cr-star.on{color:#FFD25F;text-shadow:0 0 18px rgba(255,210,95,.55);}
+  #campresult .rp-sub{margin-top:14px;min-height:18px;}
+  #campresult .rp-num{font-size:48px;}
+  /* campaign buttons: full-width Next level (primary), then Replay/Retry + Campaign map */
+  #campresult .rp-btns-col>.rp-primary{width:100%;height:60px;}
+  #campresult .rp-btns-col .rp-btns-row .rp-ghost{flex:1;font-size:15.5px;font-weight:600;}
+  /* star rating */
+  .cr-stars{display:flex;justify-content:center;gap:14px;margin-top:14px;}
+  .cr-star{font-size:34px;line-height:1;color:rgba(255,255,255,.16);transform:scale(.6);opacity:0;
+    transition:transform .35s cubic-bezier(.34,1.56,.64,1),opacity .25s,color .25s,text-shadow .25s;}
+  .cr-star.on{color:#FFC53D;text-shadow:0 0 18px rgba(255,197,61,.55);}
   .cr-star.pop{transform:scale(1);opacity:1;}
-  .cr-score{font-family:var(--display);font-weight:700;font-size:18px;margin:6px 0 3px;}
-  .cr-msg{font-size:13.5px;color:var(--dim);line-height:1.4;min-height:18px;margin-bottom:14px;}
-  .cr-btns{display:flex;flex-direction:row;flex-wrap:wrap;gap:8px;}
-  .cr-btns .btn{flex:1;min-width:96px;font-size:14px;padding:12px 10px;}
 /* ---- magnetic snap (line gets "sucked" into the target dot) ---- */
 @keyframes rubberFlow{ to{ stroke-dashoffset:-54; } }
 .rubber-line.snap{ animation: rubberFlow .45s linear infinite; }
@@ -702,6 +917,12 @@
 .dot-grp .dot{transition:opacity .18s ease, filter .18s ease;}
 .dot-grp.dim-dot .dot{opacity:.22;}
 .dot-grp.legal-dot .dot{filter:drop-shadow(0 0 7px rgba(182,155,255,.95));}
+/* ---- near-complete triangle (one line from closing) ---- */
+@keyframes nearPulse{0%,100%{fill-opacity:.07;}50%{fill-opacity:.24;}}
+.near-tri{animation:nearPulse 1.4s ease-in-out infinite;pointer-events:none;}
+/* ---- completion target ring (this dot closes a triangle) ---- */
+@keyframes completeRing{0%,100%{opacity:.55;}50%{opacity:1;}}
+.complete-ring{animation:completeRing 1.1s ease-in-out infinite;pointer-events:none;}
 /* ---- blocker flash (the thing your line collided with) ---- */
 @keyframes blockerBlink{0%{opacity:0;}15%,40%{opacity:.95;}55%{opacity:.25;}70%,85%{opacity:.95;}100%{opacity:0;}}
 .blocker-flash{animation:blockerBlink .9s ease-out forwards;pointer-events:none;}
@@ -724,6 +945,10 @@
 
   <div id="starfield" aria-hidden="true"></div>
 
+  <!-- Trix mascots — top-level so they persist across views (fixed to screen edges) -->
+  <div id="home-trix" class="mascot" aria-hidden="true"></div>
+  <div id="friend-trix" class="mascot" aria-hidden="true"></div>
+
   <!-- ===================== HOME ===================== -->
   <div class="view show" id="v-home">
     <div class="home-stack">
@@ -734,6 +959,16 @@
       <button class="btn btn-ghost" id="home-campaign">Campaign</button>
       <button class="btn btn-ghost" id="home-friend">Play with a friend</button>
       <button class="btn-text" id="home-howto">How to play</button>
+      <div class="home-getapp">
+        <span class="getapp-label">Take doTriangle with you</span>
+        <a class="appstore-badge" href="https://apps.apple.com/nl/app/dotriangle/id6777751637?l=en-GB" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.365 1.43c0 1.14-.42 2.2-1.13 2.98-.84.93-2.2 1.65-3.32 1.56-.14-1.1.42-2.27 1.07-3 .73-.82 2.02-1.43 3.1-1.54.04.33.04.66.04 0zM20.5 17.04c-.55 1.27-.81 1.84-1.52 2.97-.99 1.57-2.38 3.52-4.11 3.54-1.53.01-1.93-1-4.01-.99-2.08.01-2.52.99-4.05.99-1.73 0-3.05-1.76-4.04-3.33C-.07 16.65-.36 11.79 1.4 9.2c1.25-1.84 3.23-2.92 5.09-2.92 1.9 0 3.09 1.04 4.66 1.04 1.52 0 2.45-1.04 4.65-1.04 1.66 0 3.42.9 4.67 2.46-4.1 2.25-3.44 8.1.03 8.3z"/></svg>
+          <span class="ab-text">
+            <span class="ab-small">Download on the</span>
+            <span class="ab-big">App Store</span>
+          </span>
+        </a>
+      </div>
     </div>
   </div>
 
@@ -746,24 +981,24 @@
           <div class="sub" style="margin-top:6px">Play online with a shared code, pass one phone back and forth — or get matched with a random player.</div>
         </div>
         <div class="gap10">
-          <button class="card-btn" id="fc-online">
-            <span class="card-ico">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13a10 10 0 0 1 14 0"/><path d="M8.5 16.5a5 5 0 0 1 7 0"/><path d="M2 8.8a15 15 0 0 1 20 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+          <button class="optcard featured" id="fc-online">
+            <span class="oc-ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13a10 10 0 0 1 14 0"/><path d="M8.5 16.5a5 5 0 0 1 7 0"/><path d="M2 8.8a15 15 0 0 1 20 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
             </span>
-            <span class="card-meta"><span class="card-title">Online vs friend</span><span class="card-sub">Create a room or join with a code</span></span>
-            <span class="chev"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+            <span class="oc-meta"><span class="oc-title">Online vs friend</span><span class="oc-sub">Create a room or join with a code</span></span>
+            <span class="oc-chev">&rsaquo;</span>
           </button>
-          <button class="card-btn" id="fc-quick">
-            <span class="card-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>
-            <span class="card-meta"><span class="card-title">Quick match</span><span class="card-sub">Get paired with a random player</span></span>
-            <span class="chev"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+          <button class="optcard acc-cyan" id="fc-quick">
+            <span class="oc-ico"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>
+            <span class="oc-meta"><span class="oc-title">Quick match</span><span class="oc-sub">Get paired with a random player</span></span>
+            <span class="oc-chev">&rsaquo;</span>
           </button>
-          <button class="card-btn" id="fc-pass">
-            <span class="card-ico">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="3"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+          <button class="optcard acc-pink" id="fc-pass">
+            <span class="oc-ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="3"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
             </span>
-            <span class="card-meta"><span class="card-title">Pass &amp; play</span><span class="card-sub">Two players, one phone</span></span>
-            <span class="chev"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+            <span class="oc-meta"><span class="oc-title">Pass &amp; play</span><span class="oc-sub">Two players, one phone</span></span>
+            <span class="oc-chev">&rsaquo;</span>
           </button>
         </div>
         <button class="backlink" data-back="v-home" style="margin-top:4px">‹ Back</button>
@@ -820,21 +1055,42 @@
           <div class="sub" style="margin-top:6px">One of you starts a game and shares the code, the other joins it.</div>
         </div>
         <div class="gap10">
-          <button class="card-btn" id="ol-quick">
-            <span class="card-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>
-            <span class="card-meta"><span class="card-title">Quick match</span><span class="card-sub">get paired with a random player</span></span>
-            <span class="chev"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+          <button class="optcard featured" id="ol-create">
+            <span class="oc-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></span>
+            <span class="oc-meta"><span class="oc-title">Create a room</span><span class="oc-sub">Get a code to share</span></span>
+            <span class="oc-chev">&rsaquo;</span>
           </button>
-          <button class="card-btn" id="ol-create">
-            <span class="card-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></span>
-            <span class="card-meta"><span class="card-title">Create a room</span><span class="card-sub">get a code to share</span></span>
-            <span class="chev"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
-          </button>
-          <button class="card-btn" id="ol-join">
-            <span class="card-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/><polyline points="13 9 16 12 13 15"/></svg></span>
-            <span class="card-meta"><span class="card-title">Join a room</span><span class="card-sub">enter a friend's code</span></span>
-            <span class="chev"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
-          </button>
+          <div class="optcard-wrap acc-pink" id="ol-join-wrap">
+            <button class="optcard acc-pink" id="ol-join" aria-expanded="false">
+              <span class="oc-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="7" y1="12" x2="15" y2="12"/><polyline points="12 9 15 12 12 15"/></svg></span>
+              <span class="oc-meta"><span class="oc-title">Join a room</span><span class="oc-sub">Enter a friend's code</span></span>
+              <span class="oc-chev">&rsaquo;</span>
+            </button>
+            <div class="codeentry" id="join-entry">
+              <div>
+                <div class="seclabel">Code</div>
+                <div class="codefield">
+                  <input id="join-code" class="code-hidden" maxlength="6" inputmode="text"
+                    autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false"
+                    aria-label="Room code" />
+                  <div class="codetiles" id="join-tiles" aria-hidden="true">
+                    <div class="codetile"><span class="ph">–</span></div>
+                    <div class="codetile"><span class="ph">–</span></div>
+                    <div class="codetile"><span class="ph">–</span></div>
+                    <div class="codetile"><span class="ph">–</span></div>
+                    <div class="codetile"><span class="ph">–</span></div>
+                    <div class="codetile"><span class="ph">–</span></div>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <div class="seclabel">Your name</div>
+                <div class="field"><input id="join-name" maxlength="14" placeholder="Enter your name" /><span class="pencil">✎</span></div>
+              </div>
+              <button class="btn btn-primary" id="join-go" disabled>Join game</button>
+              <div class="sub" id="join-status" style="text-align:center"></div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -880,21 +1136,6 @@
         <div class="sub" id="qm-status" style="text-align:center"></div>
       </div>
 
-      <!-- join -->
-      <div class="stack" id="online-join" style="display:none">
-        <div class="left-title" style="font-size:28px">Join a game</div>
-        <div class="sub">Enter the code your friend shared.</div>
-        <div>
-          <div class="seclabel">Code</div>
-          <input class="code-input" id="join-code" maxlength="6" placeholder="ABC123" />
-        </div>
-        <div>
-          <div class="seclabel">Your name</div>
-          <div class="field"><input id="join-name" maxlength="14" placeholder="Enter your name" /><span class="pencil">✎</span></div>
-        </div>
-        <button class="btn btn-primary" id="join-go">Join game</button>
-        <div class="sub" id="join-status" style="text-align:center"></div>
-      </div>
     </div>
   </div>
 
@@ -988,19 +1229,37 @@
 
   <!-- ===================== CAMPAIGN RESULT ===================== -->
   <div id="campresult">
-    <div class="cr-panel">
-      <div class="cr-head" id="cr-head">Level cleared!</div>
-      <div class="cr-stars" id="cr-stars">
-        <span class="cr-star" id="cr-star0">★</span>
-        <span class="cr-star" id="cr-star1">★</span>
-        <span class="cr-star" id="cr-star2">★</span>
-      </div>
-      <div class="cr-score" id="cr-score">You 0 – 0 AI Bot</div>
-      <div class="cr-msg" id="cr-msg"></div>
-      <div class="cr-btns">
-        <button class="btn btn-primary" id="cr-next">Next level</button>
-        <button class="btn btn-ghost" id="cr-retry">Retry</button>
-        <button class="btn btn-ghost" id="cr-map">Level map</button>
+    <div class="rp-card">
+      <div class="rp-glow" id="cr-glow"></div>
+      <div class="rp-inner">
+        <div class="rp-eyebrow">Campaign</div>
+        <div class="rp-head" id="cr-head">Level cleared!</div>
+        <div class="cr-stars" id="cr-stars">
+          <span class="cr-star" id="cr-star0">★</span>
+          <span class="cr-star" id="cr-star1">★</span>
+          <span class="cr-star" id="cr-star2">★</span>
+        </div>
+        <div class="rp-sub" id="cr-msg"></div>
+        <div class="rp-scores">
+          <div class="rp-team p1" id="cr-team0">
+            <span class="rp-pill">Winner</span>
+            <div class="rp-label"><span class="rp-dot"></span><span>You</span></div>
+            <div class="rp-num" id="cr-sc0">0</div>
+          </div>
+          <div class="rp-vs">VS</div>
+          <div class="rp-team p2" id="cr-team1">
+            <span class="rp-pill">Winner</span>
+            <div class="rp-label"><span class="rp-dot"></span><span>AI Bot</span></div>
+            <div class="rp-num" id="cr-sc1">0</div>
+          </div>
+        </div>
+        <div class="rp-btns rp-btns-col">
+          <button class="rp-primary" id="cr-next">Next level</button>
+          <div class="rp-btns-row">
+            <button class="rp-ghost" id="cr-retry">Retry</button>
+            <button class="rp-ghost" id="cr-map">Campaign map</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -1079,7 +1338,7 @@
   <!-- ===================== GAME STAGE ===================== -->
   <div id="stage">
     <svg id="board" viewBox="0 0 800 900" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
-      <g id="g-tri"></g><g id="g-edge"></g><g id="g-ring"></g><g id="g-dot"></g><g id="g-drag"></g>
+      <g id="g-tri"></g><g id="g-near"></g><g id="g-edge"></g><g id="g-ring"></g><g id="g-dot"></g><g id="g-drag"></g>
     </svg>
 
     <div id="topbar">
@@ -1116,11 +1375,12 @@
   <div class="overlay hidden" id="ov-rolloff">
     <div class="panel">
       <div class="ro-title">Who goes first?</div>
-      <div class="ro-sub">Highest roll starts.</div>
+      <div class="ro-sub" id="ro-sub">Highest roll starts. One tap settles it.</div>
       <div class="ro-dice">
-        <div class="ro-col"><div class="die" id="ro-die0"></div><span class="ro-nm" id="ro-nm0">P1</span></div>
-        <div class="ro-col"><div class="die" id="ro-die1"></div><span class="ro-nm" id="ro-nm1">P2</span></div>
+        <div class="ro-col" id="ro-col0"><div class="die" id="ro-die0"></div><span class="ro-nm" id="ro-nm0">P1</span></div>
+        <div class="ro-col" id="ro-col1"><div class="die" id="ro-die1"></div><span class="ro-nm" id="ro-nm1">P2</span></div>
       </div>
+      <div class="ro-pill hidden" id="ro-pill"><span class="ro-dot" id="ro-dot"></span><span id="ro-pill-txt"></span></div>
       <button class="btn btn-primary" id="ro-roll">Roll the dice</button>
       <div class="ro-status" id="ro-status"></div>
     </div>
@@ -1130,27 +1390,53 @@
   <div id="sheet">
     <div class="scrim" id="sheet-scrim"></div>
     <div class="sheet-body">
-      <div class="grip"></div>
+      <div class="grip" id="sheet-grip"></div>
       <h3>Menu</h3>
-      <button class="btn btn-primary" id="m-resume">Resume</button>
-      <button class="btn btn-ghost" id="m-restart">Restart round</button>
-      <button class="btn btn-ghost" id="m-howto">How to play</button>
-      <button class="btn btn-ghost" id="m-quit">Quit to home</button>
+      <button class="m-row m-resume" id="m-resume">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.14v13.72c0 .79.87 1.27 1.54.84l10.8-6.86a1 1 0 0 0 0-1.68L9.54 4.3A1 1 0 0 0 8 5.14Z"/></svg>
+        <span>Resume</span>
+      </button>
+      <button class="m-row m-plain m-restart" id="m-restart">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v5h-5"/></svg>
+        <span>Restart round</span>
+      </button>
+      <button class="m-row m-plain m-howto" id="m-howto">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 4.5 1.5c0 1.5-2 2-2 3.5"/><line x1="12" y1="17" x2="12" y2="17.01"/></svg>
+        <span>How to play</span>
+      </button>
+      <button class="m-row m-quit" id="m-quit">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        <span>Quit to home</span>
+      </button>
     </div>
   </div>
 
   <!-- game over -->
   <div id="gameover">
-    <div><div class="go-head" id="go-head">You win!</div><div class="go-sub" id="go-match" style="display:none"></div></div>
-    <div class="go-row">
-      <div class="go-col p1"><div class="nm" id="go-nm0">You</div><div class="sc" id="go-sc0">0</div></div>
-      <div class="go-dash">–</div>
-      <div class="go-col p2"><div class="nm" id="go-nm1">AI Bot</div><div class="sc" id="go-sc1">0</div></div>
-      <div class="go-div"></div>
-      <div class="go-btns">
-        <button class="btn btn-primary" id="go-again">Play again</button>
-        <button class="btn btn-primary" id="go-rematch" style="display:none">Rematch</button>
-        <button class="btn btn-ghost" id="go-home">Home</button>
+    <div class="rp-card">
+      <div class="rp-glow" id="go-glow"></div>
+      <div class="rp-inner">
+        <div class="rp-eyebrow">Match complete</div>
+        <div class="rp-head" id="go-head">You win!</div>
+        <div class="rp-sub" id="go-match" style="display:none"></div>
+        <div class="rp-scores">
+          <div class="rp-team p1" id="go-team0">
+            <span class="rp-pill">Winner</span>
+            <div class="rp-label"><span class="rp-dot"></span><span id="go-nm0">You</span></div>
+            <div class="rp-num" id="go-sc0">0</div>
+          </div>
+          <div class="rp-vs">VS</div>
+          <div class="rp-team p2" id="go-team1">
+            <span class="rp-pill">Winner</span>
+            <div class="rp-label"><span class="rp-dot"></span><span id="go-nm1">AI Bot</span></div>
+            <div class="rp-num" id="go-sc1">0</div>
+          </div>
+        </div>
+        <div class="rp-btns rp-btns-row">
+          <button class="rp-ghost" id="go-home">Home</button>
+          <button class="rp-primary" id="go-again">Play again</button>
+          <button class="rp-primary" id="go-rematch" style="display:none">Rematch</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1160,6 +1446,163 @@
   <div id="toast" class="toast"></div>
 
 <script>
+/* ============================================================
+   Trix — the doTriangle mascot · self-contained component (inlined)
+   API: Trix.mount(host,{mood}); t.setMood(...); t.pulse(); t.getMood();
+   Moods: "idle" | "battle" | "happy" | "curious". No dependencies.
+   ============================================================ */
+(function () {
+  "use strict";
+  var STYLE_ID = "trix-style";
+  var uid = 0;
+
+  var CSS = [
+    ".trix{display:block;width:100%;height:auto;overflow:visible;}",
+    ".trix .float{animation:trixFloat 6.5s ease-in-out infinite;}",
+    "@keyframes trixFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}",
+    ".trix .head{transition:transform .35s cubic-bezier(.34,1.4,.5,1);transform-origin:50% 62%;transform-box:fill-box;}",
+    ".trix.m-curious .head{transform:rotate(-6deg);}",
+    ".trix .eye{transition:transform .3s cubic-bezier(.34,1.4,.5,1);transform-origin:center;transform-box:fill-box;}",
+    ".trix.m-battle .eyeL{transform:rotate(15deg) scaleY(.72);}",
+    ".trix.m-battle .eyeR{transform:rotate(-15deg) scaleY(.72);}",
+    ".trix.m-happy .eye{transform:scaleY(.62) translateY(9px);}",
+    ".trix.m-curious .eyeL{transform:scale(1.16);}",
+    ".trix.m-curious .eyeR{transform:scale(.85);}",
+    ".trix .brow,.trix .smile,.trix .blush{opacity:0;transition:opacity .25s;}",
+    ".trix.m-battle .brow{opacity:1;}",
+    ".trix.m-happy .smile,.trix.m-happy .blush{opacity:1;}",
+    ".trix .reactor-line{transition:stroke .3s;}",
+    ".trix .reactor-soft{transition:fill .3s;}",
+    ".trix.m-battle .reactor-line{stroke:#FF5FB0;}",
+    ".trix.m-battle .reactor-hi{stroke:#ffd2ea;}",
+    ".trix.m-battle .reactor-soft{fill:#FF5FB0;}",
+    ".trix .blinklid{opacity:0;animation:trixBlink 6.4s infinite;}",
+    ".trix.m-battle .blinklid{animation:none;}",
+    "@keyframes trixBlink{0%,93.5%,97.5%,100%{opacity:0}94.5%,96.5%{opacity:1}}",
+    ".trix .reactor-burst{opacity:0;transform-origin:center;transform-box:fill-box;}",
+    ".trix.pulsing .reactor-burst{animation:trixBurst .7s ease-out;}",
+    "@keyframes trixBurst{0%{opacity:.85;transform:scale(.5)}100%{opacity:0;transform:scale(1.9)}}",
+    "@media (prefers-reduced-motion:reduce){.trix .float,.trix .blinklid{animation:none!important}}"
+  ].join("\n");
+
+  function svgMarkup(s) {
+    return '<svg class="trix m-idle" viewBox="0 0 360 440" xmlns="http://www.w3.org/2000/svg" fill="none" role="img" aria-label="Trix, the doTriangle mascot">' +
+    '<defs>' +
+      '<linearGradient id="' + s + 'P" x1="100" y1="50" x2="280" y2="260" gradientUnits="userSpaceOnUse">' +
+        '<stop offset="0" stop-color="#f6f2ff"/><stop offset="0.55" stop-color="#d9cff2"/><stop offset="1" stop-color="#a293d6"/></linearGradient>' +
+      '<linearGradient id="' + s + 'PB" x1="150" y1="246" x2="220" y2="370" gradientUnits="userSpaceOnUse">' +
+        '<stop offset="0" stop-color="#efe9ff"/><stop offset="1" stop-color="#a89ad8"/></linearGradient>' +
+      '<linearGradient id="' + s + 'V" x1="180" y1="84" x2="180" y2="226" gradientUnits="userSpaceOnUse">' +
+        '<stop offset="0" stop-color="#0a0724"/><stop offset="1" stop-color="#120e38"/></linearGradient>' +
+      '<radialGradient id="' + s + 'E" cx="0.5" cy="0.45" r="0.6">' +
+        '<stop offset="0" stop-color="#c5f8ff"/><stop offset="0.5" stop-color="#3ce0f2"/><stop offset="1" stop-color="#1f9fd6"/></radialGradient>' +
+      '<radialGradient id="' + s + 'PC" cx="0.5" cy="0.5" r="0.5">' +
+        '<stop offset="0" stop-color="#ffd2ea"/><stop offset="0.5" stop-color="#FF5FB0"/><stop offset="1" stop-color="#5e1c52"/></radialGradient>' +
+      '<filter id="' + s + 'S" x="-70%" y="-70%" width="240%" height="240%"><feGaussianBlur stdDeviation="4"/></filter>' +
+      '<filter id="' + s + 'M" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="7"/></filter>' +
+      '<filter id="' + s + 'B" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="13"/></filter>' +
+    '</defs>' +
+    '<ellipse cx="180" cy="418" rx="116" ry="16" fill="#FF5FB0" opacity="0.22" filter="url(#' + s + 'B)"/>' +
+    '<ellipse cx="180" cy="416" rx="64" ry="10" fill="#36E0E6" opacity="0.25" filter="url(#' + s + 'B)"/>' +
+    '<g class="float">' +
+      '<rect x="146" y="348" width="26" height="36" rx="11" fill="#1b1538"/>' +
+      '<rect x="188" y="348" width="26" height="36" rx="11" fill="#1b1538"/>' +
+      '<rect x="122" y="374" width="62" height="34" rx="17" fill="url(#' + s + 'PB)" stroke="#c9bfe8" stroke-opacity="0.4" stroke-width="1.5"/>' +
+      '<rect x="176" y="374" width="62" height="34" rx="17" fill="url(#' + s + 'PB)" stroke="#c9bfe8" stroke-opacity="0.4" stroke-width="1.5"/>' +
+      '<path d="M124 398 L182 398" stroke="#171132" stroke-width="9" stroke-linecap="round"/>' +
+      '<path d="M178 398 L236 398" stroke="#171132" stroke-width="9" stroke-linecap="round"/>' +
+      '<rect x="84" y="290" width="32" height="56" rx="15" fill="#1b1538" transform="rotate(16 100 318)"/>' +
+      '<rect x="244" y="290" width="32" height="56" rx="15" fill="#1b1538" transform="rotate(-16 260 318)"/>' +
+      '<circle cx="89" cy="350" r="17" fill="#241d4e"/><circle cx="271" cy="350" r="17" fill="#241d4e"/>' +
+      '<path d="M80 344 Q88 338 98 344" stroke="#5e54a0" stroke-width="2" opacity="0.8"/>' +
+      '<path d="M262 344 Q270 338 280 344" stroke="#5e54a0" stroke-width="2" opacity="0.8"/>' +
+      '<circle cx="118" cy="284" r="17" fill="url(#' + s + 'PB)"/><circle cx="242" cy="284" r="17" fill="url(#' + s + 'PB)"/>' +
+      '<rect x="128" y="244" width="104" height="116" rx="46" fill="url(#' + s + 'PB)" stroke="#c9bfe8" stroke-opacity="0.5" stroke-width="1.5"/>' +
+      '<path d="M142 268 Q180 252 218 268" stroke="#ffffff" stroke-opacity="0.65" stroke-width="2.5" stroke-linecap="round"/>' +
+      '<path d="M138 330 Q180 348 222 330" stroke="#8d7fc4" stroke-opacity="0.4" stroke-width="2"/>' +
+      '<circle class="reactor-soft" cx="180" cy="302" r="26" fill="#36E0E6" opacity="0.16" filter="url(#' + s + 'M)"/>' +
+      '<path d="M163 290 L197 290 L180 318 Z" fill="#0c1230"/>' +
+      '<path class="reactor-line" d="M163 290 L197 290 L180 318 Z" stroke="#36E0E6" stroke-width="3" stroke-linejoin="round" filter="url(#' + s + 'S)"/>' +
+      '<path class="reactor-hi" d="M163 290 L197 290 L180 318 Z" stroke="#9bf4ff" stroke-width="1.5" stroke-linejoin="round"/>' +
+      '<circle class="reactor-burst" cx="180" cy="302" r="30" fill="#FF5FB0" filter="url(#' + s + 'M)"/>' +
+      '<rect x="160" y="228" width="40" height="22" rx="9" fill="#171132"/>' +
+      '<g class="head">' +
+        '<path d="M106 66 L76 14 L150 40 Z" fill="url(#' + s + 'P)" stroke="#cfc4ef" stroke-opacity="0.5" stroke-width="2" stroke-linejoin="round"/>' +
+        '<path d="M254 66 L284 14 L210 40 Z" fill="url(#' + s + 'P)" stroke="#cfc4ef" stroke-opacity="0.5" stroke-width="2" stroke-linejoin="round"/>' +
+        '<path d="M88 28 L138 42" stroke="#FF5FB0" stroke-width="2.5" opacity="0.65" stroke-linecap="round"/>' +
+        '<path d="M272 28 L222 42" stroke="#36E0E6" stroke-width="2.5" opacity="0.65" stroke-linecap="round"/>' +
+        '<rect x="42" y="38" width="276" height="220" rx="106" fill="url(#' + s + 'P)" stroke="#cfc4ef" stroke-opacity="0.55" stroke-width="2"/>' +
+        '<path d="M96 70 Q180 38 264 70" stroke="#ffffff" stroke-opacity="0.75" stroke-width="3.5" stroke-linecap="round"/>' +
+        '<rect x="66" y="80" width="204" height="148" rx="66" stroke="#FF5FB0" stroke-width="8" opacity="0.85" filter="url(#' + s + 'M)"/>' +
+        '<rect x="66" y="80" width="204" height="148" rx="66" fill="url(#' + s + 'V)"/>' +
+        '<rect x="66" y="80" width="204" height="148" rx="66" stroke="#ff9ed3" stroke-width="3"/>' +
+        '<g fill="#ffffff">' +
+          '<circle cx="104" cy="116" r="1.8" opacity="0.9"/><circle cx="142" cy="100" r="1.4" opacity="0.7"/>' +
+          '<circle cx="196" cy="108" r="1.8" opacity="0.85"/><circle cx="236" cy="124" r="1.4" opacity="0.7"/>' +
+          '<circle cx="120" cy="186" r="1.4" opacity="0.6"/><circle cx="170" cy="200" r="1.8" opacity="0.8"/>' +
+          '<circle cx="224" cy="190" r="1.4" opacity="0.65"/><circle cx="246" cy="160" r="1.2" opacity="0.55"/>' +
+          '<circle cx="92" cy="152" r="1.2" opacity="0.5"/></g>' +
+        '<path d="M156 122 L156 130 M152 126 L160 126" stroke="#9bf4ff" stroke-width="1.6" opacity="0.85"/>' +
+        '<path d="M204 122 L204 130 M200 126 L208 126" stroke="#9bf4ff" stroke-width="1.6" opacity="0.85"/>' +
+        '<g class="eye eyeL">' +
+          '<ellipse cx="138" cy="156" rx="16" ry="23" fill="url(#' + s + 'E)" filter="url(#' + s + 'M)" opacity="0.8"/>' +
+          '<ellipse cx="138" cy="156" rx="14" ry="21" fill="url(#' + s + 'E)"/>' +
+          '<ellipse cx="134" cy="148" rx="4.5" ry="6" fill="#ffffff" opacity="0.95"/>' +
+          '<rect class="blinklid" x="119" y="130" width="38" height="54" rx="17" fill="#0b0726"/></g>' +
+        '<g class="eye eyeR">' +
+          '<ellipse cx="212" cy="156" rx="16" ry="23" fill="url(#' + s + 'E)" filter="url(#' + s + 'M)" opacity="0.8"/>' +
+          '<ellipse cx="212" cy="156" rx="14" ry="21" fill="url(#' + s + 'E)"/>' +
+          '<ellipse cx="208" cy="148" rx="4.5" ry="6" fill="#ffffff" opacity="0.95"/>' +
+          '<rect class="blinklid" x="193" y="130" width="38" height="54" rx="17" fill="#0b0726"/></g>' +
+        '<g class="brow">' +
+          '<path d="M114 126 L160 142" stroke="#FF5FB0" stroke-width="5.5" stroke-linecap="round" filter="url(#' + s + 'S)" opacity="0.85"/>' +
+          '<path d="M236 126 L190 142" stroke="#FF5FB0" stroke-width="5.5" stroke-linecap="round" filter="url(#' + s + 'S)" opacity="0.85"/>' +
+          '<path d="M114 126 L160 142" stroke="#ff9ed3" stroke-width="2.5" stroke-linecap="round"/>' +
+          '<path d="M236 126 L190 142" stroke="#ff9ed3" stroke-width="2.5" stroke-linecap="round"/></g>' +
+        '<path class="smile" d="M162 198 Q180 212 198 198" stroke="#7fe9ff" stroke-width="4" stroke-linecap="round"/>' +
+        '<g class="blush">' +
+          '<rect x="102" y="188" width="20" height="7" rx="3.5" fill="#FF5FB0" opacity="0.75"/>' +
+          '<rect x="238" y="188" width="20" height="7" rx="3.5" fill="#FF5FB0" opacity="0.75"/></g>' +
+      '</g>' +
+    '</g></svg>';
+  }
+
+  function ensureStyle() {
+    if (document.getElementById(STYLE_ID)) return;
+    var st = document.createElement("style");
+    st.id = STYLE_ID;
+    st.textContent = CSS;
+    document.head.appendChild(st);
+  }
+
+  var MOODS = ["idle", "battle", "happy", "curious"];
+
+  function mount(host, opts) {
+    opts = opts || {};
+    ensureStyle();
+    var s = "trx" + (uid++) + "_";
+    host.innerHTML = svgMarkup(s);
+    var svg = host.querySelector("svg");
+    var mood = "idle";
+    function setMood(m) {
+      if (MOODS.indexOf(m) < 0) m = "idle";
+      svg.classList.remove("m-" + mood);
+      mood = m;
+      svg.classList.add("m-" + mood);
+    }
+    function pulse() {
+      svg.classList.remove("pulsing");
+      void svg.getBoundingClientRect();
+      svg.classList.add("pulsing");
+      setTimeout(function () { svg.classList.remove("pulsing"); }, 800);
+    }
+    if (opts.mood) setMood(opts.mood);
+    return { el: svg, setMood: setMood, pulse: pulse, getMood: function () { return mood; } };
+  }
+
+  window.Trix = { mount: mount };
+})();
+
 (function(){
   "use strict";
 
@@ -1215,6 +1658,11 @@
     $("campresult").classList.remove("show");
     $("sheet").classList.remove("show"); $("confetti").classList.remove("show");
     if(id==="v-howto") fitHowto();
+    // Mascots follow the screen: right one on every menu; left one joins on the friend view.
+    showRightTrix(true);
+    if(window.homeTrix) homeTrix.setMood((id==="v-home"||id==="v-setup"||id==="v-friend") ? "curious" : "idle");
+    showLeftTrix(id==="v-friend");
+    if(window.friendTrix && id==="v-friend") friendTrix.setMood("curious");
   }
   // scale the how-to-play content down if it would overflow the viewport (no scrolling)
   function fitHowto(){
@@ -1234,6 +1682,7 @@
     VIEWS.forEach(function(v){$(v).classList.remove("show");});
     $("stage").classList.add("show");
     _bannerShown=false; // new game → the opening turn banner may show once
+    showRightTrix(false); showLeftTrix(false); // Trix steps out during a live match
   }
 
   // ---------- logo mark (two sub-triangles, dots at vertices) ----------
@@ -1248,6 +1697,17 @@
     s+='</svg>'; return s;
   }
   $("home-logo").innerHTML=logoSVG(88);
+  // Trix mascots — right instance persists on menus; left instance joins on the friend screen.
+  if(window.Trix && $("home-trix")){ window.homeTrix = Trix.mount($("home-trix"), { mood:"curious" }); }
+  if(window.Trix && $("friend-trix")){ window.friendTrix = Trix.mount($("friend-trix"), { mood:"curious" }); }
+  // Show/hide helpers (the left one replays its entrance each time it appears).
+  function showRightTrix(on){ var h=$("home-trix"); if(h) h.style.display = on ? "" : "none"; }
+  function showLeftTrix(on){
+    var h=$("friend-trix"); if(!h) return;
+    if(on){ h.style.display="block"; h.classList.remove("trix-enter"); void h.offsetWidth; h.classList.add("trix-enter"); }
+    else { h.style.display="none"; h.classList.remove("trix-enter"); }
+  }
+  window._showRightTrix = showRightTrix; window._showLeftTrix = showLeftTrix;
 
   // ---------- starfield (seeded — same sky every launch) ----------
   (function(){
@@ -1447,6 +1907,7 @@
       gt.appendChild(svgEl("polygon",{points:pts.map(function(p){return p.x+","+p.y;}).join(" "),
         fill:pcolor(t.player),"fill-opacity":"0.20",stroke:pcolor(t.player),"stroke-width":"2","stroke-linejoin":"round"}));
     });
+    renderNearComplete();
     for(var key in S.edges){
       var ij=key.split("-"),a=S.dots[+ij[0]],b=S.dots[+ij[1]],col=pcolor(S.edges[key]);
       ge.appendChild(svgEl("line",{x1:a.x,y1:a.y,x2:b.x,y2:b.y,stroke:col,"stroke-opacity":"0.35","stroke-width":"9","stroke-linecap":"round"}));
@@ -1478,11 +1939,52 @@
       var ok=!hasEdge(from,i)&&!passesThroughDot(from,i)&&!crossesEdge(from,i);
       if(ok){
         var p=S.dots[i];
-        gr.appendChild(svgEl("circle",{cx:p.x,cy:p.y,r:S.dotR*2.6,fill:"none",stroke:ACCENT,"stroke-opacity":"0.4","stroke-width":"2.5"}));
+        if(completesTriangle(from,i)){
+          // this line closes a triangle right now — make it pop in player colour
+          var col=pcolor(S.current);
+          gr.appendChild(svgEl("circle",{cx:p.x,cy:p.y,r:S.dotR*2.6,fill:col,"fill-opacity":"0.16",
+            stroke:col,"stroke-width":"3.5",class:"complete-ring"}));
+        } else {
+          gr.appendChild(svgEl("circle",{cx:p.x,cy:p.y,r:S.dotR*2.6,fill:"none",stroke:ACCENT,"stroke-opacity":"0.4","stroke-width":"2.5"}));
+        }
         grps[i].classList.add("legal-dot");
       } else {
         grps[i].classList.add("dim-dot");
       }
+    }
+  }
+  // Does drawing from→i close at least one valid, unclaimed triangle?
+  function completesTriangle(from,i){
+    for(var c=0;c<S.dots.length;c++){
+      if(c===from||c===i) continue;
+      if(hasEdge(from,c)&&hasEdge(i,c)){
+        var key=[from,i,c].sort(function(x,y){return x-y;}).join(",");
+        if(!S.scoredTri[key]&&triAngleOK(from,i,c)) return true;
+      }
+    }
+    return false;
+  }
+  // ---- near-complete triangles (#1) ----
+  // Any valid, unclaimed triangle that is one legal line away from closing gets
+  // a soft pulsing fill in the current player's colour, so the endgame "what can
+  // I still make?" question answers itself. Only shown on the human's turn.
+  function renderNearComplete(){
+    var gn=$("g-near"); if(!gn) return; gn.innerHTML="";
+    if(!canDrawNow()) return;
+    var col=pcolor(S.current), n=S.dots.length;
+    for(var a=0;a<n;a++) for(var b=a+1;b<n;b++) for(var c=b+1;c<n;c++){
+      var ab=hasEdge(a,b), ac=hasEdge(a,c), bc=hasEdge(b,c);
+      if((ab?1:0)+(ac?1:0)+(bc?1:0)!==2) continue;   // exactly one edge missing
+      var key=a+","+b+","+c;                          // a<b<c, matches scoredTri
+      if(S.scoredTri[key]) continue;
+      if(!triAngleOK(a,b,c)) continue;                // ignore slivers
+      var mi,mj;                                       // the missing edge
+      if(!ab){mi=a;mj=b;} else if(!ac){mi=a;mj=c;} else {mi=b;mj=c;}
+      if(crossesExisting(mi,mj)) continue;            // must be actually drawable
+      var pts=[S.dots[a],S.dots[b],S.dots[c]];
+      gn.appendChild(svgEl("polygon",{points:pts.map(function(q){return q.x+","+q.y;}).join(" "),
+        fill:col,class:"near-tri",stroke:col,"stroke-opacity":"0.55",
+        "stroke-width":"2","stroke-dasharray":"5 6","stroke-linejoin":"round"}));
     }
   }
 
@@ -1490,6 +1992,23 @@
   function edgeKey(i,j){return i<j?i+"-"+j:j+"-"+i;}
   function hasEdge(i,j){return Object.prototype.hasOwnProperty.call(S.edges,edgeKey(i,j));}
   function orient(p,q,r){return (q.x-p.x)*(r.y-p.y)-(q.y-p.y)*(r.x-p.x);}
+  // ---- minimum-angle rule ----
+  // Thin "sliver" triangles visually collapse onto their longest edge and make
+  // the late game hard to read, so a triangle whose smallest interior angle is
+  // below MIN_TRI_ANGLE simply isn't a triangle: it never fills, scores, or
+  // highlights. Tune the threshold (degrees) to taste.
+  var MIN_TRI_ANGLE_DEG=0, MIN_TRI_ANGLE=MIN_TRI_ANGLE_DEG*Math.PI/180;  // 0 = no sliver limit; every triangle counts
+  function triAngleOK(a,b,c){
+    var A=S.dots[a],B=S.dots[b],C=S.dots[c];
+    function ang(P,Q,R){
+      var x1=Q.x-P.x,y1=Q.y-P.y,x2=R.x-P.x,y2=R.y-P.y;
+      var m1=Math.hypot(x1,y1),m2=Math.hypot(x2,y2);
+      if(m1<1e-9||m2<1e-9) return 0;
+      var cs=Math.max(-1,Math.min(1,(x1*x2+y1*y2)/(m1*m2)));
+      return Math.acos(cs);
+    }
+    return Math.min(ang(A,B,C),ang(B,A,C),ang(C,A,B))>=MIN_TRI_ANGLE;
+  }
   function onSeg(p,q,r){
     return Math.min(p.x,r.x)-0.001<=q.x && q.x<=Math.max(p.x,r.x)+0.001 &&
            Math.min(p.y,r.y)-0.001<=q.y && q.y<=Math.max(p.y,r.y)+0.001;
@@ -1657,6 +2176,7 @@
       for(var c=0;c<S.dots.length;c++){
         if(c===startIdx||c===t) continue;
         if(!hasEdge(startIdx,c)||!hasEdge(t,c)) continue;
+        if(!triAngleOK(startIdx,t,c)) continue;
         var key=[startIdx,t,c].sort(function(x,y){return x-y;}).join(",");
         if(S.scoredTri[key]) continue;
         var pts=[S.dots[startIdx],S.dots[t],S.dots[c]];
@@ -1777,6 +2297,7 @@
     for(var c=0;c<S.dots.length;c++){
       if(c===a||c===b) continue;
       if(hasEdge(a,c)&&hasEdge(b,c)){
+        if(!triAngleOK(a,b,c)) continue;   // sliver triangles don't count
         var key=[a,b,c].sort(function(x,y){return x-y;}).join(",");
         if(!S.scoredTri[key]){
           var pts=(a===S.goldenDot||b===S.goldenDot||c===S.goldenDot)?2:1;
@@ -2091,31 +2612,59 @@
   function updateRolloffUI(){
     $("ro-nm0").textContent=pname(0); $("ro-nm0").style.color=P1;
     $("ro-nm1").textContent=pname(1); $("ro-nm1").style.color=P2;
-    var btn=$("ro-roll");
-    // Hide button in online mode — rolls are automatic
-    if(S.online){ btn.style.display="none"; }
-    else {
-      var bothRolled = S.roMatrix[0]!=null && S.roMatrix[1]!=null;
-      var canAct = !S.rolling && S.roMatrix[0]==null;
-      if(bothRolled){ btn.style.display="none"; }
-      else { btn.style.display=""; btn.disabled=!canAct; btn.style.opacity=canAct?"1":"0.4"; }
+    var btn=$("ro-roll"), st=$("ro-status");
+    // Online mode: server is sequential and auto-advances — button stays hidden.
+    if(S.online){
+      btn.style.display="none";
+      var parts=[];
+      [0,1].forEach(function(i){ if(S.roMatrix[i]!=null && S.roMatrix[i]>=0) parts.push(pname(i)+" rolled "+S.roMatrix[i]); });
+      st.textContent = parts.length ? parts.join("  ·  ") : "Rolling…";
+      return;
     }
-    var st=$("ro-status"), parts=[];
-    [0,1].forEach(function(i){ if(S.roMatrix[i]!=null) parts.push(pname(i)+" rolled "+S.roMatrix[i]); });
-    if(parts.length) st.textContent=parts.join("  ·  ");
-    else st.textContent = S.online ? "Rolling…" : "Tap to roll — both dice go at once!";
+    // Local mode: idle → rolling → done, button label tracks the state.
+    var done = S.roMatrix[0]!=null && S.roMatrix[1]!=null;
+    btn.style.display="";
+    if(S.rolling){ btn.textContent="Rolling…"; btn.disabled=true; btn.style.opacity="0.6"; }
+    else if(done){ btn.textContent="Start game"; btn.disabled=false; btn.style.opacity="1"; }
+    else { btn.textContent="Roll the dice"; btn.disabled=false; btn.style.opacity="1"; }
+    st.textContent="";
+  }
+  function roClearWinner(){
+    ["ro-col0","ro-col1"].forEach(function(id){ $(id).classList.remove("ro-win","ro-lose"); });
+    ["ro-die0","ro-die1"].forEach(function(id){ $(id).classList.remove("glow-p0","glow-p1"); });
+    $("ro-pill").classList.add("hidden");
+  }
+  function roShowWinner(){
+    var w = S.roMatrix[0]>S.roMatrix[1]?0:1, l = 1-w;
+    S.current = w;
+    $("ro-col"+w).classList.add("ro-win"); $("ro-col"+l).classList.add("ro-lose");
+    $("ro-die"+w).classList.add(w===0?"glow-p0":"glow-p1");
+    var pill=$("ro-pill"), dot=$("ro-dot");
+    dot.style.background = (w===0?P1:P2);
+    dot.style.boxShadow = "0 0 10px "+(w===0?P1:P2);
+    $("ro-pill-txt").textContent = pname(w)==="You" ? "You go first" : pname(w)+" goes first";
+    pill.classList.remove("hidden");
+    pill.style.animation="none"; void pill.offsetWidth; pill.style.animation=""; // restart winPop
+    updateRolloffUI();
   }
   function roTurn(){
     updateRolloffUI();
-    armRoll(doRolloffRoll);
+    armRoll(onRolloffButton);
   }
   function startRolloff(){
     S.phase="rolloff";S.roMatrix=[null,null];S.roWho=0;S.rolling=false;
+    roClearWinner();
     renderDie($("ro-die0"),1);renderDie($("ro-die1"),1);
     showGame(); updateHUD();
     showOverlay("ov-rolloff");
     updateRolloffUI();
     if(!S.online) roTurn();
+  }
+  // Dispatcher for the modal's primary button: roll when idle, start when done.
+  function onRolloffButton(){
+    if(S.online){ doRolloffRoll(); return; }
+    if(S.roMatrix[0]!=null && S.roMatrix[1]!=null && !S.rolling){ rolloffStart(); return; }
+    doRolloffRoll();
   }
   function doRolloffRoll(){
     // Online: server is sequential — only send roll when roWho===myPlayer
@@ -2128,23 +2677,29 @@
     }
     if(S.rolling||S.phase!=="rolloff"||S.roMatrix[0]!=null) return;
     S.rolling=true;disarmRoll();
-    var done0=false, done1=false, val0, val1;
+    // Ties are not allowed — pick the bot's value until the two differ.
+    var val0=1+Math.floor(Math.random()*6), val1=1+Math.floor(Math.random()*6);
+    while(val1===val0) val1=1+Math.floor(Math.random()*6);
+    updateRolloffUI();
+    // Respect reduced motion: snap to the final faces + winner, skip the tumble.
+    if(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches){
+      renderDie($("ro-die0"),val0);renderDie($("ro-die1"),val1);
+      buzz(20);S.rolling=false;S.roMatrix[0]=val0;S.roMatrix[1]=val1;
+      roShowWinner();return;
+    }
+    var done0=false, done1=false;
     function onBothDone(){
       if(!done0||!done1) return;
       buzz(20);S.rolling=false;
       S.roMatrix[0]=val0;S.roMatrix[1]=val1;
-      updateRolloffUI();
-      setTimeout(rolloffNext,1100);
+      roShowWinner();
     }
-    animateDie($("ro-die0"),function(n){ val0=n; done0=true; onBothDone(); });
-    animateDie($("ro-die1"),function(n){ val1=n; done1=true; onBothDone(); });
+    animateDie($("ro-die0"),function(){ done0=true; onBothDone(); },val0);
+    animateDie($("ro-die1"),function(){ done1=true; onBothDone(); },val1);
   }
-  function rolloffNext(){
-    if(S.roMatrix[0]===S.roMatrix[1]){
-      toast("Tie! Roll again");S.roMatrix=[null,null];S.roWho=0;
-      renderDie($("ro-die0"),1);renderDie($("ro-die1"),1);updateRolloffUI();roTurn();return;
-    }
-    S.current=S.roMatrix[0]>S.roMatrix[1]?0:1;
+  // "Start game" — begin play with the roll-off winner already in S.current.
+  function rolloffStart(){
+    playSound(sndClick);
     hideOverlay("ov-rolloff");
     startTurn();
   }
@@ -2197,7 +2752,7 @@
     return L;
   }
   function newTriCount(a,b){
-    var c=0; for(var k=0;k<S.dots.length;k++){ if(k===a||k===b) continue; if(hasEdge(a,k)&&hasEdge(b,k)) c++; } return c;
+    var c=0; for(var k=0;k<S.dots.length;k++){ if(k===a||k===b) continue; if(hasEdge(a,k)&&hasEdge(b,k)&&triAngleOK(a,b,k)) c++; } return c;
   }
   function aiPickMove(){
     var L=legalMoves(); if(!L.length) return null;
@@ -2283,6 +2838,17 @@
     setTimeout(function(){c.classList.remove("show");c.innerHTML="";},3600);
   }
   function matchNeed(){ return Math.floor(S.matchBest/2)+1; }
+  // Scale the board so it fits entirely above a bottom-sheet result card.
+  function fitBoardAboveCard(card){
+    if(!card) return;
+    requestAnimationFrame(function(){
+      var ch=card.getBoundingClientRect().height;
+      var vh=window.innerHeight||document.documentElement.clientHeight;
+      if(!vh) return;
+      var s=Math.max(0.4, Math.min(1, (vh-ch-14)/vh));
+      document.documentElement.style.setProperty('--go-scale', s.toFixed(3));
+    });
+  }
   function showGameOver(winnerIdx, iWin){
     $("go-nm0").textContent=pname(0).toUpperCase();
     $("go-nm1").textContent=pname(1).toUpperCase();
@@ -2308,8 +2874,24 @@
         m.textContent="Match "+w0+"–"+w1+" · first to "+matchNeed()+(winnerIdx==null?" · tie — replay":"");
       }
       m.style.display="";
-    } else { m.style.display="none"; }
+    } else {
+      // single game: show a flavor subtitle (the redesign always shows a subtitle)
+      var sub;
+      if(winnerIdx===null||winnerIdx===undefined) sub="Dead even. One more round?";
+      else if(S.vsComputer) sub=(winnerIdx===S.aiPlayer)?"They edged you out — run it back?":"You owned the board this round.";
+      else sub=pname(winnerIdx)+" owned the board this round.";
+      m.textContent=sub; m.style.display="";
+    }
     $("go-head").textContent=head;
+    // winner color + glow + team-card highlight (redesigned result card)
+    var _tie = (winnerIdx===null||winnerIdx===undefined);
+    var wc = _tie ? 'var(--accent)' : (winnerIdx===0 ? 'var(--p1)' : 'var(--p2)');
+    var wsh = _tie ? 'rgba(182,155,255,' : (winnerIdx===0 ? 'rgba(54,224,230,' : 'rgba(255,95,176,');
+    $("go-head").style.color = wc;
+    $("go-head").style.textShadow = '0 0 30px '+wsh+'.4)';
+    var _gg=$("go-glow"); if(_gg) _gg.style.background='radial-gradient(60% 100% at 50% 0%, '+wsh+'.19) 0%, transparent 72%)';
+    $("go-team0").className = 'rp-team p1'+((winnerIdx===0||_tie)?' on':'')+(winnerIdx===0?' win':'');
+    $("go-team1").className = 'rp-team p2'+((winnerIdx===1||_tie)?' on':'')+(winnerIdx===1?' win':'');
     // Online: show Rematch button; offline: show Play again
     $("go-again").style.display = S.online ? "none" : "";
     $("go-again").textContent = (inMatch && !S.matchOver) ? "Next game" : "Play again";
@@ -2317,7 +2899,10 @@
     $("go-rematch").textContent = (inMatch && !S.matchOver) ? "Next game" : "Rematch";
     $("go-rematch").disabled = false;
     $("gameover").classList.add("show");
+    fitBoardAboveCard(document.querySelector('#gameover .rp-card'));
     if(iWin) confettiBurst();
+    // Trix reacts to the result: happy + reactor burst on a win, calm otherwise.
+    if(window.homeTrix){ homeTrix.setMood(iWin ? "happy" : "idle"); if(iWin) homeTrix.pulse(); }
   }
   function endGame(){
     clearTurnTimer();
@@ -2681,8 +3266,18 @@
     }
     // populate overlay
     var isLast=(num===CAMPAIGN.length);
-    $("cr-head").textContent = iWin ? (isLast?"Campaign complete!":"Level cleared!") : "Duel lost";
-    $("cr-score").textContent = "You "+youScore+" – "+cpuScore+" AI Bot";
+    $("cr-head").textContent = iWin ? (isLast?"Campaign complete!":"Level cleared!") : (youScore===cpuScore?"Duel drawn":"Duel lost");
+    $("cr-sc0").textContent = youScore; $("cr-sc1").textContent = cpuScore;
+    // winner color + glow + team-card highlight (redesigned result card)
+    var cw = (youScore>cpuScore)?0:((cpuScore>youScore)?1:null);
+    var ctie = (cw===null);
+    var cwc = ctie ? 'var(--accent)' : (cw===0 ? 'var(--p1)' : 'var(--p2)');
+    var cwsh = ctie ? 'rgba(182,155,255,' : (cw===0 ? 'rgba(54,224,230,' : 'rgba(255,95,176,');
+    $("cr-head").style.color = cwc;
+    $("cr-head").style.textShadow = '0 0 30px '+cwsh+'.4)';
+    var _cg=$("cr-glow"); if(_cg) _cg.style.background='radial-gradient(60% 100% at 50% 0%, '+cwsh+'.19) 0%, transparent 72%)';
+    $("cr-team0").className = 'rp-team p1'+((cw===0||ctie)?' on':'')+(cw===0?' win':'');
+    $("cr-team1").className = 'rp-team p2'+((cw===1||ctie)?' on':'')+(cw===1?' win':'');
     var msg;
     if(!iWin){
       msg = (youScore===cpuScore) ? "A tie isn't enough — you need to win outright. Try again." : "So close. Adjust and run it back.";
@@ -2699,6 +3294,7 @@
       el.className="cr-star"+(i<stars?" on":"");
     });
     $("campresult").classList.add("show");
+    fitBoardAboveCard(document.querySelector('#campresult .rp-card'));
     if(iWin) confettiBurst();
     [0,1,2].forEach(function(i){
       setTimeout(function(){ $("cr-star"+i).classList.add("pop"); }, 260+i*220);
@@ -3073,14 +3669,24 @@
   function openOnline(){
     S.online=false; S.vsComputer=false; S.myPlayer=-1;
     S.campaign=false; S.diceCap=0; S.handicap=0; TURN_SECONDS=20;
+    var jc=$("join-code"); if(jc) jc.value="";
+    var js=$("join-status"); if(js) js.textContent="";
+    if(window._renderJoinTiles) window._renderJoinTiles();
     showOnlineStep("choose");
+    collapseJoin();
     showView("v-online");
+  }
+  function collapseJoin(){
+    var w=$("ol-join-wrap"), e=$("join-entry"), b=$("ol-join");
+    if(w){ w.classList.remove("open"); }
+    if(e){ e.classList.remove("open"); }
+    if(b){ b.setAttribute("aria-expanded","false"); }
   }
   function showOnlineStep(step){
     $("online-choose").style.display = step==="choose" ? "" : "none";
     $("online-create").style.display = step==="create" ? "" : "none";
-    $("online-join").style.display   = step==="join"   ? "" : "none";
     $("online-qm").style.display     = step==="qm"     ? "" : "none";
+    if(step!=="choose"){ collapseJoin(); }
     if(step==="create"){
       createN=DEFAULT_DOTS;
       createMB=1; resetMatchSeg("create-match");
@@ -3098,8 +3704,40 @@
     else { showOnlineStep("choose"); }
   });
   $("ol-create").addEventListener("click",function(){ showOnlineStep("create"); });
-  $("ol-join").addEventListener("click",function(){ showOnlineStep("join"); });
-  $("ol-quick").addEventListener("click",function(){ showOnlineStep("qm"); qmSetStatus(""); });
+
+  // ---------- inline "Join a room" (expandable card + code tiles) ----------
+  function openJoin(){
+    var w=$("ol-join-wrap"), e=$("join-entry"), b=$("ol-join");
+    w.classList.add("open"); e.classList.add("open"); b.setAttribute("aria-expanded","true");
+    setTimeout(function(){ try{ $("join-code").focus(); }catch(_){} },200);
+  }
+  $("ol-join").addEventListener("click",function(){
+    var open=$("ol-join-wrap").classList.contains("open");
+    if(open){ collapseJoin(); } else { enableMotion(); primeAudio(); openJoin(); }
+  });
+  (function(){
+    var inp=$("join-code"), wrap=$("join-tiles"), go=$("join-go");
+    if(!inp||!wrap) return;
+    function tiles(){ return wrap.querySelectorAll(".codetile"); }
+    function render(){
+      var v=(inp.value||"").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,6);
+      if(v!==inp.value) inp.value=v;
+      var ts=tiles(), focused=(document.activeElement===inp);
+      for(var i=0;i<ts.length;i++){
+        var ch=v.charAt(i);
+        ts[i].classList.toggle("filled", !!ch);
+        ts[i].classList.toggle("active", focused && i===Math.min(v.length,5));
+        ts[i].innerHTML = ch ? ch : '<span class="ph">–</span>';
+      }
+      go.disabled = v.length < 6;
+    }
+    inp.addEventListener("input", render);
+    inp.addEventListener("focus", render);
+    inp.addEventListener("blur", render);
+    wrap.addEventListener("click", function(){ inp.focus(); });
+    render();
+    window._renderJoinTiles = render;
+  })();
 
   $("create-go").addEventListener("click",function(){
     enableMotion(); primeAudio();
@@ -3132,9 +3770,9 @@
   });
   $("join-go").addEventListener("click",function(){
     enableMotion(); primeAudio();
-    var code=($("join-code").value||"").trim().toUpperCase().slice(0,6);
+    var code=($("join-code").value||"").trim().toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,6);
     var name=($("join-name").value||"").trim().slice(0,14);
-    if(code.length<4){ $("join-status").textContent="Enter a valid code"; return; }
+    if(code.length<6){ $("join-status").textContent="Enter the full 6-character code"; return; }
     if(!name){ $("join-status").textContent="Enter your name first"; return; }
     S.online=true; S.vsComputer=false; S.myPlayer=-1;
     S.names=["Friend",name];
@@ -3200,7 +3838,7 @@
   ["home-play","home-campaign","home-friend","home-howto",
    "fc-online","fc-quick","fc-pass",
    "setup-back","setup-start",
-   "ol-create","ol-join","ol-quick","qm-go","online-back",
+   "ol-create","ol-join","qm-go","online-back",
    "create-go","create-copy","create-copy-link","join-go",
    "howto-got",
    "m-resume","m-restart","m-howto","m-quit",
@@ -3221,18 +3859,76 @@
   });
 
   // ---------- game top bar / sheet ----------
+  // ----- pause sheet open/close (bottom-sheet w/ slide + drag-to-dismiss) -----
+  var _sheetCloseTmr=null;
+  function openSheet(){
+    var s=$("sheet");
+    clearTimeout(_sheetCloseTmr);
+    s.classList.remove("closing","dragging");
+    s.querySelector(".sheet-body").style.transform="";
+    s.classList.add("show");
+  }
+  function closeSheet(cb){
+    var s=$("sheet");
+    if(!s.classList.contains("show")){ if(cb) cb(); return; }
+    var body=s.querySelector(".sheet-body");
+    body.style.transform="";
+    s.classList.remove("dragging");
+    s.classList.add("closing");
+    var reduce=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var done=function(){
+      clearTimeout(_sheetCloseTmr);
+      s.classList.remove("show","closing");
+      if(cb) cb();
+    };
+    if(reduce){ done(); return; }
+    _sheetCloseTmr=setTimeout(done,360);
+  }
+
   $("btn-mute").addEventListener("click",toggleMute);
-  $("btn-menu").addEventListener("click",function(){ $("sheet").classList.add("show"); });
-  $("sheet-scrim").addEventListener("click",function(){ $("sheet").classList.remove("show"); });
-  $("m-resume").addEventListener("click",function(){ $("sheet").classList.remove("show"); });
+  $("btn-menu").addEventListener("click",openSheet);
+  $("sheet-scrim").addEventListener("click",function(){ closeSheet(); });
+  $("m-resume").addEventListener("click",function(){ closeSheet(); });
   $("m-restart").addEventListener("click",function(){
-    $("sheet").classList.remove("show");
-    if(S.online) return;
-    if(S.campaign){ startCampaignLevel(S.campLevel); return; }
-    newBoard(); startRolloff();
+    closeSheet(function(){
+      if(S.online) return;
+      if(S.campaign){ startCampaignLevel(S.campLevel); return; }
+      newBoard(); startRolloff();
+    });
   });
-  $("m-howto").addEventListener("click",function(){ $("sheet").classList.remove("show"); howtoReturn="resume"; showView("v-howto"); });
-  $("m-quit").addEventListener("click",function(){ $("sheet").classList.remove("show"); quitToHome(); });
+  $("m-howto").addEventListener("click",function(){ closeSheet(function(){ howtoReturn="resume"; showView("v-howto"); }); });
+  $("m-quit").addEventListener("click",function(){ closeSheet(function(){ quitToHome(); }); });
+
+  // drag the grab handle down to dismiss
+  (function(){
+    var grip=$("sheet-grip"); if(!grip) return;
+    var sheet=$("sheet"), body=sheet.querySelector(".sheet-body");
+    var startY=0, dy=0, dragging=false;
+    function down(e){
+      dragging=true; dy=0;
+      startY=(e.touches?e.touches[0].clientY:e.clientY);
+      sheet.classList.add("dragging");
+      window.addEventListener("mousemove",move); window.addEventListener("mouseup",up);
+      window.addEventListener("touchmove",move,{passive:false}); window.addEventListener("touchend",up);
+    }
+    function move(e){
+      if(!dragging) return;
+      var y=(e.touches?e.touches[0].clientY:e.clientY);
+      dy=Math.max(0,y-startY);
+      if(e.cancelable) e.preventDefault();
+      body.style.transform="translateY("+dy+"px)";
+    }
+    function up(){
+      dragging=false;
+      sheet.classList.remove("dragging");
+      window.removeEventListener("mousemove",move); window.removeEventListener("mouseup",up);
+      window.removeEventListener("touchmove",move); window.removeEventListener("touchend",up);
+      if(dy>90){ closeSheet(); }
+      else{ body.style.transform=""; }
+    }
+    grip.addEventListener("mousedown",down);
+    grip.addEventListener("touchstart",down,{passive:true});
+  })();
 
   function quitToHome(){
     if(S.online) NET.disconnect();
@@ -3432,6 +4128,7 @@
         S.roMatrix=[null,null]; S.roWho=0;
         // bring the roll-off overlay back so the opening dice duel is visible
         // (the firstUpdate branch below only fires on the very first game)
+        roClearWinner();
         renderDie($("ro-die0"),1); renderDie($("ro-die1"),1);
         showGame();
         showOverlay("ov-rolloff");
@@ -3466,7 +4163,7 @@
     showGameOver(winnerIdx, iWin);
   }
 
-  $("ro-roll").addEventListener("click",doRolloffRoll);
+  $("ro-roll").addEventListener("click",onRolloffButton);
   $("game-die").addEventListener("click",function(){ if(onRollFn) onRollFn(); });
 
   // ---------- init ----------
@@ -3486,10 +4183,14 @@
     var params=new URLSearchParams(window.location.search);
     var joinCode=params.get("join");
     if(joinCode){
-      joinCode=joinCode.trim().toUpperCase().slice(0,6);
-      showView("v-friend");
-      showOnlineStep("join");
+      joinCode=joinCode.trim().toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,6);
+      openOnline();
+      showOnlineStep("choose");
+      $("ol-join-wrap").classList.add("open");
+      $("join-entry").classList.add("open");
+      $("ol-join").setAttribute("aria-expanded","true");
       $("join-code").value=joinCode;
+      if(window._renderJoinTiles) window._renderJoinTiles();
       // Clean the URL so refreshing doesn't re-trigger
       history.replaceState(null,"",location.pathname);
     } else {

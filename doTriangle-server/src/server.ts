@@ -28,6 +28,11 @@ type State = {
   roMatrix: [number | null, number | null];
   roWho: number;
   linesLeft: number;
+  // Stalemate guard: did the current player draw at least one line this turn,
+  // and how many turns in a row have ended with no line drawn. Two consecutive
+  // no-draw turns (both players pass) ends the game even if legal lines remain.
+  drewThisTurn: boolean;
+  passStreak: number;
   // best-of-N match
   bestOf: number;
   matchWins: [number, number];
@@ -45,7 +50,7 @@ type ServerEvent =
   | { type: "turn_changed"; current: number }
   | { type: "turn_timeout"; idx: number }
   | { type: "rolloff_starter"; winnerIdx: number }
-  | { type: "game_over"; winnerIdx: number | null }
+  | { type: "game_over"; winnerIdx: number | null; reason?: "stalemate" }
   | { type: "rematch_requested"; idx: number }
   | { type: "rematch_start" };
 
@@ -142,11 +147,27 @@ function hasEdge(state: State, i: number, j: number): boolean {
   return state.edges[edgeKey(i, j)] !== undefined;
 }
 
+// Minimum-angle rule: thin "sliver" triangles never count (must match the
+// client's MIN_TRI_ANGLE_DEG in index.html, or online play will desync).
+const MIN_TRI_ANGLE = 0 * Math.PI / 180;  // 0 = no sliver limit; every triangle counts
+function triAngleOK(state: State, a: number, b: number, c: number): boolean {
+  const A = state.dots[a], B = state.dots[b], C = state.dots[c];
+  const ang = (P: Dot, Q: Dot, R: Dot): number => {
+    const x1 = Q.x - P.x, y1 = Q.y - P.y, x2 = R.x - P.x, y2 = R.y - P.y;
+    const m1 = Math.hypot(x1, y1), m2 = Math.hypot(x2, y2);
+    if (m1 < 1e-9 || m2 < 1e-9) return 0;
+    const cs = Math.max(-1, Math.min(1, (x1 * x2 + y1 * y2) / (m1 * m2)));
+    return Math.acos(cs);
+  };
+  return Math.min(ang(A, B, C), ang(B, A, C), ang(C, A, B)) >= MIN_TRI_ANGLE;
+}
+
 function checkTriangles(state: State, a: number, b: number, player: number): Triangle[] {
   const made: Triangle[] = [];
   for (let c = 0; c < state.dots.length; c++) {
     if (c === a || c === b) continue;
     if (hasEdge(state, a, c) && hasEdge(state, b, c)) {
+      if (!triAngleOK(state, a, b, c)) continue; // sliver triangles don't count
       const key = [a, b, c].sort((x, y) => x - y).join(",");
       if (!state.scoredTri[key]) {
         state.scoredTri[key] = true;
@@ -194,6 +215,8 @@ function emptyState(): State {
     roMatrix: [null, null],
     roWho: 0,
     linesLeft: 0,
+    drewThisTurn: false,
+    passStreak: 0,
     bestOf: 1,
     matchWins: [0, 0],
     matchOver: false,
@@ -418,6 +441,7 @@ export default class Server implements Party.Server {
     const n = 1 + Math.floor(Math.random() * 6);
     this.state.linesLeft = n;
     this.state.history[idx].push(n);
+    this.state.drewThisTurn = false;   // reset for the stalemate guard
     this.state.phase = "drawing";
     this.setPhaseDeadline(DRAW_TIMEOUT_MS, () => this.timeoutTurn());
     this.broadcastUpdate([{ type: "dice_rolled", playerIdx: idx, value: n, for: "turn" }]);
@@ -479,6 +503,7 @@ export default class Server implements Party.Server {
     if (crossesExisting(this.state, a, b)) return;
     this.state.edges[edgeKey(a, b)] = idx;
     this.state.moves[idx]++;
+    this.state.drewThisTurn = true;    // a line was drawn → not a pass
     const newTri = checkTriangles(this.state, a, b, idx);
     this.state.linesLeft--;
     const events: ServerEvent[] = [{ type: "line_drawn", a, b, byPlayer: idx, triangles: newTri }];
@@ -496,6 +521,11 @@ export default class Server implements Party.Server {
 
   private advanceTurn(events: ServerEvent[]) {
     if (!hasAnyLegalMove(this.state)) { this.endGame(events); return; }
+    // Stalemate guard: the turn that just ended either drew (reset the streak)
+    // or passed (extend it). Two passes in a row — both players declined to draw
+    // while legal lines remain — is a deadlock, so end with the current scores.
+    this.state.passStreak = this.state.drewThisTurn ? 0 : this.state.passStreak + 1;
+    if (this.state.passStreak >= 2) { this.endGame(events, undefined, "stalemate"); return; }
     this.state.current = 1 - this.state.current;
     this.state.phase = "turn";
     this.setPhaseDeadline(ROLL_TIMEOUT_MS, () => this.autoRoll());
@@ -503,7 +533,7 @@ export default class Server implements Party.Server {
     this.broadcastUpdate(events);
   }
 
-  private endGame(events: ServerEvent[], forcedWinner?: 0 | 1) {
+  private endGame(events: ServerEvent[], forcedWinner?: 0 | 1, reason?: "stalemate") {
     this.clearPhaseTimer();
     this.state.phase = "end";
     this.rematchVotes.clear();
@@ -520,7 +550,7 @@ export default class Server implements Party.Server {
     } else {
       this.state.matchOver = true;
     }
-    events.push({ type: "game_over", winnerIdx: winner });
+    events.push({ type: "game_over", winnerIdx: winner, reason });
     this.broadcastUpdate(events);
   }
 

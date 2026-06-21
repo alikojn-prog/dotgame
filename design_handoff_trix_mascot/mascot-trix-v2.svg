@@ -1,0 +1,121 @@
+<svg viewBox="0 0 360 440" xmlns="http://www.w3.org/2000/svg" fill="none">
+  <defs>
+    <linearGradient id="tPearl" x1="100" y1="50" x2="280" y2="260" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f6f2ff"></stop>
+      <stop offset="0.55" stop-color="#d9cff2"></stop>
+      <stop offset="1" stop-color="#a293d6"></stop>
+    </linearGradient>
+    <linearGradient id="tPearlBody" x1="150" y1="246" x2="220" y2="370" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#efe9ff"></stop>
+      <stop offset="1" stop-color="#a89ad8"></stop>
+    </linearGradient>
+    <linearGradient id="tVisor" x1="180" y1="84" x2="180" y2="226" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0a0724"></stop>
+      <stop offset="1" stop-color="#120e38"></stop>
+    </linearGradient>
+    <radialGradient id="tEye" cx="0.5" cy="0.45" r="0.6">
+      <stop offset="0" stop-color="#c5f8ff"></stop>
+      <stop offset="0.5" stop-color="#3ce0f2"></stop>
+      <stop offset="1" stop-color="#1f9fd6"></stop>
+    </radialGradient>
+    <radialGradient id="tPodCore" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffd2ea"></stop>
+      <stop offset="0.5" stop-color="#FF5FB0"></stop>
+      <stop offset="1" stop-color="#5e1c52"></stop>
+    </radialGradient>
+    <filter id="tS" x="-70%" y="-70%" width="240%" height="240%"><feGaussianBlur stdDeviation="4"></feGaussianBlur></filter>
+    <filter id="tM" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="7"></feGaussianBlur></filter>
+    <filter id="tB" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="13"></feGaussianBlur></filter>
+  </defs>
+
+  
+  <ellipse cx="180" cy="418" rx="116" ry="16" fill="#FF5FB0" opacity="0.22" filter="url(#tB)"></ellipse>
+  <ellipse cx="180" cy="416" rx="64" ry="10" fill="#36E0E6" opacity="0.25" filter="url(#tB)"></ellipse>
+
+  
+  <rect x="146" y="348" width="26" height="36" rx="11" fill="#1b1538"></rect>
+  <rect x="188" y="348" width="26" height="36" rx="11" fill="#1b1538"></rect>
+  <rect x="122" y="374" width="62" height="34" rx="17" fill="url(#tPearlBody)" stroke="#c9bfe8" stroke-opacity="0.4" stroke-width="1.5"></rect>
+  <rect x="176" y="374" width="62" height="34" rx="17" fill="url(#tPearlBody)" stroke="#c9bfe8" stroke-opacity="0.4" stroke-width="1.5"></rect>
+  <path d="M124 398 L182 398" stroke="#171132" stroke-width="9" stroke-linecap="round"></path>
+  <path d="M178 398 L236 398" stroke="#171132" stroke-width="9" stroke-linecap="round"></path>
+
+  
+  <rect x="84" y="290" width="32" height="56" rx="15" fill="#1b1538" transform="rotate(16 100 318)"></rect>
+  <rect x="244" y="290" width="32" height="56" rx="15" fill="#1b1538" transform="rotate(-16 260 318)"></rect>
+  <circle cx="89" cy="350" r="17" fill="#241d4e"></circle>
+  <circle cx="271" cy="350" r="17" fill="#241d4e"></circle>
+  <path d="M80 344 Q88 338 98 344" stroke="#5e54a0" stroke-width="2" opacity="0.8"></path>
+  <path d="M262 344 Q270 338 280 344" stroke="#5e54a0" stroke-width="2" opacity="0.8"></path>
+  <circle cx="118" cy="284" r="17" fill="url(#tPearlBody)"></circle>
+  <circle cx="242" cy="284" r="17" fill="url(#tPearlBody)"></circle>
+
+  
+  <rect x="128" y="244" width="104" height="116" rx="46" fill="url(#tPearlBody)" stroke="#c9bfe8" stroke-opacity="0.5" stroke-width="1.5"></rect>
+  <path d="M142 268 Q180 252 218 268" stroke="#ffffff" stroke-opacity="0.65" stroke-width="2.5" stroke-linecap="round"></path>
+  <path d="M138 330 Q180 348 222 330" stroke="#8d7fc4" stroke-opacity="0.4" stroke-width="2"></path>
+  
+  <circle cx="180" cy="302" r="26" fill="#36E0E6" opacity="0.16" filter="url(#tM)"></circle>
+  <path d="M163 290 L197 290 L180 318 Z" fill="#0c1230"></path>
+  <path d="M163 290 L197 290 L180 318 Z" stroke="#36E0E6" stroke-width="3" stroke-linejoin="round" filter="url(#tS)"></path>
+  <path d="M163 290 L197 290 L180 318 Z" stroke="#9bf4ff" stroke-width="1.5" stroke-linejoin="round"></path>
+
+  
+  <rect x="160" y="228" width="40" height="22" rx="9" fill="#171132"></rect>
+
+  
+  <path d="M106 66 L76 14 L150 40 Z" fill="url(#tPearl)" stroke="#cfc4ef" stroke-opacity="0.5" stroke-width="2" stroke-linejoin="round"></path>
+  <path d="M254 66 L284 14 L210 40 Z" fill="url(#tPearl)" stroke="#cfc4ef" stroke-opacity="0.5" stroke-width="2" stroke-linejoin="round"></path>
+  <path d="M88 28 L138 42" stroke="#FF5FB0" stroke-width="2.5" opacity="0.65" stroke-linecap="round"></path>
+  <path d="M272 28 L222 42" stroke="#36E0E6" stroke-width="2.5" opacity="0.65" stroke-linecap="round"></path>
+  <rect x="42" y="38" width="276" height="220" rx="106" fill="url(#tPearl)" stroke="#cfc4ef" stroke-opacity="0.55" stroke-width="2"></rect>
+  
+  <path d="M96 70 Q180 38 264 70" stroke="#ffffff" stroke-opacity="0.75" stroke-width="3.5" stroke-linecap="round"></path>
+  
+  <path d="M252 58 Q294 80 304 122" stroke="#9c8dd0" stroke-opacity="0.55" stroke-width="2.5"></path>
+  <path d="M262 50 Q308 76 318 124" stroke="#9c8dd0" stroke-opacity="0.35" stroke-width="2.5"></path>
+
+  
+  <rect x="66" y="80" width="204" height="148" rx="66" stroke="#FF5FB0" stroke-width="8" opacity="0.85" filter="url(#tM)"></rect>
+  <rect x="66" y="80" width="204" height="148" rx="66" fill="url(#tVisor)"></rect>
+  <rect x="66" y="80" width="204" height="148" rx="66" stroke="#ff9ed3" stroke-width="3"></rect>
+  
+  <g fill="#ffffff">
+    <circle cx="104" cy="116" r="1.8" opacity="0.9"></circle>
+    <circle cx="142" cy="100" r="1.4" opacity="0.7"></circle>
+    <circle cx="196" cy="108" r="1.8" opacity="0.85"></circle>
+    <circle cx="236" cy="124" r="1.4" opacity="0.7"></circle>
+    <circle cx="120" cy="186" r="1.4" opacity="0.6"></circle>
+    <circle cx="170" cy="200" r="1.8" opacity="0.8"></circle>
+    <circle cx="224" cy="190" r="1.4" opacity="0.65"></circle>
+    <circle cx="246" cy="160" r="1.2" opacity="0.55"></circle>
+    <circle cx="92" cy="152" r="1.2" opacity="0.5"></circle>
+  </g>
+  <path d="M156 122 L156 130 M152 126 L160 126" stroke="#9bf4ff" stroke-width="1.6" opacity="0.85"></path>
+  <path d="M210 178 L210 186 M206 182 L214 182" stroke="#9bf4ff" stroke-width="1.6" opacity="0.7"></path>
+  
+  <g transform="rotate(16 138 158)">
+    <ellipse cx="138" cy="158" rx="17" ry="20" fill="url(#tEye)" filter="url(#tM)" opacity="0.8"></ellipse>
+    <ellipse cx="138" cy="158" rx="15" ry="18" fill="url(#tEye)"></ellipse>
+    <rect x="114" y="128" width="48" height="20" fill="#0a0724"></rect>
+    <ellipse cx="133" cy="162" rx="4" ry="5" fill="#ffffff" opacity="0.9"></ellipse>
+  </g>
+  <g transform="rotate(-16 212 158)">
+    <ellipse cx="212" cy="158" rx="17" ry="20" fill="url(#tEye)" filter="url(#tM)" opacity="0.8"></ellipse>
+    <ellipse cx="212" cy="158" rx="15" ry="18" fill="url(#tEye)"></ellipse>
+    <rect x="188" y="128" width="48" height="20" fill="#0a0724"></rect>
+    <ellipse cx="217" cy="162" rx="4" ry="5" fill="#ffffff" opacity="0.9"></ellipse>
+  </g>
+  <path d="M114 126 L160 142" stroke="#FF5FB0" stroke-width="5.5" stroke-linecap="round" filter="url(#tS)" opacity="0.85"></path>
+  <path d="M236 126 L190 142" stroke="#FF5FB0" stroke-width="5.5" stroke-linecap="round" filter="url(#tS)" opacity="0.85"></path>
+  <path d="M114 126 L160 142" stroke="#ff9ed3" stroke-width="2.5" stroke-linecap="round"></path>
+  <path d="M236 126 L190 142" stroke="#ff9ed3" stroke-width="2.5" stroke-linecap="round"></path>
+
+  
+  <circle cx="306" cy="154" r="52" fill="url(#tPearl)" stroke="#cfc4ef" stroke-opacity="0.5" stroke-width="2"></circle>
+  <circle cx="306" cy="154" r="38" stroke="#FF5FB0" stroke-width="10" opacity="0.8" filter="url(#tM)"></circle>
+  <circle cx="306" cy="154" r="38" stroke="#ff9ed3" stroke-width="5"></circle>
+  <circle cx="306" cy="154" r="24" fill="url(#tPodCore)"></circle>
+  <circle cx="306" cy="154" r="24" fill="#1a0b2e" opacity="0.55"></circle>
+  <circle cx="306" cy="154" r="10" fill="url(#tPodCore)" filter="url(#tS)"></circle>
+</svg>

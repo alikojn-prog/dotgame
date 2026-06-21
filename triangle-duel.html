@@ -85,6 +85,42 @@
   #v-home.show{display:flex;align-items:center;justify-content:center;}
   .home-stack{display:flex;flex-direction:column;align-items:center;text-align:center;
     max-width:330px;padding:0 22px;width:100%;}
+  /* Trix mascots: fixed to the screen edges, pointer-events:none so they never
+     block taps. The right one zips in on load; a second slides in from the left
+     on the "play with a friend" screen. Both are hidden during a live match. */
+  .mascot{position:fixed;bottom:13%;width:138px;z-index:9;
+    pointer-events:none;will-change:right,left,transform;}
+  #home-trix{right:4px;animation:trixZoomIn 1.1s cubic-bezier(.18,.9,.28,1.3) .25s backwards;}
+  #friend-trix{left:4px;display:none;transform:scaleX(-1);}
+  #friend-trix.trix-enter{animation:trixZoomInLeft 1.1s cubic-bezier(.18,.9,.28,1.3) backwards;}
+  @keyframes trixZoomIn{
+    0%{right:-190px;transform:rotate(11deg) scale(.82);opacity:0;}
+    55%{right:-8px;transform:rotate(-5deg) scale(1.07);opacity:1;}
+    72%{right:14px;transform:rotate(3deg) scale(.97);}
+    86%{right:0px;transform:rotate(-1.5deg) scale(1.02);}
+    100%{right:4px;transform:rotate(0) scale(1);opacity:1;}}
+  @keyframes trixZoomInLeft{
+    0%{left:-190px;transform:scaleX(-1) rotate(11deg) scale(.82);opacity:0;}
+    55%{left:-8px;transform:scaleX(-1) rotate(-5deg) scale(1.07);opacity:1;}
+    72%{left:14px;transform:scaleX(-1) rotate(3deg) scale(.97);}
+    86%{left:0px;transform:scaleX(-1) rotate(-1.5deg) scale(1.02);}
+    100%{left:4px;transform:scaleX(-1) rotate(0) scale(1);opacity:1;}}
+  /* lively floaty wobble layered on the component's own float + blink */
+  .mascot .trix{animation:trixDrift 6.5s ease-in-out infinite;transform-origin:50% 85%;}
+  @keyframes trixDrift{
+    0%,100%{transform:translateY(0) rotate(-2.6deg);}
+    20%{transform:translateY(-5px) rotate(1.8deg);}
+    45%{transform:translateY(3px) rotate(3deg);}
+    50%{transform:translateY(3px) rotate(3deg) scale(1.012);}
+    70%{transform:translateY(-4px) rotate(-1deg);}}
+  /* the reactor core breathes a soft glow */
+  .mascot .reactor-soft{animation:trixReactorGlow 2.6s ease-in-out infinite;}
+  @keyframes trixReactorGlow{0%,100%{opacity:.16;}50%{opacity:.52;}}
+  @media (max-width:520px){.mascot{width:108px;bottom:11%;}}
+  @media (prefers-reduced-motion:reduce){
+    #home-trix{animation:none;}
+    #friend-trix.trix-enter{animation:none;}
+    .mascot .trix,.mascot .reactor-soft{animation:none;}}
   .home-stack .logomark{margin-bottom:6px;}
   .wordmark{font-family:var(--display);font-weight:700;font-size:44px;letter-spacing:-.8px;line-height:1;}
   .wordmark .t{color:var(--accent);}
@@ -384,10 +420,21 @@
   .ro-sub{font-size:14px;color:var(--dim);text-align:center;margin:6px 0 18px;}
   .ro-dice{display:flex;justify-content:center;gap:24px;margin-bottom:20px;}
   .ro-col{display:flex;flex-direction:column;align-items:center;gap:6px;}
-  .ro-col .die{width:54px;height:54px;}
+  .ro-col .die{width:54px;height:54px;transition:transform .3s,box-shadow .3s,opacity .3s;}
   .ro-col .die .pip{width:8px;height:8px;}
-  .ro-nm{font-size:12px;font-weight:600;}
+  .ro-col.ro-win .die{transform:scale(1.07);}
+  .ro-col.ro-lose .die{opacity:.36;}
+  .ro-nm{font-size:12px;font-weight:600;transition:opacity .3s;}
+  .ro-col.ro-lose .ro-nm{opacity:.5;}
   .ro-status{text-align:center;font-size:13px;color:var(--dim);margin-top:12px;}
+  /* winner pill (spec: animates in with winPop) */
+  .ro-pill{display:flex;align-items:center;gap:8px;width:fit-content;margin:0 auto 16px;
+    background:rgba(255,255,255,.06);border-radius:999px;padding:8px 16px;
+    font-weight:700;font-size:14px;color:var(--text);animation:winPop .35s ease both;}
+  .ro-pill.hidden{display:none;}
+  .ro-dot{width:10px;height:10px;border-radius:50%;}
+  @keyframes winPop{0%{opacity:0;transform:translateY(8px) scale(.92);}100%{opacity:1;transform:none;}}
+  @media (prefers-reduced-motion:reduce){ .ro-pill{animation:none;} .ro-col .die.rolling{animation:none;} }
 
   /* menu sheet (centred popup) */
   #sheet{position:fixed;inset:0;z-index:25;display:none;align-items:center;justify-content:center;}
@@ -400,23 +447,69 @@
   #sheet .grip{display:none;}
   #sheet h3{text-align:center;font-size:20px;margin-bottom:2px;}
 
-  /* game-over bottom panel */
-  #gameover{position:fixed;left:0;right:0;bottom:0;z-index:18;display:none;
-    background:var(--solid);border-top:1px solid var(--border);
-    padding:10px 18px calc(env(safe-area-inset-bottom) + 10px);
-    box-shadow:0 -10px 30px rgba(0,0,0,.5);}
-  #gameover.show{display:flex;align-items:center;gap:14px;justify-content:center;}
-  .go-head{font-family:var(--display);font-weight:700;font-size:18px;white-space:nowrap;}
-  .go-sub{font-size:11.5px;font-weight:700;color:var(--dim);margin-top:2px;white-space:nowrap;}
-  .go-div{width:1px;align-self:stretch;background:var(--border);margin:0 4px;}
-  .go-row{display:flex;align-items:center;gap:10px;}
-  .go-col{text-align:center;}
-  .go-col .nm{font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--dim);}
-  .go-col .sc{font-family:var(--display);font-weight:700;font-size:30px;line-height:1.1;}
-  .go-col.p1 .sc{color:var(--p1);} .go-col.p2 .sc{color:var(--p2);}
-  .go-dash{font-family:var(--display);font-size:20px;color:var(--dim);}
-  .go-btns{display:flex;flex-direction:column;gap:6px;min-width:120px;}
-  .go-btns .btn{font-size:13px;padding:9px 12px;}
+  /* ===== redesigned result cards (duel #gameover + campaign #campresult) ===== */
+  #gameover{position:fixed;left:0;right:0;bottom:0;z-index:18;display:none;justify-content:center;pointer-events:none;}
+  #gameover.show{display:flex;}
+  #gameover::before,#campresult::before{content:"";position:fixed;inset:0;background:rgba(12,8,32,.42);pointer-events:none;}
+  .rp-card{position:relative;width:100%;max-width:460px;overflow:hidden;pointer-events:auto;
+    padding:28px 22px calc(env(safe-area-inset-bottom) + 26px);
+    border-radius:32px 32px 0 0;
+    background:linear-gradient(180deg, rgba(33,27,64,.92) 0%, rgba(18,13,40,.97) 100%);
+    -webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);
+    border-top:1px solid rgba(255,255,255,.08);
+    box-shadow:0 -1px 0 rgba(255,255,255,.04) inset, 0 -16px 50px rgba(0,0,0,.5);
+    animation:rpUp .25s ease-out;}
+  @keyframes rpUp{from{transform:translateY(16px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+  @media (prefers-reduced-motion: reduce){.rp-card{animation:none;}}
+  .rp-glow{position:absolute;left:0;right:0;top:-1px;height:130px;pointer-events:none;
+    background:radial-gradient(60% 100% at 50% 0%, rgba(182,155,255,.19) 0%, transparent 72%);}
+  .rp-inner{position:relative;display:flex;flex-direction:column;align-items:center;}
+  .rp-eyebrow{font-size:11px;font-weight:700;letter-spacing:2.5px;color:#7c759e;text-transform:uppercase;}
+  .rp-head{font-family:var(--display);font-size:32px;font-weight:800;letter-spacing:-.5px;
+    margin-top:14px;text-align:center;line-height:1.05;}
+  .rp-sub{font-size:13.5px;font-weight:500;color:#9a93bd;text-align:center;max-width:300px;line-height:1.4;}
+  .rp-scores{display:flex;align-items:stretch;gap:10px;width:100%;margin-top:20px;}
+  .rp-team{flex:1;position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;
+    padding:16px 10px 18px;border-radius:20px;
+    background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);opacity:.6;
+    transition:opacity .25s,box-shadow .25s,background .25s,border-color .25s;}
+  .rp-team.on{opacity:1;}
+  .rp-team.p1.on{background:rgba(54,224,230,.12);border-color:rgba(54,224,230,.4);box-shadow:0 8px 30px -6px rgba(54,224,230,.45);}
+  .rp-team.p2.on{background:rgba(255,95,176,.12);border-color:rgba(255,95,176,.4);box-shadow:0 8px 30px -6px rgba(255,95,176,.45);}
+  .rp-pill{display:none;position:absolute;top:-9px;left:50%;transform:translateX(-50%);
+    font-size:9px;font-weight:700;letter-spacing:1.5px;color:#0c0820;padding:3px 10px;border-radius:20px;
+    text-transform:uppercase;white-space:nowrap;}
+  .rp-team.win .rp-pill{display:block;}
+  .rp-team.p1 .rp-pill{background:var(--p1);}
+  .rp-team.p2 .rp-pill{background:var(--p2);}
+  .rp-label{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;}
+  .rp-team.p1 .rp-label{color:#cfeeed;}
+  .rp-team.p2 .rp-label{color:#f6cfe0;}
+  .rp-dot{width:8px;height:8px;border-radius:50%;flex:none;}
+  .rp-team.p1 .rp-dot{background:var(--p1);box-shadow:0 0 10px var(--p1);}
+  .rp-team.p2 .rp-dot{background:var(--p2);box-shadow:0 0 10px var(--p2);}
+  .rp-num{font-family:var(--display);font-weight:800;line-height:1;font-size:52px;}
+  .rp-team.p1 .rp-num{color:var(--p1);text-shadow:0 0 24px rgba(54,224,230,.35);}
+  .rp-team.p2 .rp-num{color:var(--p2);text-shadow:0 0 24px rgba(255,95,176,.35);}
+  .rp-vs{flex:none;align-self:center;width:34px;height:34px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03);
+    font-size:11px;font-weight:700;letter-spacing:1px;color:#8079a4;}
+  .rp-btns{width:100%;margin-top:22px;display:flex;}
+  .rp-btns-row{display:flex;flex-direction:row;gap:12px;width:100%;}
+  .rp-btns-col{flex-direction:column;gap:12px;}
+  .rp-primary,.rp-ghost{height:56px;border-radius:18px;cursor:pointer;font-family:var(--body);
+    font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;
+    transition:box-shadow .2s,background .2s,transform .05s;}
+  .rp-primary:active,.rp-ghost:active{transform:translateY(1px);}
+  .rp-primary{border:none;background:linear-gradient(180deg,#BBA6FF 0%,#9D86FF 100%);color:#1b1430;
+    box-shadow:0 12px 30px -6px rgba(157,134,255,.55), inset 0 0 0 1px rgba(255,255,255,.18);}
+  .rp-primary:hover{box-shadow:0 16px 38px -6px rgba(157,134,255,.7), inset 0 0 0 1px rgba(255,255,255,.22);}
+  .rp-ghost{background:rgba(255,255,255,.03);color:#e9e6f6;font-weight:600;border:1.5px solid rgba(255,255,255,.16);}
+  .rp-ghost:hover{background:rgba(255,255,255,.08);}
+  /* duel button row: Home (ghost) + Play again/Rematch (primary) at 1 : 1.45 */
+  #gameover .rp-btns-row .rp-ghost{flex:1;}
+  #gameover .rp-btns-row .rp-primary{flex:1.45;}
 
   /* flying +1 badge */
   .flying-badge{position:fixed;pointer-events:none;z-index:40;font-weight:800;font-size:22px;
@@ -668,23 +761,20 @@
     #ov-levelintro.closing .li-card{animation:li-pop .18s ease-in reverse forwards;}
   }
 
-  /* campaign result — docked to the lower part so the board stays visible */
-  #campresult{position:fixed;left:0;right:0;bottom:0;z-index:19;display:none;justify-content:center;
-    padding:0 12px calc(env(safe-area-inset-bottom) + 12px);pointer-events:none;}
+  /* campaign result — redesigned card (reuses the .rp-* styles above) */
+  #campresult{position:fixed;left:0;right:0;bottom:0;z-index:19;display:none;justify-content:center;pointer-events:none;}
   #campresult.show{display:flex;}
-  .cr-panel{width:100%;max-width:430px;background:var(--solid);border:1px solid var(--border);
-    border-radius:var(--radius);padding:16px 18px 16px;text-align:center;pointer-events:auto;
-    box-shadow:0 -14px 50px rgba(0,0,0,.55);}
-  .cr-head{font-family:var(--display);font-weight:700;font-size:21px;}
-  .cr-stars{display:flex;justify-content:center;gap:10px;margin:8px 0 4px;}
-  .cr-star{font-size:34px;line-height:1;color:rgba(150,130,255,.25);transform:scale(.6);opacity:0;
-    transition:transform .35s cubic-bezier(.34,1.56,.64,1),opacity .25s,color .25s;}
-  .cr-star.on{color:#FFD25F;text-shadow:0 0 18px rgba(255,210,95,.55);}
+  #campresult .rp-sub{margin-top:14px;min-height:18px;}
+  #campresult .rp-num{font-size:48px;}
+  /* campaign buttons: full-width Next level (primary), then Replay/Retry + Campaign map */
+  #campresult .rp-btns-col>.rp-primary{width:100%;height:60px;}
+  #campresult .rp-btns-col .rp-btns-row .rp-ghost{flex:1;font-size:15.5px;font-weight:600;}
+  /* star rating */
+  .cr-stars{display:flex;justify-content:center;gap:14px;margin-top:14px;}
+  .cr-star{font-size:34px;line-height:1;color:rgba(255,255,255,.16);transform:scale(.6);opacity:0;
+    transition:transform .35s cubic-bezier(.34,1.56,.64,1),opacity .25s,color .25s,text-shadow .25s;}
+  .cr-star.on{color:#FFC53D;text-shadow:0 0 18px rgba(255,197,61,.55);}
   .cr-star.pop{transform:scale(1);opacity:1;}
-  .cr-score{font-family:var(--display);font-weight:700;font-size:18px;margin:6px 0 3px;}
-  .cr-msg{font-size:13.5px;color:var(--dim);line-height:1.4;min-height:18px;margin-bottom:14px;}
-  .cr-btns{display:flex;flex-direction:row;flex-wrap:wrap;gap:8px;}
-  .cr-btns .btn{flex:1;min-width:96px;font-size:14px;padding:12px 10px;}
 /* ---- magnetic snap (line gets "sucked" into the target dot) ---- */
 @keyframes rubberFlow{ to{ stroke-dashoffset:-54; } }
 .rubber-line.snap{ animation: rubberFlow .45s linear infinite; }
@@ -723,6 +813,10 @@
 <body>
 
   <div id="starfield" aria-hidden="true"></div>
+
+  <!-- Trix mascots — top-level so they persist across views (fixed to screen edges) -->
+  <div id="home-trix" class="mascot" aria-hidden="true"></div>
+  <div id="friend-trix" class="mascot" aria-hidden="true"></div>
 
   <!-- ===================== HOME ===================== -->
   <div class="view show" id="v-home">
@@ -988,19 +1082,37 @@
 
   <!-- ===================== CAMPAIGN RESULT ===================== -->
   <div id="campresult">
-    <div class="cr-panel">
-      <div class="cr-head" id="cr-head">Level cleared!</div>
-      <div class="cr-stars" id="cr-stars">
-        <span class="cr-star" id="cr-star0">★</span>
-        <span class="cr-star" id="cr-star1">★</span>
-        <span class="cr-star" id="cr-star2">★</span>
-      </div>
-      <div class="cr-score" id="cr-score">You 0 – 0 AI Bot</div>
-      <div class="cr-msg" id="cr-msg"></div>
-      <div class="cr-btns">
-        <button class="btn btn-primary" id="cr-next">Next level</button>
-        <button class="btn btn-ghost" id="cr-retry">Retry</button>
-        <button class="btn btn-ghost" id="cr-map">Level map</button>
+    <div class="rp-card">
+      <div class="rp-glow" id="cr-glow"></div>
+      <div class="rp-inner">
+        <div class="rp-eyebrow">Campaign</div>
+        <div class="rp-head" id="cr-head">Level cleared!</div>
+        <div class="cr-stars" id="cr-stars">
+          <span class="cr-star" id="cr-star0">★</span>
+          <span class="cr-star" id="cr-star1">★</span>
+          <span class="cr-star" id="cr-star2">★</span>
+        </div>
+        <div class="rp-sub" id="cr-msg"></div>
+        <div class="rp-scores">
+          <div class="rp-team p1" id="cr-team0">
+            <span class="rp-pill">Winner</span>
+            <div class="rp-label"><span class="rp-dot"></span><span>You</span></div>
+            <div class="rp-num" id="cr-sc0">0</div>
+          </div>
+          <div class="rp-vs">VS</div>
+          <div class="rp-team p2" id="cr-team1">
+            <span class="rp-pill">Winner</span>
+            <div class="rp-label"><span class="rp-dot"></span><span>AI Bot</span></div>
+            <div class="rp-num" id="cr-sc1">0</div>
+          </div>
+        </div>
+        <div class="rp-btns rp-btns-col">
+          <button class="rp-primary" id="cr-next">Next level</button>
+          <div class="rp-btns-row">
+            <button class="rp-ghost" id="cr-retry">Retry</button>
+            <button class="rp-ghost" id="cr-map">Campaign map</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -1116,11 +1228,12 @@
   <div class="overlay hidden" id="ov-rolloff">
     <div class="panel">
       <div class="ro-title">Who goes first?</div>
-      <div class="ro-sub">Highest roll starts.</div>
+      <div class="ro-sub" id="ro-sub">Highest roll starts. One tap settles it.</div>
       <div class="ro-dice">
-        <div class="ro-col"><div class="die" id="ro-die0"></div><span class="ro-nm" id="ro-nm0">P1</span></div>
-        <div class="ro-col"><div class="die" id="ro-die1"></div><span class="ro-nm" id="ro-nm1">P2</span></div>
+        <div class="ro-col" id="ro-col0"><div class="die" id="ro-die0"></div><span class="ro-nm" id="ro-nm0">P1</span></div>
+        <div class="ro-col" id="ro-col1"><div class="die" id="ro-die1"></div><span class="ro-nm" id="ro-nm1">P2</span></div>
       </div>
+      <div class="ro-pill hidden" id="ro-pill"><span class="ro-dot" id="ro-dot"></span><span id="ro-pill-txt"></span></div>
       <button class="btn btn-primary" id="ro-roll">Roll the dice</button>
       <div class="ro-status" id="ro-status"></div>
     </div>
@@ -1141,16 +1254,30 @@
 
   <!-- game over -->
   <div id="gameover">
-    <div><div class="go-head" id="go-head">You win!</div><div class="go-sub" id="go-match" style="display:none"></div></div>
-    <div class="go-row">
-      <div class="go-col p1"><div class="nm" id="go-nm0">You</div><div class="sc" id="go-sc0">0</div></div>
-      <div class="go-dash">–</div>
-      <div class="go-col p2"><div class="nm" id="go-nm1">AI Bot</div><div class="sc" id="go-sc1">0</div></div>
-      <div class="go-div"></div>
-      <div class="go-btns">
-        <button class="btn btn-primary" id="go-again">Play again</button>
-        <button class="btn btn-primary" id="go-rematch" style="display:none">Rematch</button>
-        <button class="btn btn-ghost" id="go-home">Home</button>
+    <div class="rp-card">
+      <div class="rp-glow" id="go-glow"></div>
+      <div class="rp-inner">
+        <div class="rp-eyebrow">Match complete</div>
+        <div class="rp-head" id="go-head">You win!</div>
+        <div class="rp-sub" id="go-match" style="display:none"></div>
+        <div class="rp-scores">
+          <div class="rp-team p1" id="go-team0">
+            <span class="rp-pill">Winner</span>
+            <div class="rp-label"><span class="rp-dot"></span><span id="go-nm0">You</span></div>
+            <div class="rp-num" id="go-sc0">0</div>
+          </div>
+          <div class="rp-vs">VS</div>
+          <div class="rp-team p2" id="go-team1">
+            <span class="rp-pill">Winner</span>
+            <div class="rp-label"><span class="rp-dot"></span><span id="go-nm1">AI Bot</span></div>
+            <div class="rp-num" id="go-sc1">0</div>
+          </div>
+        </div>
+        <div class="rp-btns rp-btns-row">
+          <button class="rp-ghost" id="go-home">Home</button>
+          <button class="rp-primary" id="go-again">Play again</button>
+          <button class="rp-primary" id="go-rematch" style="display:none">Rematch</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1160,6 +1287,163 @@
   <div id="toast" class="toast"></div>
 
 <script>
+/* ============================================================
+   Trix — the doTriangle mascot · self-contained component (inlined)
+   API: Trix.mount(host,{mood}); t.setMood(...); t.pulse(); t.getMood();
+   Moods: "idle" | "battle" | "happy" | "curious". No dependencies.
+   ============================================================ */
+(function () {
+  "use strict";
+  var STYLE_ID = "trix-style";
+  var uid = 0;
+
+  var CSS = [
+    ".trix{display:block;width:100%;height:auto;overflow:visible;}",
+    ".trix .float{animation:trixFloat 6.5s ease-in-out infinite;}",
+    "@keyframes trixFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}",
+    ".trix .head{transition:transform .35s cubic-bezier(.34,1.4,.5,1);transform-origin:50% 62%;transform-box:fill-box;}",
+    ".trix.m-curious .head{transform:rotate(-6deg);}",
+    ".trix .eye{transition:transform .3s cubic-bezier(.34,1.4,.5,1);transform-origin:center;transform-box:fill-box;}",
+    ".trix.m-battle .eyeL{transform:rotate(15deg) scaleY(.72);}",
+    ".trix.m-battle .eyeR{transform:rotate(-15deg) scaleY(.72);}",
+    ".trix.m-happy .eye{transform:scaleY(.62) translateY(9px);}",
+    ".trix.m-curious .eyeL{transform:scale(1.16);}",
+    ".trix.m-curious .eyeR{transform:scale(.85);}",
+    ".trix .brow,.trix .smile,.trix .blush{opacity:0;transition:opacity .25s;}",
+    ".trix.m-battle .brow{opacity:1;}",
+    ".trix.m-happy .smile,.trix.m-happy .blush{opacity:1;}",
+    ".trix .reactor-line{transition:stroke .3s;}",
+    ".trix .reactor-soft{transition:fill .3s;}",
+    ".trix.m-battle .reactor-line{stroke:#FF5FB0;}",
+    ".trix.m-battle .reactor-hi{stroke:#ffd2ea;}",
+    ".trix.m-battle .reactor-soft{fill:#FF5FB0;}",
+    ".trix .blinklid{opacity:0;animation:trixBlink 6.4s infinite;}",
+    ".trix.m-battle .blinklid{animation:none;}",
+    "@keyframes trixBlink{0%,93.5%,97.5%,100%{opacity:0}94.5%,96.5%{opacity:1}}",
+    ".trix .reactor-burst{opacity:0;transform-origin:center;transform-box:fill-box;}",
+    ".trix.pulsing .reactor-burst{animation:trixBurst .7s ease-out;}",
+    "@keyframes trixBurst{0%{opacity:.85;transform:scale(.5)}100%{opacity:0;transform:scale(1.9)}}",
+    "@media (prefers-reduced-motion:reduce){.trix .float,.trix .blinklid{animation:none!important}}"
+  ].join("\n");
+
+  function svgMarkup(s) {
+    return '<svg class="trix m-idle" viewBox="0 0 360 440" xmlns="http://www.w3.org/2000/svg" fill="none" role="img" aria-label="Trix, the doTriangle mascot">' +
+    '<defs>' +
+      '<linearGradient id="' + s + 'P" x1="100" y1="50" x2="280" y2="260" gradientUnits="userSpaceOnUse">' +
+        '<stop offset="0" stop-color="#f6f2ff"/><stop offset="0.55" stop-color="#d9cff2"/><stop offset="1" stop-color="#a293d6"/></linearGradient>' +
+      '<linearGradient id="' + s + 'PB" x1="150" y1="246" x2="220" y2="370" gradientUnits="userSpaceOnUse">' +
+        '<stop offset="0" stop-color="#efe9ff"/><stop offset="1" stop-color="#a89ad8"/></linearGradient>' +
+      '<linearGradient id="' + s + 'V" x1="180" y1="84" x2="180" y2="226" gradientUnits="userSpaceOnUse">' +
+        '<stop offset="0" stop-color="#0a0724"/><stop offset="1" stop-color="#120e38"/></linearGradient>' +
+      '<radialGradient id="' + s + 'E" cx="0.5" cy="0.45" r="0.6">' +
+        '<stop offset="0" stop-color="#c5f8ff"/><stop offset="0.5" stop-color="#3ce0f2"/><stop offset="1" stop-color="#1f9fd6"/></radialGradient>' +
+      '<radialGradient id="' + s + 'PC" cx="0.5" cy="0.5" r="0.5">' +
+        '<stop offset="0" stop-color="#ffd2ea"/><stop offset="0.5" stop-color="#FF5FB0"/><stop offset="1" stop-color="#5e1c52"/></radialGradient>' +
+      '<filter id="' + s + 'S" x="-70%" y="-70%" width="240%" height="240%"><feGaussianBlur stdDeviation="4"/></filter>' +
+      '<filter id="' + s + 'M" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="7"/></filter>' +
+      '<filter id="' + s + 'B" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="13"/></filter>' +
+    '</defs>' +
+    '<ellipse cx="180" cy="418" rx="116" ry="16" fill="#FF5FB0" opacity="0.22" filter="url(#' + s + 'B)"/>' +
+    '<ellipse cx="180" cy="416" rx="64" ry="10" fill="#36E0E6" opacity="0.25" filter="url(#' + s + 'B)"/>' +
+    '<g class="float">' +
+      '<rect x="146" y="348" width="26" height="36" rx="11" fill="#1b1538"/>' +
+      '<rect x="188" y="348" width="26" height="36" rx="11" fill="#1b1538"/>' +
+      '<rect x="122" y="374" width="62" height="34" rx="17" fill="url(#' + s + 'PB)" stroke="#c9bfe8" stroke-opacity="0.4" stroke-width="1.5"/>' +
+      '<rect x="176" y="374" width="62" height="34" rx="17" fill="url(#' + s + 'PB)" stroke="#c9bfe8" stroke-opacity="0.4" stroke-width="1.5"/>' +
+      '<path d="M124 398 L182 398" stroke="#171132" stroke-width="9" stroke-linecap="round"/>' +
+      '<path d="M178 398 L236 398" stroke="#171132" stroke-width="9" stroke-linecap="round"/>' +
+      '<rect x="84" y="290" width="32" height="56" rx="15" fill="#1b1538" transform="rotate(16 100 318)"/>' +
+      '<rect x="244" y="290" width="32" height="56" rx="15" fill="#1b1538" transform="rotate(-16 260 318)"/>' +
+      '<circle cx="89" cy="350" r="17" fill="#241d4e"/><circle cx="271" cy="350" r="17" fill="#241d4e"/>' +
+      '<path d="M80 344 Q88 338 98 344" stroke="#5e54a0" stroke-width="2" opacity="0.8"/>' +
+      '<path d="M262 344 Q270 338 280 344" stroke="#5e54a0" stroke-width="2" opacity="0.8"/>' +
+      '<circle cx="118" cy="284" r="17" fill="url(#' + s + 'PB)"/><circle cx="242" cy="284" r="17" fill="url(#' + s + 'PB)"/>' +
+      '<rect x="128" y="244" width="104" height="116" rx="46" fill="url(#' + s + 'PB)" stroke="#c9bfe8" stroke-opacity="0.5" stroke-width="1.5"/>' +
+      '<path d="M142 268 Q180 252 218 268" stroke="#ffffff" stroke-opacity="0.65" stroke-width="2.5" stroke-linecap="round"/>' +
+      '<path d="M138 330 Q180 348 222 330" stroke="#8d7fc4" stroke-opacity="0.4" stroke-width="2"/>' +
+      '<circle class="reactor-soft" cx="180" cy="302" r="26" fill="#36E0E6" opacity="0.16" filter="url(#' + s + 'M)"/>' +
+      '<path d="M163 290 L197 290 L180 318 Z" fill="#0c1230"/>' +
+      '<path class="reactor-line" d="M163 290 L197 290 L180 318 Z" stroke="#36E0E6" stroke-width="3" stroke-linejoin="round" filter="url(#' + s + 'S)"/>' +
+      '<path class="reactor-hi" d="M163 290 L197 290 L180 318 Z" stroke="#9bf4ff" stroke-width="1.5" stroke-linejoin="round"/>' +
+      '<circle class="reactor-burst" cx="180" cy="302" r="30" fill="#FF5FB0" filter="url(#' + s + 'M)"/>' +
+      '<rect x="160" y="228" width="40" height="22" rx="9" fill="#171132"/>' +
+      '<g class="head">' +
+        '<path d="M106 66 L76 14 L150 40 Z" fill="url(#' + s + 'P)" stroke="#cfc4ef" stroke-opacity="0.5" stroke-width="2" stroke-linejoin="round"/>' +
+        '<path d="M254 66 L284 14 L210 40 Z" fill="url(#' + s + 'P)" stroke="#cfc4ef" stroke-opacity="0.5" stroke-width="2" stroke-linejoin="round"/>' +
+        '<path d="M88 28 L138 42" stroke="#FF5FB0" stroke-width="2.5" opacity="0.65" stroke-linecap="round"/>' +
+        '<path d="M272 28 L222 42" stroke="#36E0E6" stroke-width="2.5" opacity="0.65" stroke-linecap="round"/>' +
+        '<rect x="42" y="38" width="276" height="220" rx="106" fill="url(#' + s + 'P)" stroke="#cfc4ef" stroke-opacity="0.55" stroke-width="2"/>' +
+        '<path d="M96 70 Q180 38 264 70" stroke="#ffffff" stroke-opacity="0.75" stroke-width="3.5" stroke-linecap="round"/>' +
+        '<rect x="66" y="80" width="204" height="148" rx="66" stroke="#FF5FB0" stroke-width="8" opacity="0.85" filter="url(#' + s + 'M)"/>' +
+        '<rect x="66" y="80" width="204" height="148" rx="66" fill="url(#' + s + 'V)"/>' +
+        '<rect x="66" y="80" width="204" height="148" rx="66" stroke="#ff9ed3" stroke-width="3"/>' +
+        '<g fill="#ffffff">' +
+          '<circle cx="104" cy="116" r="1.8" opacity="0.9"/><circle cx="142" cy="100" r="1.4" opacity="0.7"/>' +
+          '<circle cx="196" cy="108" r="1.8" opacity="0.85"/><circle cx="236" cy="124" r="1.4" opacity="0.7"/>' +
+          '<circle cx="120" cy="186" r="1.4" opacity="0.6"/><circle cx="170" cy="200" r="1.8" opacity="0.8"/>' +
+          '<circle cx="224" cy="190" r="1.4" opacity="0.65"/><circle cx="246" cy="160" r="1.2" opacity="0.55"/>' +
+          '<circle cx="92" cy="152" r="1.2" opacity="0.5"/></g>' +
+        '<path d="M156 122 L156 130 M152 126 L160 126" stroke="#9bf4ff" stroke-width="1.6" opacity="0.85"/>' +
+        '<path d="M204 122 L204 130 M200 126 L208 126" stroke="#9bf4ff" stroke-width="1.6" opacity="0.85"/>' +
+        '<g class="eye eyeL">' +
+          '<ellipse cx="138" cy="156" rx="16" ry="23" fill="url(#' + s + 'E)" filter="url(#' + s + 'M)" opacity="0.8"/>' +
+          '<ellipse cx="138" cy="156" rx="14" ry="21" fill="url(#' + s + 'E)"/>' +
+          '<ellipse cx="134" cy="148" rx="4.5" ry="6" fill="#ffffff" opacity="0.95"/>' +
+          '<rect class="blinklid" x="119" y="130" width="38" height="54" rx="17" fill="#0b0726"/></g>' +
+        '<g class="eye eyeR">' +
+          '<ellipse cx="212" cy="156" rx="16" ry="23" fill="url(#' + s + 'E)" filter="url(#' + s + 'M)" opacity="0.8"/>' +
+          '<ellipse cx="212" cy="156" rx="14" ry="21" fill="url(#' + s + 'E)"/>' +
+          '<ellipse cx="208" cy="148" rx="4.5" ry="6" fill="#ffffff" opacity="0.95"/>' +
+          '<rect class="blinklid" x="193" y="130" width="38" height="54" rx="17" fill="#0b0726"/></g>' +
+        '<g class="brow">' +
+          '<path d="M114 126 L160 142" stroke="#FF5FB0" stroke-width="5.5" stroke-linecap="round" filter="url(#' + s + 'S)" opacity="0.85"/>' +
+          '<path d="M236 126 L190 142" stroke="#FF5FB0" stroke-width="5.5" stroke-linecap="round" filter="url(#' + s + 'S)" opacity="0.85"/>' +
+          '<path d="M114 126 L160 142" stroke="#ff9ed3" stroke-width="2.5" stroke-linecap="round"/>' +
+          '<path d="M236 126 L190 142" stroke="#ff9ed3" stroke-width="2.5" stroke-linecap="round"/></g>' +
+        '<path class="smile" d="M162 198 Q180 212 198 198" stroke="#7fe9ff" stroke-width="4" stroke-linecap="round"/>' +
+        '<g class="blush">' +
+          '<rect x="102" y="188" width="20" height="7" rx="3.5" fill="#FF5FB0" opacity="0.75"/>' +
+          '<rect x="238" y="188" width="20" height="7" rx="3.5" fill="#FF5FB0" opacity="0.75"/></g>' +
+      '</g>' +
+    '</g></svg>';
+  }
+
+  function ensureStyle() {
+    if (document.getElementById(STYLE_ID)) return;
+    var st = document.createElement("style");
+    st.id = STYLE_ID;
+    st.textContent = CSS;
+    document.head.appendChild(st);
+  }
+
+  var MOODS = ["idle", "battle", "happy", "curious"];
+
+  function mount(host, opts) {
+    opts = opts || {};
+    ensureStyle();
+    var s = "trx" + (uid++) + "_";
+    host.innerHTML = svgMarkup(s);
+    var svg = host.querySelector("svg");
+    var mood = "idle";
+    function setMood(m) {
+      if (MOODS.indexOf(m) < 0) m = "idle";
+      svg.classList.remove("m-" + mood);
+      mood = m;
+      svg.classList.add("m-" + mood);
+    }
+    function pulse() {
+      svg.classList.remove("pulsing");
+      void svg.getBoundingClientRect();
+      svg.classList.add("pulsing");
+      setTimeout(function () { svg.classList.remove("pulsing"); }, 800);
+    }
+    if (opts.mood) setMood(opts.mood);
+    return { el: svg, setMood: setMood, pulse: pulse, getMood: function () { return mood; } };
+  }
+
+  window.Trix = { mount: mount };
+})();
+
 (function(){
   "use strict";
 
@@ -1215,6 +1499,11 @@
     $("campresult").classList.remove("show");
     $("sheet").classList.remove("show"); $("confetti").classList.remove("show");
     if(id==="v-howto") fitHowto();
+    // Mascots follow the screen: right one on every menu; left one joins on the friend view.
+    showRightTrix(true);
+    if(window.homeTrix) homeTrix.setMood((id==="v-home"||id==="v-setup"||id==="v-friend") ? "curious" : "idle");
+    showLeftTrix(id==="v-friend");
+    if(window.friendTrix && id==="v-friend") friendTrix.setMood("curious");
   }
   // scale the how-to-play content down if it would overflow the viewport (no scrolling)
   function fitHowto(){
@@ -1234,6 +1523,7 @@
     VIEWS.forEach(function(v){$(v).classList.remove("show");});
     $("stage").classList.add("show");
     _bannerShown=false; // new game → the opening turn banner may show once
+    showRightTrix(false); showLeftTrix(false); // Trix steps out during a live match
   }
 
   // ---------- logo mark (two sub-triangles, dots at vertices) ----------
@@ -1248,6 +1538,17 @@
     s+='</svg>'; return s;
   }
   $("home-logo").innerHTML=logoSVG(88);
+  // Trix mascots — right instance persists on menus; left instance joins on the friend screen.
+  if(window.Trix && $("home-trix")){ window.homeTrix = Trix.mount($("home-trix"), { mood:"curious" }); }
+  if(window.Trix && $("friend-trix")){ window.friendTrix = Trix.mount($("friend-trix"), { mood:"curious" }); }
+  // Show/hide helpers (the left one replays its entrance each time it appears).
+  function showRightTrix(on){ var h=$("home-trix"); if(h) h.style.display = on ? "" : "none"; }
+  function showLeftTrix(on){
+    var h=$("friend-trix"); if(!h) return;
+    if(on){ h.style.display="block"; h.classList.remove("trix-enter"); void h.offsetWidth; h.classList.add("trix-enter"); }
+    else { h.style.display="none"; h.classList.remove("trix-enter"); }
+  }
+  window._showRightTrix = showRightTrix; window._showLeftTrix = showLeftTrix;
 
   // ---------- starfield (seeded — same sky every launch) ----------
   (function(){
@@ -2091,31 +2392,59 @@
   function updateRolloffUI(){
     $("ro-nm0").textContent=pname(0); $("ro-nm0").style.color=P1;
     $("ro-nm1").textContent=pname(1); $("ro-nm1").style.color=P2;
-    var btn=$("ro-roll");
-    // Hide button in online mode — rolls are automatic
-    if(S.online){ btn.style.display="none"; }
-    else {
-      var bothRolled = S.roMatrix[0]!=null && S.roMatrix[1]!=null;
-      var canAct = !S.rolling && S.roMatrix[0]==null;
-      if(bothRolled){ btn.style.display="none"; }
-      else { btn.style.display=""; btn.disabled=!canAct; btn.style.opacity=canAct?"1":"0.4"; }
+    var btn=$("ro-roll"), st=$("ro-status");
+    // Online mode: server is sequential and auto-advances — button stays hidden.
+    if(S.online){
+      btn.style.display="none";
+      var parts=[];
+      [0,1].forEach(function(i){ if(S.roMatrix[i]!=null && S.roMatrix[i]>=0) parts.push(pname(i)+" rolled "+S.roMatrix[i]); });
+      st.textContent = parts.length ? parts.join("  ·  ") : "Rolling…";
+      return;
     }
-    var st=$("ro-status"), parts=[];
-    [0,1].forEach(function(i){ if(S.roMatrix[i]!=null) parts.push(pname(i)+" rolled "+S.roMatrix[i]); });
-    if(parts.length) st.textContent=parts.join("  ·  ");
-    else st.textContent = S.online ? "Rolling…" : "Tap to roll — both dice go at once!";
+    // Local mode: idle → rolling → done, button label tracks the state.
+    var done = S.roMatrix[0]!=null && S.roMatrix[1]!=null;
+    btn.style.display="";
+    if(S.rolling){ btn.textContent="Rolling…"; btn.disabled=true; btn.style.opacity="0.6"; }
+    else if(done){ btn.textContent="Start game"; btn.disabled=false; btn.style.opacity="1"; }
+    else { btn.textContent="Roll the dice"; btn.disabled=false; btn.style.opacity="1"; }
+    st.textContent="";
+  }
+  function roClearWinner(){
+    ["ro-col0","ro-col1"].forEach(function(id){ $(id).classList.remove("ro-win","ro-lose"); });
+    ["ro-die0","ro-die1"].forEach(function(id){ $(id).classList.remove("glow-p0","glow-p1"); });
+    $("ro-pill").classList.add("hidden");
+  }
+  function roShowWinner(){
+    var w = S.roMatrix[0]>S.roMatrix[1]?0:1, l = 1-w;
+    S.current = w;
+    $("ro-col"+w).classList.add("ro-win"); $("ro-col"+l).classList.add("ro-lose");
+    $("ro-die"+w).classList.add(w===0?"glow-p0":"glow-p1");
+    var pill=$("ro-pill"), dot=$("ro-dot");
+    dot.style.background = (w===0?P1:P2);
+    dot.style.boxShadow = "0 0 10px "+(w===0?P1:P2);
+    $("ro-pill-txt").textContent = pname(w)==="You" ? "You go first" : pname(w)+" goes first";
+    pill.classList.remove("hidden");
+    pill.style.animation="none"; void pill.offsetWidth; pill.style.animation=""; // restart winPop
+    updateRolloffUI();
   }
   function roTurn(){
     updateRolloffUI();
-    armRoll(doRolloffRoll);
+    armRoll(onRolloffButton);
   }
   function startRolloff(){
     S.phase="rolloff";S.roMatrix=[null,null];S.roWho=0;S.rolling=false;
+    roClearWinner();
     renderDie($("ro-die0"),1);renderDie($("ro-die1"),1);
     showGame(); updateHUD();
     showOverlay("ov-rolloff");
     updateRolloffUI();
     if(!S.online) roTurn();
+  }
+  // Dispatcher for the modal's primary button: roll when idle, start when done.
+  function onRolloffButton(){
+    if(S.online){ doRolloffRoll(); return; }
+    if(S.roMatrix[0]!=null && S.roMatrix[1]!=null && !S.rolling){ rolloffStart(); return; }
+    doRolloffRoll();
   }
   function doRolloffRoll(){
     // Online: server is sequential — only send roll when roWho===myPlayer
@@ -2128,23 +2457,29 @@
     }
     if(S.rolling||S.phase!=="rolloff"||S.roMatrix[0]!=null) return;
     S.rolling=true;disarmRoll();
-    var done0=false, done1=false, val0, val1;
+    // Ties are not allowed — pick the bot's value until the two differ.
+    var val0=1+Math.floor(Math.random()*6), val1=1+Math.floor(Math.random()*6);
+    while(val1===val0) val1=1+Math.floor(Math.random()*6);
+    updateRolloffUI();
+    // Respect reduced motion: snap to the final faces + winner, skip the tumble.
+    if(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches){
+      renderDie($("ro-die0"),val0);renderDie($("ro-die1"),val1);
+      buzz(20);S.rolling=false;S.roMatrix[0]=val0;S.roMatrix[1]=val1;
+      roShowWinner();return;
+    }
+    var done0=false, done1=false;
     function onBothDone(){
       if(!done0||!done1) return;
       buzz(20);S.rolling=false;
       S.roMatrix[0]=val0;S.roMatrix[1]=val1;
-      updateRolloffUI();
-      setTimeout(rolloffNext,1100);
+      roShowWinner();
     }
-    animateDie($("ro-die0"),function(n){ val0=n; done0=true; onBothDone(); });
-    animateDie($("ro-die1"),function(n){ val1=n; done1=true; onBothDone(); });
+    animateDie($("ro-die0"),function(){ done0=true; onBothDone(); },val0);
+    animateDie($("ro-die1"),function(){ done1=true; onBothDone(); },val1);
   }
-  function rolloffNext(){
-    if(S.roMatrix[0]===S.roMatrix[1]){
-      toast("Tie! Roll again");S.roMatrix=[null,null];S.roWho=0;
-      renderDie($("ro-die0"),1);renderDie($("ro-die1"),1);updateRolloffUI();roTurn();return;
-    }
-    S.current=S.roMatrix[0]>S.roMatrix[1]?0:1;
+  // "Start game" — begin play with the roll-off winner already in S.current.
+  function rolloffStart(){
+    playSound(sndClick);
     hideOverlay("ov-rolloff");
     startTurn();
   }
@@ -2308,8 +2643,24 @@
         m.textContent="Match "+w0+"–"+w1+" · first to "+matchNeed()+(winnerIdx==null?" · tie — replay":"");
       }
       m.style.display="";
-    } else { m.style.display="none"; }
+    } else {
+      // single game: show a flavor subtitle (the redesign always shows a subtitle)
+      var sub;
+      if(winnerIdx===null||winnerIdx===undefined) sub="Dead even. One more round?";
+      else if(S.vsComputer) sub=(winnerIdx===S.aiPlayer)?"They edged you out — run it back?":"You owned the board this round.";
+      else sub=pname(winnerIdx)+" owned the board this round.";
+      m.textContent=sub; m.style.display="";
+    }
     $("go-head").textContent=head;
+    // winner color + glow + team-card highlight (redesigned result card)
+    var _tie = (winnerIdx===null||winnerIdx===undefined);
+    var wc = _tie ? 'var(--accent)' : (winnerIdx===0 ? 'var(--p1)' : 'var(--p2)');
+    var wsh = _tie ? 'rgba(182,155,255,' : (winnerIdx===0 ? 'rgba(54,224,230,' : 'rgba(255,95,176,');
+    $("go-head").style.color = wc;
+    $("go-head").style.textShadow = '0 0 30px '+wsh+'.4)';
+    var _gg=$("go-glow"); if(_gg) _gg.style.background='radial-gradient(60% 100% at 50% 0%, '+wsh+'.19) 0%, transparent 72%)';
+    $("go-team0").className = 'rp-team p1'+((winnerIdx===0||_tie)?' on':'')+(winnerIdx===0?' win':'');
+    $("go-team1").className = 'rp-team p2'+((winnerIdx===1||_tie)?' on':'')+(winnerIdx===1?' win':'');
     // Online: show Rematch button; offline: show Play again
     $("go-again").style.display = S.online ? "none" : "";
     $("go-again").textContent = (inMatch && !S.matchOver) ? "Next game" : "Play again";
@@ -2318,6 +2669,8 @@
     $("go-rematch").disabled = false;
     $("gameover").classList.add("show");
     if(iWin) confettiBurst();
+    // Trix reacts to the result: happy + reactor burst on a win, calm otherwise.
+    if(window.homeTrix){ homeTrix.setMood(iWin ? "happy" : "idle"); if(iWin) homeTrix.pulse(); }
   }
   function endGame(){
     clearTurnTimer();
@@ -2681,8 +3034,18 @@
     }
     // populate overlay
     var isLast=(num===CAMPAIGN.length);
-    $("cr-head").textContent = iWin ? (isLast?"Campaign complete!":"Level cleared!") : "Duel lost";
-    $("cr-score").textContent = "You "+youScore+" – "+cpuScore+" AI Bot";
+    $("cr-head").textContent = iWin ? (isLast?"Campaign complete!":"Level cleared!") : (youScore===cpuScore?"Duel drawn":"Duel lost");
+    $("cr-sc0").textContent = youScore; $("cr-sc1").textContent = cpuScore;
+    // winner color + glow + team-card highlight (redesigned result card)
+    var cw = (youScore>cpuScore)?0:((cpuScore>youScore)?1:null);
+    var ctie = (cw===null);
+    var cwc = ctie ? 'var(--accent)' : (cw===0 ? 'var(--p1)' : 'var(--p2)');
+    var cwsh = ctie ? 'rgba(182,155,255,' : (cw===0 ? 'rgba(54,224,230,' : 'rgba(255,95,176,');
+    $("cr-head").style.color = cwc;
+    $("cr-head").style.textShadow = '0 0 30px '+cwsh+'.4)';
+    var _cg=$("cr-glow"); if(_cg) _cg.style.background='radial-gradient(60% 100% at 50% 0%, '+cwsh+'.19) 0%, transparent 72%)';
+    $("cr-team0").className = 'rp-team p1'+((cw===0||ctie)?' on':'')+(cw===0?' win':'');
+    $("cr-team1").className = 'rp-team p2'+((cw===1||ctie)?' on':'')+(cw===1?' win':'');
     var msg;
     if(!iWin){
       msg = (youScore===cpuScore) ? "A tie isn't enough — you need to win outright. Try again." : "So close. Adjust and run it back.";
@@ -3432,6 +3795,7 @@
         S.roMatrix=[null,null]; S.roWho=0;
         // bring the roll-off overlay back so the opening dice duel is visible
         // (the firstUpdate branch below only fires on the very first game)
+        roClearWinner();
         renderDie($("ro-die0"),1); renderDie($("ro-die1"),1);
         showGame();
         showOverlay("ov-rolloff");
@@ -3466,7 +3830,7 @@
     showGameOver(winnerIdx, iWin);
   }
 
-  $("ro-roll").addEventListener("click",doRolloffRoll);
+  $("ro-roll").addEventListener("click",onRolloffButton);
   $("game-die").addEventListener("click",function(){ if(onRollFn) onRollFn(); });
 
   // ---------- init ----------
