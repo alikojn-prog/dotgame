@@ -1,6 +1,6 @@
 /* doTriangle service worker — offline cache for the whole game.
    Bump CACHE version whenever you ship a new build. */
-var CACHE = "dotriangle-v12";
+var CACHE = "dotriangle-v14";
 var ASSETS = [
   "index.html",
   "triangle-duel.html",

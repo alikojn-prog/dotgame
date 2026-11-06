@@ -1,74 +1,47 @@
 # doTriangle multiplayer server — deploy guide
 
-This folder is a [PartyKit](https://docs.partykit.io) server. When deployed, it runs on Cloudflare's edge network and hosts every game room as a tiny stateful object. Free tier covers thousands of rooms.
+This folder is a [PartyServer](https://github.com/cloudflare/partykit/tree/main/packages/partyserver) Worker.
+It runs on **your own Cloudflare account** (free plan is fine). Each game room is a Durable Object.
 
-## What you need
+> History: until Oct 2026 this ran on hosted PartyKit (`dotriangle.alikojn-prog.partykit.dev`).
+> PartyKit shut its hosted platform down on 23 Oct 2026, so it was migrated here.
 
-- A **Cloudflare account** (free — sign up at https://dash.cloudflare.com/sign-up).
-- **Node.js** installed (the LTS version is fine — same Node you used for the iOS build).
-
-You don't need a credit card. The free tier handles the kind of traffic you'll see.
-
-## Deploy (first time)
+## Deploy
 
 In Terminal:
 
 ```
-cd "path/to/doTriangle-server"      # drag the folder into Terminal to get the path
-npm install                         # one-time
-npx partykit login                  # opens your browser to log in to Cloudflare
-npx partykit deploy                 # uploads the server
+cd "path/to/doTriangle-server"   # drag the folder into Terminal
+npm install                      # first time / after dependency changes
+npx wrangler login               # first time only — opens the browser
+npx wrangler deploy
 ```
 
-The deploy command prints a URL like:
+The server is served at **`party.dotriangle.com`** (custom domain in `wrangler.jsonc`), plus a
+backup `dotriangle-server.<your-subdomain>.workers.dev` URL that the deploy prints.
+
+The game reads the host from `PARTYKIT_HOST` in `triangle-duel.html` / `index.html`:
 
 ```
-https://dotriangle.YOUR-USERNAME.partykit.dev
+var PARTYKIT_HOST = "party.dotriangle.com";
 ```
 
-Copy `dotriangle.YOUR-USERNAME.partykit.dev` (without the `https://`). That's your **PartyKit host**.
+No `https://`, no trailing slash. Rooms are reached at `wss://<host>/parties/main/<CODE>`.
 
-## Tell the game where the server lives
-
-Open `triangle-duel.html` and find this line near the top of the `<script>` block:
+## Test locally
 
 ```
-var PARTYKIT_HOST = "dotriangle.YOUR-USERNAME.partykit.dev";
+npx wrangler dev        # serves at localhost:8787
 ```
 
-Replace it with the URL the deploy command gave you. Save the file. Re-copy `triangle-duel.html` into `doTriangle/www/index.html` if you've already set up the iOS app, and run `npx cap sync` again.
-
-## Test it locally before deploying (optional)
-
-You can run the server on your own Mac while testing:
-
-```
-npx partykit dev
-```
-
-This serves at `localhost:1999`. Temporarily set `PARTYKIT_HOST = "localhost:1999"` in the game file. Open the game in two browser windows (or one browser + one phone on the same Wi-Fi using your Mac's local IP), one creates a room, the other joins.
+Temporarily set `PARTYKIT_HOST = "localhost:8787"` and open the game in two browser windows.
 
 ## Updating the server later
 
-If you change `src/server.ts`, just re-run:
+Edit `src/server.ts`, then `npx wrangler deploy`. Same URL each time.
+Remember: game rules (e.g. `triAngleOK`) are duplicated in the web client and iOS app — keep them in sync.
 
-```
-npx partykit deploy
-```
+## Troubleshooting
 
-It's the same URL each time; you don't need to update the game.
-
-## Cost
-
-Free tier: 100,000 requests/day, more than enough for hundreds of concurrent games. After that it's pennies per million requests. You'll never accidentally rack up a bill on this game.
-
-## What if it stops working?
-
-- Check the Cloudflare status page (https://www.cloudflarestatus.com).
-- Re-run `npx partykit deploy` — Cloudflare occasionally needs a fresh deploy.
-- Check that `PARTYKIT_HOST` in the game matches the deployed URL exactly (no `https://` prefix, no trailing slash).
-- Open the browser console (View → Developer → JavaScript Console) and look for WebSocket errors.
-
-## How it works
-
-Each game room is a [Durable Object](https://developers.cloudflare.com/durable-objects/) — a tiny stateful instance that lives at the edge near players, handles the WebSocket connection from both phones, validates moves (rolls, lines, no-crossing rules), and broadcasts the resulting state. The server file is `src/server.ts`. Both players connect to the same room ID (the 6-character code), so they end up in the same Durable Object.
+- Visit https://party.dotriangle.com — it should say `doTriangle server OK`.
+- Logs: Cloudflare dashboard → Workers & Pages → dotriangle-server → Logs, or `npx wrangler tail`.

@@ -945,9 +945,8 @@
 
   <div id="starfield" aria-hidden="true"></div>
 
-  <!-- Trix mascots — top-level so they persist across views (fixed to screen edges) -->
-  <div id="home-trix" class="mascot" aria-hidden="true"></div>
-  <div id="friend-trix" class="mascot" aria-hidden="true"></div>
+  <!-- Trix mascots removed -->
+
 
   <!-- ===================== HOME ===================== -->
   <div class="view show" id="v-home">
@@ -1636,8 +1635,8 @@
     campaign:false, campLevel:0, diceCap:0, handicap:0, forcedFirst:-1, powerUsedTurn:false
   };
 
-  // Update after deploying your PartyKit server (see doTriangle-server/HOW-TO-DEPLOY.md).
-  var PARTYKIT_HOST = "dotriangle.alikojn-prog.partykit.dev";
+  // Multiplayer server (PartyServer on Cloudflare; see doTriangle-server/HOW-TO-DEPLOY.md).
+  var PARTYKIT_HOST = "party.dotriangle.com";
 
   // ---------- helpers ----------
   function $(id){return document.getElementById(id);}

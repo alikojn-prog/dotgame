@@ -1,4 +1,8 @@
-import type * as Party from "partykit/server";
+// doTriangle multiplayer server — PartyServer (runs on your own Cloudflare account).
+// Migrated from hosted PartyKit, which shut down on 23 Oct 2026.
+import { Server, routePartykitRequest, type Connection, type WSMessage } from "partyserver";
+
+type Env = { Main: DurableObjectNamespace<Main> };
 
 // ---------- types ----------
 type Phase = "lobby" | "rolloff" | "turn" | "drawing" | "end";
@@ -224,25 +228,26 @@ function emptyState(): State {
   };
 }
 
-// ---------- server (each Party = one game room) ----------
-export default class Server implements Party.Server {
-  state: State = emptyState();
+// ---------- server (each Durable Object = one game room) ----------
+// The binding is named "Main", so rooms live at /parties/main/<code> — the same
+// path the old PartyKit server used, so the client URL format is unchanged.
+export class Main extends Server<Env> {
+  game: State = emptyState();
   hostInitialized = false;
   rematchVotes: Set<number> = new Set();
   qmQueue: { connId: string; name: string }[] = []; // only used by the lobby room
   phaseTimer: ReturnType<typeof setTimeout> | null = null;
   graceTimers: [ReturnType<typeof setTimeout> | null, ReturnType<typeof setTimeout> | null] = [null, null];
 
-  constructor(readonly room: Party.Room) {}
-
-  onConnect(_conn: Party.Connection) {
+  onConnect(_conn: Connection) {
     // Wait for hello message; the client tells us whether it's the host or guest.
   }
 
-  async onMessage(raw: string, sender: Party.Connection) {
+  async onMessage(sender: Connection, raw: WSMessage) {
+    if (typeof raw !== "string") return;
     let m: any;
     try { m = JSON.parse(raw); } catch { return; }
-    if (this.room.id === QM_LOBBY_ID) return this.onLobbyMessage(m, sender);
+    if (this.name === QM_LOBBY_ID) return this.onLobbyMessage(m, sender);
     if (m.type === "hello") return this.onHello(m, sender);
     if (m.type === "roll") return this.onRoll(sender);
     if (m.type === "draw_line") return this.onDrawLine(m.a | 0, m.b | 0, sender);
@@ -251,16 +256,16 @@ export default class Server implements Party.Server {
   }
 
   // Pair waiting players; whoever was queued first hosts the game room.
-  private onLobbyMessage(m: any, sender: Party.Connection) {
+  private onLobbyMessage(m: any, sender: Connection) {
     if (m.type !== "find") return;
     const name = String(m.name || "Player").slice(0, 14);
     // prune our own duplicates and anyone who has since disconnected
     this.qmQueue = this.qmQueue.filter(
-      (q) => q.connId !== sender.id && this.room.getConnection(q.connId) !== undefined
+      (q) => q.connId !== sender.id && this.getConnection(q.connId) !== undefined
     );
     const partner = this.qmQueue.shift();
     if (partner) {
-      const pc = this.room.getConnection(partner.connId);
+      const pc = this.getConnection(partner.connId);
       if (pc) {
         const code = genMatchCode();
         this.send(pc, { type: "matched", code, role: "create", opponent: name });
@@ -272,25 +277,25 @@ export default class Server implements Party.Server {
     this.send(sender, { type: "queued" });
   }
 
-  onClose(conn: Party.Connection) {
-    if (this.room.id === QM_LOBBY_ID) {
+  onClose(conn: Connection) {
+    if (this.name === QM_LOBBY_ID) {
       this.qmQueue = this.qmQueue.filter((q) => q.connId !== conn.id);
       return;
     }
     for (let i = 0; i < 2; i++) {
-      if (this.state.players[i].connId === conn.id) {
-        this.state.players[i].connected = false;
-        this.state.players[i].connId = null;
+      if (this.game.players[i].connId === conn.id) {
+        this.game.players[i].connected = false;
+        this.game.players[i].connId = null;
         const events: ServerEvent[] = [{ type: "opponent_left", idx: i }];
-        if (this.state.phase !== "lobby" && this.state.phase !== "end") {
+        if (this.game.phase !== "lobby" && this.game.phase !== "end") {
           // Pause the clock and give them a grace window to reconnect
           // instead of instantly forfeiting on a network blip.
           this.clearPhaseTimer();
           this.clearGrace(i);
           this.graceTimers[i] = setTimeout(() => {
             this.graceTimers[i] = null;
-            if (this.state.players[i].connected) return;
-            if (this.state.phase === "lobby" || this.state.phase === "end") return;
+            if (this.game.players[i].connected) return;
+            if (this.game.phase === "lobby" || this.game.phase === "end") return;
             this.endGame([], (1 - i) as 0 | 1); // forfeit — they never came back
           }, GRACE_MS);
         }
@@ -301,28 +306,28 @@ export default class Server implements Party.Server {
   }
 
   // ---------- helpers ----------
-  private senderIdx(sender: Party.Connection): number {
-    for (let i = 0; i < 2; i++) if (this.state.players[i].connId === sender.id) return i;
+  private senderIdx(sender: Connection): number {
+    for (let i = 0; i < 2; i++) if (this.game.players[i].connId === sender.id) return i;
     return -1;
   }
-  private send(conn: Party.Connection, obj: any) { conn.send(JSON.stringify(obj)); }
+  private send(conn: Connection, obj: any) { conn.send(JSON.stringify(obj)); }
   private broadcastUpdate(events: ServerEvent[]) {
     // Never broadcast session tokens or connection ids.
-    const s = this.state;
+    const s = this.game;
     const publicState = {
       ...s,
       players: s.players.map((p) => ({ name: p.name, logo: p.logo, connected: p.connected })),
     };
-    this.room.broadcast(JSON.stringify({ type: "update", state: publicState, events }));
+    this.broadcast(JSON.stringify({ type: "update", state: publicState, events }));
   }
 
   private clearPhaseTimer() {
     if (this.phaseTimer) { clearTimeout(this.phaseTimer); this.phaseTimer = null; }
-    this.state.deadline = null;
+    this.game.deadline = null;
   }
   private setPhaseDeadline(ms: number, fn: () => void) {
     this.clearPhaseTimer();
-    this.state.deadline = Date.now() + ms;
+    this.game.deadline = Date.now() + ms;
     this.phaseTimer = setTimeout(fn, ms);
   }
   private clearGrace(idx: number) {
@@ -330,11 +335,11 @@ export default class Server implements Party.Server {
   }
   // Re-arm the right timer for the current phase (used after reconnects).
   private rearmPhase() {
-    if (this.state.phase === "turn") {
+    if (this.game.phase === "turn") {
       this.setPhaseDeadline(ROLL_TIMEOUT_MS, () => this.autoRoll());
-    } else if (this.state.phase === "drawing") {
+    } else if (this.game.phase === "drawing") {
       this.setPhaseDeadline(DRAW_TIMEOUT_MS, () => this.timeoutTurn());
-    } else if (this.state.phase === "rolloff") {
+    } else if (this.game.phase === "rolloff") {
       this.armRolloffTimeout();
     } else {
       this.clearPhaseTimer();
@@ -342,18 +347,18 @@ export default class Server implements Party.Server {
   }
 
   // ---------- message handlers ----------
-  private onHello(m: any, sender: Party.Connection) {
+  private onHello(m: any, sender: Connection) {
     if (m.intent === "create") {
       if (this.hostInitialized) {
         this.send(sender, { type: "error", message: "Room already started" });
         return;
       }
-      this.state = emptyState();
-      this.state.numDots = Math.max(4, Math.min(60, (m.numDots | 0) || 10));
-      this.state.bestOf = (m.bestOf | 0) === 3 ? 3 : 1;
-      this.state.dots = genDots(this.state.numDots);
-      this.state.goldenDot = pickGoldenDot(this.state.dots.length);
-      this.state.players[0] = {
+      this.game = emptyState();
+      this.game.numDots = Math.max(4, Math.min(60, (m.numDots | 0) || 10));
+      this.game.bestOf = (m.bestOf | 0) === 3 ? 3 : 1;
+      this.game.dots = genDots(this.game.numDots);
+      this.game.goldenDot = pickGoldenDot(this.game.dots.length);
+      this.game.players[0] = {
         name: String(m.name || "Player 1").slice(0, 14),
         logo: String(m.logo || "⭐️").slice(0, 8),
         connected: true,
@@ -361,7 +366,7 @@ export default class Server implements Party.Server {
         token: m.token ? String(m.token).slice(0, 64) : null,
       };
       this.hostInitialized = true;
-      this.send(sender, { type: "you", playerIdx: 0, code: this.room.id });
+      this.send(sender, { type: "you", playerIdx: 0, code: this.name });
       this.broadcastUpdate([]);
       return;
     }
@@ -370,25 +375,25 @@ export default class Server implements Party.Server {
         this.send(sender, { type: "error", message: "Room not found" });
         return;
       }
-      if (this.state.players[1].connected) {
+      if (this.game.players[1].connected) {
         this.send(sender, { type: "error", message: "Room is full" });
         return;
       }
       let logo = String(m.logo || "🔥").slice(0, 8);
-      if (logo === this.state.players[0].logo) {
+      if (logo === this.game.players[0].logo) {
         logo = logo === "🔥" ? "⚡️" : "🔥";
       }
-      this.state.players[1] = {
+      this.game.players[1] = {
         name: String(m.name || "Player 2").slice(0, 14),
         logo,
         connected: true,
         connId: sender.id,
         token: m.token ? String(m.token).slice(0, 64) : null,
       };
-      this.send(sender, { type: "you", playerIdx: 1, code: this.room.id });
-      this.state.phase = "rolloff";
-      this.state.roMatrix = [null, null];
-      this.state.roWho = 0;
+      this.send(sender, { type: "you", playerIdx: 1, code: this.name });
+      this.game.phase = "rolloff";
+      this.game.roMatrix = [null, null];
+      this.game.roWho = 0;
       this.armRolloffTimeout();
       this.broadcastUpdate([{ type: "opponent_joined", idx: 1 }]);
       return;
@@ -397,33 +402,33 @@ export default class Server implements Party.Server {
       const tok = m.token ? String(m.token).slice(0, 64) : "";
       let idx = -1;
       for (let i = 0; i < 2; i++) {
-        if (tok && this.state.players[i].token && this.state.players[i].token === tok) idx = i;
+        if (tok && this.game.players[i].token && this.game.players[i].token === tok) idx = i;
       }
       if (idx === -1) {
         this.send(sender, { type: "error", message: "Nothing to resume" });
         return;
       }
-      this.state.players[idx].connected = true;
-      this.state.players[idx].connId = sender.id;
+      this.game.players[idx].connected = true;
+      this.game.players[idx].connId = sender.id;
       this.clearGrace(idx);
-      this.send(sender, { type: "you", playerIdx: idx, code: this.room.id });
-      if (this.state.phase !== "lobby" && this.state.phase !== "end") this.rearmPhase();
+      this.send(sender, { type: "you", playerIdx: idx, code: this.name });
+      if (this.game.phase !== "lobby" && this.game.phase !== "end") this.rearmPhase();
       this.broadcastUpdate([{ type: "opponent_rejoined", idx }]);
       return;
     }
   }
 
-  private onRoll(sender: Party.Connection) {
+  private onRoll(sender: Connection) {
     const idx = this.senderIdx(sender);
     if (idx === -1) return;
-    if (this.state.phase === "rolloff") {
-      if (idx !== this.state.roWho) return;
-      if (this.state.roMatrix[idx] != null) return;
+    if (this.game.phase === "rolloff") {
+      if (idx !== this.game.roWho) return;
+      if (this.game.roMatrix[idx] != null) return;
       this.doRolloffRoll(idx);
       return;
     }
-    if (this.state.phase === "turn") {
-      if (idx !== this.state.current) return;
+    if (this.game.phase === "turn") {
+      if (idx !== this.game.current) return;
       this.doTurnRoll(idx);
       return;
     }
@@ -431,7 +436,7 @@ export default class Server implements Party.Server {
 
   private doRolloffRoll(idx: number) {
     const n = 1 + Math.floor(Math.random() * 6);
-    this.state.roMatrix[idx] = n;
+    this.game.roMatrix[idx] = n;
     this.clearPhaseTimer();
     this.broadcastUpdate([{ type: "dice_rolled", playerIdx: idx, value: n, for: "rolloff" }]);
     setTimeout(() => this.rolloffAdvance(), 1300);
@@ -439,123 +444,123 @@ export default class Server implements Party.Server {
 
   private doTurnRoll(idx: number) {
     const n = 1 + Math.floor(Math.random() * 6);
-    this.state.linesLeft = n;
-    this.state.history[idx].push(n);
-    this.state.drewThisTurn = false;   // reset for the stalemate guard
-    this.state.phase = "drawing";
+    this.game.linesLeft = n;
+    this.game.history[idx].push(n);
+    this.game.drewThisTurn = false;   // reset for the stalemate guard
+    this.game.phase = "drawing";
     this.setPhaseDeadline(DRAW_TIMEOUT_MS, () => this.timeoutTurn());
     this.broadcastUpdate([{ type: "dice_rolled", playerIdx: idx, value: n, for: "turn" }]);
   }
 
   private armRolloffTimeout() {
     this.setPhaseDeadline(ROLLOFF_TIMEOUT_MS, () => {
-      if (this.state.phase !== "rolloff") return;
-      const w = this.state.roWho;
-      if (this.state.roMatrix[w] == null) this.doRolloffRoll(w);
+      if (this.game.phase !== "rolloff") return;
+      const w = this.game.roWho;
+      if (this.game.roMatrix[w] == null) this.doRolloffRoll(w);
     });
   }
 
   // The active player never rolled — roll for them so the game can't stall.
   private autoRoll() {
-    if (this.state.phase !== "turn") return;
-    if (!this.state.players[this.state.current].connected) return; // grace timer will resolve this
-    this.doTurnRoll(this.state.current);
+    if (this.game.phase !== "turn") return;
+    if (!this.game.players[this.game.current].connected) return; // grace timer will resolve this
+    this.doTurnRoll(this.game.current);
   }
 
   // The active player ran out of drawing time — pass the turn.
   private timeoutTurn() {
-    if (this.state.phase !== "drawing") return;
-    if (!this.state.players[this.state.current].connected) return; // grace timer will resolve this
-    this.advanceTurn([{ type: "turn_timeout", idx: this.state.current }]);
+    if (this.game.phase !== "drawing") return;
+    if (!this.game.players[this.game.current].connected) return; // grace timer will resolve this
+    this.advanceTurn([{ type: "turn_timeout", idx: this.game.current }]);
   }
 
   private rolloffAdvance() {
-    if (this.state.phase !== "rolloff") return;
-    if (this.state.roWho === 0) {
-      this.state.roWho = 1;
+    if (this.game.phase !== "rolloff") return;
+    if (this.game.roWho === 0) {
+      this.game.roWho = 1;
       this.armRolloffTimeout();
       this.broadcastUpdate([]);
       return;
     }
-    const a = this.state.roMatrix[0]!, b = this.state.roMatrix[1]!;
+    const a = this.game.roMatrix[0]!, b = this.game.roMatrix[1]!;
     if (a === b) {
-      this.state.roMatrix = [null, null];
-      this.state.roWho = 0;
+      this.game.roMatrix = [null, null];
+      this.game.roWho = 0;
       this.armRolloffTimeout();
       this.broadcastUpdate([]);
       return;
     }
-    this.state.current = a > b ? 0 : 1;
-    this.state.phase = "turn";
+    this.game.current = a > b ? 0 : 1;
+    this.game.phase = "turn";
     this.setPhaseDeadline(ROLL_TIMEOUT_MS, () => this.autoRoll());
-    this.broadcastUpdate([{ type: "rolloff_starter", winnerIdx: this.state.current }]);
+    this.broadcastUpdate([{ type: "rolloff_starter", winnerIdx: this.game.current }]);
   }
 
-  private onDrawLine(a: number, b: number, sender: Party.Connection) {
+  private onDrawLine(a: number, b: number, sender: Connection) {
     const idx = this.senderIdx(sender);
     if (idx === -1) return;
-    if (this.state.phase !== "drawing") return;
-    if (idx !== this.state.current) return;
+    if (this.game.phase !== "drawing") return;
+    if (idx !== this.game.current) return;
     if (a === b) return;
-    const n = this.state.dots.length;
+    const n = this.game.dots.length;
     if (a < 0 || a >= n || b < 0 || b >= n) return;
-    if (hasEdge(this.state, a, b)) return;
-    if (crossesExisting(this.state, a, b)) return;
-    this.state.edges[edgeKey(a, b)] = idx;
-    this.state.moves[idx]++;
-    this.state.drewThisTurn = true;    // a line was drawn → not a pass
-    const newTri = checkTriangles(this.state, a, b, idx);
-    this.state.linesLeft--;
+    if (hasEdge(this.game, a, b)) return;
+    if (crossesExisting(this.game, a, b)) return;
+    this.game.edges[edgeKey(a, b)] = idx;
+    this.game.moves[idx]++;
+    this.game.drewThisTurn = true;    // a line was drawn → not a pass
+    const newTri = checkTriangles(this.game, a, b, idx);
+    this.game.linesLeft--;
     const events: ServerEvent[] = [{ type: "line_drawn", a, b, byPlayer: idx, triangles: newTri }];
-    if (!hasAnyLegalMove(this.state)) { this.endGame(events); return; }
-    if (this.state.linesLeft <= 0) { this.advanceTurn(events); return; }
+    if (!hasAnyLegalMove(this.game)) { this.endGame(events); return; }
+    if (this.game.linesLeft <= 0) { this.advanceTurn(events); return; }
     this.broadcastUpdate(events);
   }
 
-  private onEndTurn(sender: Party.Connection) {
+  private onEndTurn(sender: Connection) {
     const idx = this.senderIdx(sender);
     if (idx === -1) return;
-    if (this.state.phase !== "drawing" || idx !== this.state.current) return;
+    if (this.game.phase !== "drawing" || idx !== this.game.current) return;
     this.advanceTurn([]);
   }
 
   private advanceTurn(events: ServerEvent[]) {
-    if (!hasAnyLegalMove(this.state)) { this.endGame(events); return; }
+    if (!hasAnyLegalMove(this.game)) { this.endGame(events); return; }
     // Stalemate guard: the turn that just ended either drew (reset the streak)
     // or passed (extend it). Two passes in a row — both players declined to draw
     // while legal lines remain — is a deadlock, so end with the current scores.
-    this.state.passStreak = this.state.drewThisTurn ? 0 : this.state.passStreak + 1;
-    if (this.state.passStreak >= 2) { this.endGame(events, undefined, "stalemate"); return; }
-    this.state.current = 1 - this.state.current;
-    this.state.phase = "turn";
+    this.game.passStreak = this.game.drewThisTurn ? 0 : this.game.passStreak + 1;
+    if (this.game.passStreak >= 2) { this.endGame(events, undefined, "stalemate"); return; }
+    this.game.current = 1 - this.game.current;
+    this.game.phase = "turn";
     this.setPhaseDeadline(ROLL_TIMEOUT_MS, () => this.autoRoll());
-    events.push({ type: "turn_changed", current: this.state.current });
+    events.push({ type: "turn_changed", current: this.game.current });
     this.broadcastUpdate(events);
   }
 
   private endGame(events: ServerEvent[], forcedWinner?: 0 | 1, reason?: "stalemate") {
     this.clearPhaseTimer();
-    this.state.phase = "end";
+    this.game.phase = "end";
     this.rematchVotes.clear();
-    const [a, b] = this.state.scores;
+    const [a, b] = this.game.scores;
     const winner: number | null =
       forcedWinner !== undefined ? forcedWinner : (a === b ? null : (a > b ? 0 : 1));
     if (forcedWinner !== undefined) {
       // disconnect forfeit ends the whole match
-      this.state.matchOver = true;
-    } else if (this.state.bestOf > 1) {
-      if (winner != null) this.state.matchWins[winner]++;
-      const need = Math.floor(this.state.bestOf / 2) + 1;
-      this.state.matchOver = this.state.matchWins[0] >= need || this.state.matchWins[1] >= need;
+      this.game.matchOver = true;
+    } else if (this.game.bestOf > 1) {
+      if (winner != null) this.game.matchWins[winner]++;
+      const need = Math.floor(this.game.bestOf / 2) + 1;
+      this.game.matchOver = this.game.matchWins[0] >= need || this.game.matchWins[1] >= need;
     } else {
-      this.state.matchOver = true;
+      this.game.matchOver = true;
     }
     events.push({ type: "game_over", winnerIdx: winner, reason });
     this.broadcastUpdate(events);
   }
 
-  private onRematch(sender: Party.Connection) {
-    if (this.state.phase !== "end") return;
+  private onRematch(sender: Connection) {
+    if (this.game.phase !== "end") return;
     const idx = this.senderIdx(sender);
     if (idx === -1) return;
     this.rematchVotes.add(idx);
@@ -567,21 +572,30 @@ export default class Server implements Party.Server {
     // Both agreed — reset board, keep players (and the match score if the
     // match is still running; start fresh if it's decided).
     this.rematchVotes.clear();
-    const players = this.state.players;
-    const numDots = this.state.numDots;
-    const bestOf = this.state.bestOf;
-    const matchWins: [number, number] = this.state.matchOver ? [0, 0] : this.state.matchWins;
-    this.state = emptyState();
-    this.state.players = players;
-    this.state.numDots = numDots;
-    this.state.bestOf = bestOf;
-    this.state.matchWins = matchWins;
-    this.state.dots = genDots(numDots);
-    this.state.goldenDot = pickGoldenDot(this.state.dots.length);
-    this.state.phase = "rolloff";
-    this.state.roMatrix = [null, null];
-    this.state.roWho = 0;
+    const players = this.game.players;
+    const numDots = this.game.numDots;
+    const bestOf = this.game.bestOf;
+    const matchWins: [number, number] = this.game.matchOver ? [0, 0] : this.game.matchWins;
+    this.game = emptyState();
+    this.game.players = players;
+    this.game.numDots = numDots;
+    this.game.bestOf = bestOf;
+    this.game.matchWins = matchWins;
+    this.game.dots = genDots(numDots);
+    this.game.goldenDot = pickGoldenDot(this.game.dots.length);
+    this.game.phase = "rolloff";
+    this.game.roMatrix = [null, null];
+    this.game.roWho = 0;
     this.armRolloffTimeout();
     this.broadcastUpdate([{ type: "rematch_start" }]);
   }
 }
+
+// Worker entry: route /parties/main/<room> WebSocket upgrades to the room's Durable Object.
+export default {
+  async fetch(request: Request, env: Env): Promise<Response> {
+    const res = await routePartykitRequest(request, env);
+    if (res) return res;
+    return new Response("doTriangle server OK", { status: 200 });
+  },
+} satisfies ExportedHandler<Env>;

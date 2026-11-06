@@ -1,0 +1,16 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // doTriangle multiplayer server (PartyServer on Cloudflare Workers + Durable Objects)
+  "name": "dotriangle-server",
+  "main": "src/server.ts",
+  "compatibility_date": "2026-06-08",
+  "workers_dev": true,
+  // Game connects to wss://party.dotriangle.com/parties/main/<code>
+  "routes": [{ "pattern": "party.dotriangle.com", "custom_domain": true }],
+  "durable_objects": {
+    "bindings": [{ "name": "Main", "class_name": "Main" }]
+  },
+  // SQLite-backed Durable Objects work on the Workers free plan
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Main"] }],
+  "observability": { "enabled": true }
+}
